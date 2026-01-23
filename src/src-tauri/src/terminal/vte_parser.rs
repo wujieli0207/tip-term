@@ -369,14 +369,16 @@ impl Perform for TerminalPerformer {
     }
 }
 
+/// Type alias for PTY writer that can be shared across threads
+pub type PtyWriter = Arc<Mutex<Box<dyn Write + Send>>>;
+
 /// Terminal session using vte parser and portable-pty
 pub struct TerminalSession {
     grid: Arc<Mutex<TerminalGrid>>,
     performer: TerminalPerformer,
     parser: vte::Parser,
     _child: Box<dyn portable_pty::Child + Send>,
-    reader: Box<dyn Read + Send>,
-    writer: Box<dyn Write + Send>,
+    reader: Arc<Mutex<Box<dyn Read + Send>>>,
     cols: usize,
     rows: usize,
     pending_update: Arc<Mutex<bool>>,
@@ -385,7 +387,8 @@ pub struct TerminalSession {
 
 impl TerminalSession {
     /// Create a new terminal session
-    pub fn new(cols: usize, rows: usize, shell: String) -> std::io::Result<Self> {
+    /// Returns the session and a separate writer handle for thread-safe writing
+    pub fn new(cols: usize, rows: usize, shell: String) -> std::io::Result<(Self, PtyWriter)> {
         let pty_system = native_pty_system();
         let pty_size = PtySize {
             rows: rows as u16,
@@ -418,26 +421,22 @@ impl TerminalSession {
         let performer = TerminalPerformer::new(cols, rows);
         let grid = performer.grid.clone();
 
-        Ok(Self {
+        // Create the writer handle separately so it can be used without locking the session
+        let writer_handle: PtyWriter = Arc::new(Mutex::new(writer));
+
+        let session = Self {
             grid,
             performer,
             parser: vte::Parser::new(),
             _child: child,
-            reader,
-            writer,
+            reader: Arc::new(Mutex::new(reader)),
             cols,
             rows,
             pending_update: Arc::new(Mutex::new(true)),
             master_pty: pty_pair.master,
-        })
-    }
+        };
 
-    /// Write data to the terminal
-    pub fn write(&mut self, data: &str) -> std::io::Result<()> {
-        let bytes = data.as_bytes();
-        self.writer.write_all(bytes)?;
-        self.writer.flush()?;
-        Ok(())
+        Ok((session, writer_handle))
     }
 
     /// Resize the terminal
@@ -462,17 +461,38 @@ impl TerminalSession {
         Ok(())
     }
 
-    /// Read from PTY and update terminal
+    /// Read from PTY and update terminal (non-blocking with timeout)
     pub fn update(&mut self) -> std::io::Result<bool> {
         let mut buffer = [0u8; 8192];
-        let n = self.reader.read(&mut buffer)?;
-
-        if n > 0 {
-            self.parser.advance(&mut self.performer, &buffer[..n]);
-            *self.pending_update.lock().unwrap() = true;
-            Ok(true)
-        } else {
-            Ok(false)
+        
+        // Try to acquire reader lock with a very short timeout
+        // to avoid blocking if another operation is using it
+        let reader_result = self.reader.try_lock();
+        if reader_result.is_err() {
+            // Lock is held by another operation, skip this update
+            return Ok(false);
+        }
+        
+        let mut reader = reader_result.unwrap();
+        match reader.read(&mut buffer) {
+            Ok(0) => {
+                // EOF - terminal closed
+                Ok(false)
+            }
+            Ok(n) => {
+                // Got data, parse and update
+                self.parser.advance(&mut self.performer, &buffer[..n]);
+                *self.pending_update.lock().unwrap() = true;
+                Ok(true)
+            }
+            Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
+                // No data available right now, not an error
+                Ok(false)
+            }
+            Err(e) => {
+                // Actual error
+                Err(e)
+            }
         }
     }
 

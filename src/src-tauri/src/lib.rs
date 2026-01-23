@@ -23,3 +23,4 @@ pub struct RenderGrid {
 }
 
 pub use terminal::TerminalSession;
+pub use terminal::vte_parser::PtyWriter;
