@@ -26,8 +26,14 @@ pnpm tauri build  # Create distributable app
 ### Frontend (src/src/)
 - **React + TypeScript + Vite** with Tailwind CSS styling
 - **State Management**: Zustand stores
-  - `sessionStore.ts`: Sessions (terminal + settings pseudo-session), active session, sidebar state
+  - `sessionStore.ts`: Sessions, groups, active session, sidebar state
   - `settingsStore.ts`: Appearance settings (cursor style/blink) with localStorage persistence
+- **Session Grouping**: Edge browser-style session organization
+  - Drag session onto another (hold 300ms) to create group
+  - 9 color themes per group (gray/blue/purple/pink/red/orange/yellow/green/cyan)
+  - Editable group names (double-click)
+  - Collapsible groups
+  - Components: `GroupHeader`, `GroupContainer`, `GroupOptionsMenu`, `DragMergeOverlay`
 - **Terminal Rendering**: xterm.js in `XTerminal.tsx` with WebGL addon for GPU acceleration
   - FitAddon for automatic terminal sizing
   - Receives raw PTY bytes via Tauri events

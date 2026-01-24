@@ -7,9 +7,11 @@ import SessionOptionsMenu from './SessionOptionsMenu';
 interface SessionItemProps {
   session: SessionInfo;
   index: number;
+  inGroup?: boolean;
+  isDropTarget?: boolean;
 }
 
-export default function SessionItem({ session, index }: SessionItemProps) {
+export default function SessionItem({ session, index, inGroup = false, isDropTarget = false }: SessionItemProps) {
   const { activeSessionId, setActiveSession, closeSession, setSessionCustomName } = useSessionStore();
   const isActive = activeSessionId === session.id;
   const shortcutNumber = index + 1;
@@ -121,12 +123,18 @@ export default function SessionItem({ session, index }: SessionItemProps) {
       onMouseLeave={() => setIsHovered(false)}
       className={`
         group flex items-center justify-between gap-2
-        py-1.5 px-2 mx-1 rounded-lg
-        transition-colors duration-150 relative
-        ${isDragging ? 'z-50 shadow-lg' : ''}
+        py-1.5 px-2 rounded-lg
+        transition-all duration-150 relative
+        ${inGroup ? 'mx-0.5' : 'mx-1'}
+        ${isDragging ? 'z-50 shadow-lg opacity-50' : ''}
+        ${isDropTarget ? 'ring-2 ring-purple-500 ring-inset scale-[1.02]' : ''}
         ${isActive
-          ? "bg-[#333333] border-l-2 border-purple-500"
-          : "hover:bg-[#2a2a2a] border-l-2 border-transparent"
+          ? inGroup
+            ? "bg-[#ffffff15]"
+            : "bg-[#333333] border-l-2 border-purple-500"
+          : inGroup
+            ? "hover:bg-[#ffffff10] border-l-0"
+            : "hover:bg-[#2a2a2a] border-l-2 border-transparent"
         }
       `}
     >
