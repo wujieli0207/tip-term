@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { SessionInfo, useSessionStore } from "../../stores/sessionStore";
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface SessionItemProps {
   session: SessionInfo;
@@ -15,6 +17,21 @@ export default function SessionItem({ session, index }: SessionItemProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: session.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
 
   // Display priority:
   // 1. Custom name (user-set via double-click) - highest priority
@@ -87,11 +104,16 @@ export default function SessionItem({ session, index }: SessionItemProps) {
 
   return (
     <div
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
       onClick={handleClick}
       className={`
         group flex items-center justify-between gap-2
         py-1.5 px-2 mx-1 rounded-lg
         transition-colors duration-150
+        ${isDragging ? 'z-50 shadow-lg' : ''}
         ${isActive
           ? "bg-[#333333] border-l-2 border-purple-500"
           : "hover:bg-[#2a2a2a] border-l-2 border-transparent"

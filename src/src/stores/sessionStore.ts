@@ -38,6 +38,7 @@ interface SessionStore {
   updateSessionTerminalTitle: (id: string, title: string) => void;
   setSessionCustomName: (id: string, customName: string | null) => void;
   getSessionsList: () => SessionInfo[];
+  reorderSessions: (activeId: string, overId: string) => void;
 }
 
 let sessionCounter = 0;
@@ -168,5 +169,27 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
   getSessionsList: () => {
     const state = get();
     return Array.from(state.sessions.values()).sort((a, b) => a.order - b.order);
+  },
+
+  reorderSessions: (activeId: string, overId: string) => {
+    set((state) => {
+      const sessionsList = Array.from(state.sessions.values()).sort((a, b) => a.order - b.order);
+      const oldIndex = sessionsList.findIndex((s) => s.id === activeId);
+      const newIndex = sessionsList.findIndex((s) => s.id === overId);
+
+      if (oldIndex === -1 || newIndex === -1) return state;
+
+      // Reorder the array
+      const [removed] = sessionsList.splice(oldIndex, 1);
+      sessionsList.splice(newIndex, 0, removed);
+
+      // Update order values
+      const newSessions = new Map(state.sessions);
+      sessionsList.forEach((session, index) => {
+        newSessions.set(session.id, { ...session, order: index + 1 });
+      });
+
+      return { sessions: newSessions };
+    });
   },
 }));
