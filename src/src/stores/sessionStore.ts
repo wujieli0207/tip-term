@@ -10,6 +10,7 @@ export interface SessionInfo {
   processName?: string;
   cwd?: string;
   terminalTitle?: string;  // Title set by terminal program via OSC sequences
+  customName?: string;     // User-set custom name via double-click rename
 }
 
 export interface WorkspaceInfo {
@@ -35,6 +36,7 @@ interface SessionStore {
   renameSession: (id: string, name: string) => void;
   updateSessionProcessInfo: (id: string, processName: string, cwd: string) => void;
   updateSessionTerminalTitle: (id: string, title: string) => void;
+  setSessionCustomName: (id: string, customName: string | null) => void;
   getSessionsList: () => SessionInfo[];
 }
 
@@ -145,6 +147,20 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
 
       const newSessions = new Map(state.sessions);
       newSessions.set(id, { ...session, terminalTitle: title || undefined });
+      return { sessions: newSessions };
+    });
+  },
+
+  setSessionCustomName: (id: string, customName: string | null) => {
+    set((state) => {
+      const session = state.sessions.get(id);
+      if (!session) return state;
+
+      const newSessions = new Map(state.sessions);
+      newSessions.set(id, {
+        ...session,
+        customName: customName || undefined
+      });
       return { sessions: newSessions };
     });
   },

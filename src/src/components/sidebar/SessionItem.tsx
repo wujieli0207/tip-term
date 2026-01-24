@@ -1,3 +1,4 @@
+import { useState, useRef, useEffect } from 'react';
 import { SessionInfo, useSessionStore } from "../../stores/sessionStore";
 
 interface SessionItemProps {
@@ -6,17 +7,25 @@ interface SessionItemProps {
 }
 
 export default function SessionItem({ session, index }: SessionItemProps) {
-  const { activeSessionId, setActiveSession, closeSession } = useSessionStore();
+  const { activeSessionId, setActiveSession, closeSession, setSessionCustomName } = useSessionStore();
   const isActive = activeSessionId === session.id;
   const shortcutNumber = index + 1;
   const showShortcut = shortcutNumber <= 9;
 
+  const [isEditing, setIsEditing] = useState(false);
+  const [editValue, setEditValue] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
+
   // Display priority:
-  // 1. Terminal title (set by program via OSC) - highest priority
-  // 2. Current working directory (last component, skip if just "~")
-  // 3. Process name
-  // 4. Session name (fallback)
+  // 1. Custom name (user-set via double-click) - highest priority
+  // 2. Terminal title (set by program via OSC)
+  // 3. Current working directory (last component, skip if just "~")
+  // 4. Process name
+  // 5. Session name (fallback)
   const displayName = (() => {
+    if (session.customName) {
+      return session.customName;
+    }
     if (session.terminalTitle && session.terminalTitle !== '~') {
       return session.terminalTitle;
     }
@@ -32,6 +41,14 @@ export default function SessionItem({ session, index }: SessionItemProps) {
     return session.name;
   })();
 
+  // Auto-focus and select all text when editing starts
+  useEffect(() => {
+    if (isEditing && inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  }, [isEditing]);
+
   const handleClick = () => {
     setActiveSession(session.id);
   };
@@ -41,12 +58,39 @@ export default function SessionItem({ session, index }: SessionItemProps) {
     closeSession(session.id);
   };
 
+  // Start inline editing on double-click
+  const handleDoubleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditValue(session.customName || displayName);
+    setIsEditing(true);
+  };
+
+  // Save and exit edit mode
+  const handleSave = () => {
+    const trimmed = editValue.trim();
+    setSessionCustomName(session.id, trimmed || null);
+    setIsEditing(false);
+  };
+
+  // Cancel without saving
+  const handleCancel = () => {
+    setIsEditing(false);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSave();
+    } else if (e.key === 'Escape') {
+      handleCancel();
+    }
+  };
+
   return (
     <div
       onClick={handleClick}
       className={`
         group flex items-center justify-between gap-2
-        py-1.5 px-2 mx-1 rounded-lg cursor-pointer
+        py-1.5 px-2 mx-1 rounded-lg
         transition-colors duration-150
         ${isActive
           ? "bg-[#333333] border-l-2 border-purple-500"
@@ -54,9 +98,9 @@ export default function SessionItem({ session, index }: SessionItemProps) {
         }
       `}
     >
-      <div className="flex items-center gap-2 min-w-0 flex-1">
+      <div className="flex items-center flex-1 min-w-0 gap-2">
         <svg
-          className="w-4 h-4 text-gray-400 flex-shrink-0"
+          className="flex-shrink-0 w-4 h-4 text-gray-400"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -68,12 +112,30 @@ export default function SessionItem({ session, index }: SessionItemProps) {
             d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
           />
         </svg>
-        <span className="text-sm text-gray-300 truncate">{displayName}</span>
+        {isEditing ? (
+          <input
+            ref={inputRef}
+            type="text"
+            value={editValue}
+            onChange={(e) => setEditValue(e.target.value)}
+            onBlur={handleSave}
+            onKeyDown={handleKeyDown}
+            className="w-full text-sm text-gray-200 bg-transparent border-b border-blue-500 outline-none"
+            onClick={(e) => e.stopPropagation()}
+          />
+        ) : (
+          <span
+            className="text-sm text-gray-300 truncate"
+            onDoubleClick={handleDoubleClick}
+          >
+            {displayName}
+          </span>
+        )}
       </div>
 
-      <div className="flex items-center gap-1 flex-shrink-0">
+      <div className="flex items-center flex-shrink-0 gap-1">
         {showShortcut && (
-          <span className="text-xs text-gray-500 font-mono">
+          <span className="font-mono text-xs text-gray-500">
             ⌘{shortcutNumber}
           </span>
         )}
