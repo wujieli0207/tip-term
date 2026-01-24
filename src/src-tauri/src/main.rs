@@ -120,12 +120,17 @@ async fn resize_terminal(
     rows: usize,
     state: tauri::State<'_, Arc<Mutex<TerminalState>>>,
 ) -> Result<(), String> {
-    let state = state.lock().unwrap();
-    let session = state
-        .sessions
-        .get(&id)
-        .ok_or_else(|| "Session not found".to_string())?;
+    // Get the session Arc first, then release the state lock
+    let session = {
+        let state = state.lock().unwrap();
+        state
+            .sessions
+            .get(&id)
+            .ok_or_else(|| "Session not found".to_string())?
+            .clone()
+    };
 
+    // Now lock the session without holding the state lock
     let mut session = session.lock().unwrap();
     session.resize(cols, rows).map_err(|e| format!("Resize failed: {}", e))?;
     Ok(())

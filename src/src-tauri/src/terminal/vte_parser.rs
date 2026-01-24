@@ -42,6 +42,38 @@ impl TerminalGrid {
         }
     }
 
+    fn resize(&mut self, new_cols: usize, new_rows: usize) {
+        let default_cell = Cell {
+            char: ' '.to_string(),
+            fg: "#e5e5e5".to_string(),
+            bg: "#0a0a0a".to_string(),
+            bold: false,
+            italic: false,
+        };
+
+        let mut new_cells = vec![default_cell; new_cols * new_rows];
+
+        // Copy old content to new grid, preserving as much as possible
+        let copy_cols = self.cols.min(new_cols);
+        let copy_rows = self.rows.min(new_rows);
+
+        for row in 0..copy_rows {
+            for col in 0..copy_cols {
+                let old_idx = row * self.cols + col;
+                let new_idx = row * new_cols + col;
+                new_cells[new_idx] = self.cells[old_idx].clone();
+            }
+        }
+
+        self.cols = new_cols;
+        self.rows = new_rows;
+        self.cells = new_cells;
+
+        // Adjust cursor position if it's out of bounds
+        self.cursor_col = self.cursor_col.min(new_cols.saturating_sub(1));
+        self.cursor_row = self.cursor_row.min(new_rows.saturating_sub(1));
+    }
+
     fn get_index(&self, col: usize, row: usize) -> usize {
         (row % self.rows) * self.cols + (col % self.cols)
     }
@@ -455,8 +487,11 @@ impl TerminalSession {
             .resize(size)
             .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
 
-        let new_grid = TerminalGrid::new(cols, rows);
-        *self.grid.lock().unwrap() = new_grid;
+        // Resize the grid while preserving existing content
+        self.grid.lock().unwrap().resize(cols, rows);
+
+        // Mark as pending update so frontend gets the new grid
+        *self.pending_update.lock().unwrap() = true;
 
         Ok(())
     }

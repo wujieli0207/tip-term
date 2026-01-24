@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import { useSessionStore } from "../stores/sessionStore";
 
 interface Cell {
   char: string;
@@ -17,7 +18,7 @@ interface RenderGrid {
 }
 
 interface TerminalCanvasProps {
-  sessionId: string | null;
+  sessionId: string;
 }
 
 export default function TerminalCanvas({ sessionId }: TerminalCanvasProps) {
@@ -26,28 +27,65 @@ export default function TerminalCanvas({ sessionId }: TerminalCanvasProps) {
   const cellWidth = 8.5;
   const cellHeight = 16;
 
-  // Calculate grid dimensions
+  const activeSessionId = useSessionStore((state) => state.activeSessionId);
+  const sidebarCollapsed = useSessionStore((state) => state.sidebarCollapsed);
+  const isActive = activeSessionId === sessionId;
+
+  // Calculate grid dimensions and handle resize
   useEffect(() => {
     if (!canvasRef.current) return;
 
     const canvas = canvasRef.current;
-    const rect = canvas.parentElement?.getBoundingClientRect();
-    if (!rect) return;
+    const updateSize = () => {
+      const rect = canvas.parentElement?.getBoundingClientRect();
+      if (!rect) return;
 
-    canvas.width = rect.width;
-    canvas.height = rect.height;
+      console.log("[TerminalCanvas] updateSize called:", {
+        sessionId,
+        oldWidth: canvas.width,
+        oldHeight: canvas.height,
+        newWidth: rect.width,
+        newHeight: rect.height,
+      });
 
-    const cols = Math.floor(canvas.width / cellWidth);
-    const rows = Math.floor(canvas.height / cellHeight);
+      canvas.width = rect.width;
+      canvas.height = rect.height;
 
-    // Notify backend of size change
-    if (sessionId) {
+      const cols = Math.floor(canvas.width / cellWidth);
+      const rows = Math.floor(canvas.height / cellHeight);
+
+      console.log("[TerminalCanvas] Resizing terminal:", { sessionId, cols, rows });
+
+      // Immediately redraw with cached data after resize (canvas is cleared when dimensions change)
+      if (lastRenderDataRef.current && renderGridRef.current) {
+        console.log("[TerminalCanvas] Redrawing with cached data after resize");
+        renderGridRef.current(lastRenderDataRef.current);
+      }
+
+      // Notify backend of size change
       invoke("resize_terminal", { id: sessionId, cols, rows }).catch(console.error);
+    };
+
+    updateSize();
+
+    // Handle window resize
+    const resizeObserver = new ResizeObserver((entries) => {
+      console.log("[TerminalCanvas] ResizeObserver triggered for:", sessionId);
+      updateSize();
+    });
+    if (canvas.parentElement) {
+      resizeObserver.observe(canvas.parentElement);
     }
+
+    return () => {
+      resizeObserver.disconnect();
+    };
   }, [sessionId, cellWidth, cellHeight]);
 
   // Stable ref for the render function to avoid closure issues
   const renderGridRef = useRef<(data: RenderGrid) => void>();
+  // Cache the last render data to redraw after resize
+  const lastRenderDataRef = useRef<RenderGrid | null>(null);
 
   // Update the render function whenever rendering-related dependencies change
   useEffect(() => {
@@ -57,6 +95,18 @@ export default function TerminalCanvas({ sessionId }: TerminalCanvasProps) {
 
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
+
+      // Cache the render data for redraw after resize
+      lastRenderDataRef.current = data;
+
+      console.log("[TerminalCanvas] Rendering grid:", {
+        sessionId,
+        canvasWidth: canvas.width,
+        canvasHeight: canvas.height,
+        gridCols: data.cols,
+        gridRows: data.rows,
+        cellsCount: data.cells.length,
+      });
 
       // Clear canvas
       ctx.fillStyle = "#0a0a0a";
@@ -81,12 +131,10 @@ export default function TerminalCanvas({ sessionId }: TerminalCanvasProps) {
         }
       });
     };
-  }, [fontSize, cellWidth, cellHeight]);
+  }, [fontSize, cellWidth, cellHeight, sessionId]);
 
   // Listen for terminal updates
   useEffect(() => {
-    if (!sessionId) return;
-
     console.log("[TerminalCanvas] Session created:", sessionId);
 
     const unlisten = listen<RenderGrid>(`terminal-update-${sessionId}`, (event) => {
@@ -94,20 +142,46 @@ export default function TerminalCanvas({ sessionId }: TerminalCanvasProps) {
       renderGridRef.current?.(event.payload);
     });
 
-    // Auto-focus the canvas when session is created
-    canvasRef.current?.focus();
-
     return () => {
       unlisten.then((fn) => fn());
     };
   }, [sessionId]);
+
+  // Auto-focus when this session becomes active OR when sidebar state changes
+  useEffect(() => {
+    console.log("[TerminalCanvas] Auto-focus effect triggered:", {
+      sessionId,
+      isActive,
+      sidebarCollapsed,
+      hasCanvas: !!canvasRef.current,
+    });
+    if (isActive && canvasRef.current) {
+      // Use requestAnimationFrame to ensure DOM updates are complete before focusing
+      requestAnimationFrame(() => {
+        console.log("[TerminalCanvas] Focusing canvas via requestAnimationFrame");
+        canvasRef.current?.focus();
+        console.log("[TerminalCanvas] After focus, document.activeElement:", document.activeElement?.tagName);
+      });
+    }
+  }, [isActive, sidebarCollapsed, sessionId]);
 
   const handleClick = () => {
     canvasRef.current?.focus();
   };
 
   const handleKeyDown = async (e: React.KeyboardEvent) => {
-    if (!sessionId) return;
+    console.log("[TerminalCanvas] handleKeyDown:", {
+      key: e.key,
+      metaKey: e.metaKey,
+      ctrlKey: e.ctrlKey,
+      sessionId,
+    });
+
+    // Don't handle global shortcuts (Cmd+T, Cmd+W, Cmd+\, Cmd+1-9)
+    if (e.metaKey && (e.key === "t" || e.key === "w" || e.key === "\\" || (e.key >= "1" && e.key <= "9"))) {
+      console.log("[TerminalCanvas] Skipping global shortcut, letting App.tsx handle");
+      return; // Let App.tsx handle these
+    }
 
     e.preventDefault();
 
@@ -118,7 +192,9 @@ export default function TerminalCanvas({ sessionId }: TerminalCanvasProps) {
       const code = key.charCodeAt(0);
       if (code >= 97 && code <= 122) { // a-z
         // Ctrl+key = key - 96 (so Ctrl+A = 1, Ctrl+C = 3, etc.)
-        await invoke("write_to_session", { id: sessionId, data: String.fromCharCode(code - 96) });
+        const ctrlChar = String.fromCharCode(code - 96);
+        console.log("[TerminalCanvas] Sending Ctrl+key:", { key, ctrlChar, sessionId });
+        await invoke("write_to_session", { id: sessionId, data: ctrlChar });
         return;
       }
     }
@@ -142,10 +218,17 @@ export default function TerminalCanvas({ sessionId }: TerminalCanvasProps) {
     // Handle single character input
     else if (key.length > 1) {
       // Other special keys we don't handle yet - ignore
+      console.log("[TerminalCanvas] Ignoring special key:", key);
       return;
     }
 
-    await invoke("write_to_session", { id: sessionId, data: key });
+    console.log("[TerminalCanvas] Sending key to session:", { key: JSON.stringify(key), sessionId });
+    try {
+      await invoke("write_to_session", { id: sessionId, data: key });
+      console.log("[TerminalCanvas] Key sent successfully");
+    } catch (error) {
+      console.error("[TerminalCanvas] Failed to send key:", error);
+    }
   };
 
   return (

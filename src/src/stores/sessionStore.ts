@@ -1,0 +1,131 @@
+import { create } from "zustand";
+import { invoke } from "@tauri-apps/api/core";
+
+export interface SessionInfo {
+  id: string;
+  name: string;
+  workspaceId: string | null;
+  createdAt: number;
+  order: number;
+}
+
+export interface WorkspaceInfo {
+  id: string;
+  name: string;
+  isExpanded: boolean;
+  order: number;
+}
+
+interface SessionStore {
+  sessions: Map<string, SessionInfo>;
+  workspaces: WorkspaceInfo[];
+  activeSessionId: string | null;
+  sidebarCollapsed: boolean;
+  sidebarWidth: number;
+
+  // Actions
+  createSession: (workspaceId?: string) => Promise<string>;
+  closeSession: (id: string) => Promise<void>;
+  setActiveSession: (id: string) => void;
+  toggleSidebar: () => void;
+  setSidebarWidth: (width: number) => void;
+  renameSession: (id: string, name: string) => void;
+  getSessionsList: () => SessionInfo[];
+}
+
+let sessionCounter = 0;
+
+export const useSessionStore = create<SessionStore>((set, get) => ({
+  sessions: new Map(),
+  workspaces: [],
+  activeSessionId: null,
+  sidebarCollapsed: false,
+  sidebarWidth: 220,
+
+  createSession: async (workspaceId?: string) => {
+    try {
+      const id = await invoke<string>("create_session", { shell: "/bin/zsh" });
+      sessionCounter++;
+      const session: SessionInfo = {
+        id,
+        name: `Session ${sessionCounter}`,
+        workspaceId: workspaceId ?? null,
+        createdAt: Date.now(),
+        order: sessionCounter,
+      };
+
+      set((state) => {
+        const newSessions = new Map(state.sessions);
+        newSessions.set(id, session);
+        return {
+          sessions: newSessions,
+          activeSessionId: id,
+        };
+      });
+
+      return id;
+    } catch (error) {
+      console.error("Failed to create session:", error);
+      throw error;
+    }
+  },
+
+  closeSession: async (id: string) => {
+    try {
+      await invoke("close_session", { id });
+
+      set((state) => {
+        const newSessions = new Map(state.sessions);
+        newSessions.delete(id);
+
+        // If closing active session, switch to another
+        let newActiveId = state.activeSessionId;
+        if (state.activeSessionId === id) {
+          const remaining = Array.from(newSessions.keys());
+          newActiveId = remaining.length > 0 ? remaining[remaining.length - 1] : null;
+        }
+
+        return {
+          sessions: newSessions,
+          activeSessionId: newActiveId,
+        };
+      });
+    } catch (error) {
+      console.error("Failed to close session:", error);
+      throw error;
+    }
+  },
+
+  setActiveSession: (id: string) => {
+    const state = get();
+    if (state.sessions.has(id)) {
+      set({ activeSessionId: id });
+    }
+  },
+
+  toggleSidebar: () => {
+    const currentState = get().sidebarCollapsed;
+    console.log("[sessionStore] toggleSidebar called, current:", currentState, "-> new:", !currentState);
+    set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed }));
+  },
+
+  setSidebarWidth: (width: number) => {
+    set({ sidebarWidth: Math.max(160, Math.min(400, width)) });
+  },
+
+  renameSession: (id: string, name: string) => {
+    set((state) => {
+      const session = state.sessions.get(id);
+      if (!session) return state;
+
+      const newSessions = new Map(state.sessions);
+      newSessions.set(id, { ...session, name });
+      return { sessions: newSessions };
+    });
+  },
+
+  getSessionsList: () => {
+    const state = get();
+    return Array.from(state.sessions.values()).sort((a, b) => a.order - b.order);
+  },
+}));
