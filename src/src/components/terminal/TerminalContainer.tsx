@@ -1,14 +1,19 @@
 import { useSessionStore } from "../../stores/sessionStore";
+import { useFileTreeStore } from "../../stores/fileTreeStore";
 import XTerminal from "../XTerminal";
 import SettingsContainer from "../settings/SettingsContainer";
+import FileTreePanel from "../filetree/FileTreePanel";
 
 export default function TerminalContainer() {
-  const { getSessionsList, getTerminalSessions, activeSessionId, createSession } = useSessionStore();
-  const sessions = getSessionsList();
+  const { getSessionsList, getTerminalSessions, activeSessionId, createSession, sessions } = useSessionStore();
+  const { fileTreeVisible } = useFileTreeStore();
+  const sessionsList = getSessionsList();
   const terminalSessions = getTerminalSessions();
 
+  // Get active session to check if it's a terminal
+  const activeSession = activeSessionId ? sessions.get(activeSessionId) : null;
+
   // Show empty state if no terminal sessions and settings is not active
-  const activeSession = sessions.find((s) => s.id === activeSessionId);
   if (terminalSessions.length === 0 && activeSession?.type !== "settings") {
     return (
       <div className="flex-1 flex items-center justify-center bg-[#0a0a0a]">
@@ -29,21 +34,29 @@ export default function TerminalContainer() {
   }
 
   return (
-    <div className="flex-1 relative bg-[#0a0a0a]">
-      {sessions.map((session) => (
-        <div
-          key={session.id}
-          className={`absolute inset-0 ${
-            session.id === activeSessionId ? "visible" : "invisible"
-          }`}
-        >
-          {session.type === "terminal" ? (
-            <XTerminal sessionId={session.id} />
-          ) : (
-            <SettingsContainer />
-          )}
-        </div>
-      ))}
+    <div className="flex-1 flex bg-[#0a0a0a]">
+      {/* File tree panel - only shown for terminal sessions */}
+      {fileTreeVisible && activeSession?.type === "terminal" && (
+        <FileTreePanel />
+      )}
+
+      {/* Terminal / Settings content area */}
+      <div className="flex-1 relative">
+        {sessionsList.map((session) => (
+          <div
+            key={session.id}
+            className={`absolute inset-0 ${
+              session.id === activeSessionId ? "visible" : "invisible"
+            }`}
+          >
+            {session.type === "terminal" ? (
+              <XTerminal sessionId={session.id} />
+            ) : (
+              <SettingsContainer />
+            )}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

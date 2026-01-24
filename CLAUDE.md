@@ -28,6 +28,7 @@ pnpm tauri build  # Create distributable app
 - **State Management**: Zustand stores
   - `sessionStore.ts`: Sessions, groups, active session, sidebar state
   - `settingsStore.ts`: Appearance settings (cursor style/blink) with localStorage persistence
+  - `fileTreeStore.ts`: File tree panel visibility, width, and per-session directory trees
 - **Session Grouping**: Edge browser-style session organization
   - Drag session onto another (hold 300ms) to create group
   - 9 color themes per group (gray/blue/purple/pink/red/orange/yellow/green/cyan)
@@ -38,11 +39,18 @@ pnpm tauri build  # Create distributable app
   - FitAddon for automatic terminal sizing
   - Receives raw PTY bytes via Tauri events
   - Handles all VTE sequence parsing internally
+- **File Tree Panel**: Displays directory tree for active terminal session
+  - Uses session's cwd (current working directory)
+  - Collapsible/expandable directories
+  - File icons based on extension
+  - Default exclusion patterns (.git, node_modules, etc.)
+  - Components: `FileTreePanel`, `FileTreeHeader`, `FileTreeView`, `FileTreeItem`
 - **Keyboard Shortcuts** (handled in App.tsx):
   - Cmd+T: New session
   - Cmd+W: Close active session (not settings)
   - Cmd+,: Open settings
   - Cmd+\: Toggle sidebar
+  - Cmd+B: Toggle file tree panel
   - Cmd+1-9: Switch terminal sessions
 
 ### Backend (src/src-tauri/src/)
@@ -52,6 +60,9 @@ pnpm tauri build  # Create distributable app
   - PTY creation via portable-pty crate
   - Raw byte output passthrough (no VTE parsing)
   - Terminal resize handling
+- **filesystem.rs**: File system operations for file tree
+  - `read_directory` command: Lists directory contents with filtering
+  - Excludes common patterns (.git, node_modules, etc.)
 
 ### Communication Flow
 - Frontend → Backend: Tauri `invoke()` for commands (create_session, write_to_session, resize_terminal, close_session)

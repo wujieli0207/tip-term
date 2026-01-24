@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useSessionStore } from "./stores/sessionStore";
+import { useFileTreeStore } from "./stores/fileTreeStore";
 import Sidebar from "./components/sidebar/Sidebar";
 import TerminalContainer from "./components/terminal/TerminalContainer";
 import { isShellProcess, sendNotification } from "./utils/notifications";
@@ -102,6 +103,13 @@ function App() {
       if (e.metaKey && e.key === "\\") {
         e.preventDefault();
         toggleSidebar();
+        return;
+      }
+
+      // Cmd+B: Toggle file tree
+      if (e.metaKey && e.key === "b") {
+        e.preventDefault();
+        useFileTreeStore.getState().toggleFileTreeVisible();
         return;
       }
 

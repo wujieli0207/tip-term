@@ -188,19 +188,93 @@ pub fn get_process_info_by_pid(pid: u32) -> Option<ProcessInfo> {
 
 /// Internal implementation of process info lookup
 fn get_process_info_by_pid_impl(pid: u32) -> Option<ProcessInfo> {
-    // Use sysinfo to get process information
+    // Use sysinfo to get process name
     let mut system = System::new();
-    
-    // First refresh all processes to populate the system
     system.refresh_processes(ProcessesToUpdate::All, true);
-    
+
     let process_pid = sysinfo::Pid::from_u32(pid);
     let process = system.process(process_pid)?;
-    
     let name = process.name().to_string_lossy().to_string();
-    let cwd = process.cwd()
-        .map(|p| p.to_string_lossy().to_string())
-        .unwrap_or_else(|| "~".to_string());
+
+    // Get cwd using platform-specific method
+    let cwd = get_process_cwd(pid).unwrap_or_else(|| "~".to_string());
 
     Some(ProcessInfo { name, cwd })
+}
+
+/// Get the current working directory of a process
+#[cfg(target_os = "macos")]
+fn get_process_cwd(pid: u32) -> Option<String> {
+    use std::ffi::CStr;
+    use std::mem;
+
+    // Use proc_pidinfo to get the current directory on macOS
+    #[repr(C)]
+    struct VnodePathInfo {
+        cdir: VnodeInfoPath,
+        rdir: VnodeInfoPath,
+    }
+
+    #[repr(C)]
+    struct VnodeInfoPath {
+        _vip_vi: [u8; 152], // vnode_info struct, we don't need the details
+        vip_path: [i8; 1024], // MAXPATHLEN
+    }
+
+    const PROC_PIDVNODEPATHINFO: i32 = 9;
+
+    extern "C" {
+        fn proc_pidinfo(
+            pid: i32,
+            flavor: i32,
+            arg: u64,
+            buffer: *mut libc::c_void,
+            buffersize: i32,
+        ) -> i32;
+    }
+
+    let mut vpi: VnodePathInfo = unsafe { mem::zeroed() };
+    let size = mem::size_of::<VnodePathInfo>() as i32;
+
+    let result = unsafe {
+        proc_pidinfo(
+            pid as i32,
+            PROC_PIDVNODEPATHINFO,
+            0,
+            &mut vpi as *mut _ as *mut libc::c_void,
+            size,
+        )
+    };
+
+    if result <= 0 {
+        return None;
+    }
+
+    // Convert the path from C string
+    let cwd = unsafe {
+        CStr::from_ptr(vpi.cdir.vip_path.as_ptr())
+            .to_string_lossy()
+            .to_string()
+    };
+
+    if cwd.is_empty() {
+        None
+    } else {
+        Some(cwd)
+    }
+}
+
+#[cfg(target_os = "linux")]
+fn get_process_cwd(pid: u32) -> Option<String> {
+    // On Linux, read from /proc/<pid>/cwd
+    std::fs::read_link(format!("/proc/{}/cwd", pid))
+        .ok()
+        .map(|p| p.to_string_lossy().to_string())
+}
+
+#[cfg(target_os = "windows")]
+fn get_process_cwd(_pid: u32) -> Option<String> {
+    // Windows doesn't have an easy way to get another process's cwd
+    // Return None to use default
+    None
 }

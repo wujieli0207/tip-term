@@ -1,6 +1,8 @@
 // Prevents additional console window on Windows in release builds
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod filesystem;
+
 use std::collections::HashMap;
 use std::io::Write;
 use std::sync::{Arc, Mutex};
@@ -180,6 +182,7 @@ fn main() {
             resize_terminal,
             close_session,
             get_session_info,
+            filesystem::read_directory,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
