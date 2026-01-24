@@ -48,31 +48,25 @@ async fn create_session(
     let session_id_clone = session_id.clone();
     let app_clone = app.clone();
     tokio::spawn(async move {
-        eprintln!("Terminal update loop started for session {}", session_id_clone);
+        eprintln!("Terminal output loop started for session {}", session_id_clone);
         loop {
             tokio::time::sleep(std::time::Duration::from_millis(16)).await;
 
-            // 1. First, read from PTY and parse VTE sequences (needs mutable reference)
-            let has_update = {
+            // Read raw output from PTY and emit to frontend
+            let output = {
                 let mut session = session_arc.lock().unwrap();
-                session.update().unwrap_or(false)
+                session.read_output().unwrap_or(None)
             };
 
-            // 2. If there was an update, get the render grid and emit it
-            if has_update {
-                let session = session_arc.lock().unwrap();
-                if let Some(grid) = session.get_render_grid() {
-                    drop(session);
-
-                    eprintln!("Emitting terminal update: {} cols x {} rows, {} cells", grid.cols, grid.rows, grid.cells.len());
-                    if let Err(e) = app_clone.emit(&format!("terminal-update-{}", session_id_clone), grid) {
-                        eprintln!("Failed to emit terminal update: {}", e);
-                        break;
-                    }
+            if let Some(data) = output {
+                // Emit raw bytes to frontend - xterm.js will parse VTE sequences
+                if let Err(e) = app_clone.emit(&format!("terminal-output-{}", session_id_clone), data) {
+                    eprintln!("Failed to emit terminal output: {}", e);
+                    break;
                 }
             }
 
-            // 3. Check if the terminal is still alive
+            // Check if the terminal is still alive
             {
                 let mut session = session_arc.lock().unwrap();
                 if !session.is_alive() {

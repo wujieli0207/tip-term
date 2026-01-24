@@ -1,5 +1,5 @@
 import { useSessionStore } from "../../stores/sessionStore";
-import TerminalCanvas from "../TerminalCanvas";
+import XTerminal from "../XTerminal";
 
 export default function TerminalContainer() {
   const { getSessionsList, activeSessionId, createSession, sidebarCollapsed } = useSessionStore();
@@ -40,7 +40,7 @@ export default function TerminalContainer() {
             session.id === activeSessionId ? "visible" : "invisible"
           }`}
         >
-          <TerminalCanvas sessionId={session.id} />
+          <XTerminal sessionId={session.id} />
         </div>
       ))}
     </div>
