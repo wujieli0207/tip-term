@@ -6,15 +6,20 @@ import { FitAddon } from "@xterm/addon-fit";
 import { WebglAddon } from "@xterm/addon-webgl";
 import "@xterm/xterm/css/xterm.css";
 import { useSessionStore } from "../stores/sessionStore";
+import { sendNotification } from "../utils/notifications";
 
 interface XTerminalProps {
   sessionId: string;
 }
 
+// Cooldown for activity notifications (5 seconds)
+const ACTIVITY_NOTIFICATION_COOLDOWN = 5000;
+
 export default function XTerminal({ sessionId }: XTerminalProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const terminalRef = useRef<Terminal | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
+  const lastActivityNotificationRef = useRef<number>(0);
 
   const activeSessionId = useSessionStore((state) => state.activeSessionId);
   const sidebarCollapsed = useSessionStore((state) => state.sidebarCollapsed);
@@ -94,6 +99,27 @@ export default function XTerminal({ sessionId }: XTerminalProps) {
     const unlistenPromise = listen<number[]>(`terminal-output-${sessionId}`, (event) => {
       const data = new Uint8Array(event.payload);
       terminal.write(data);
+
+      // Activity notification for non-active sessions
+      const currentState = useSessionStore.getState();
+      const currentSession = currentState.sessions.get(sessionId);
+      const isCurrentlyActive = currentState.activeSessionId === sessionId;
+
+      if (
+        currentSession?.notifyOnActivity &&
+        !isCurrentlyActive &&
+        data.length > 0
+      ) {
+        const now = Date.now();
+        if (now - lastActivityNotificationRef.current >= ACTIVITY_NOTIFICATION_COOLDOWN) {
+          lastActivityNotificationRef.current = now;
+          sendNotification({
+            title: "Terminal Activity",
+            body: `New output in session`,
+            sessionId,
+          });
+        }
+      }
     });
 
     // Cleanup

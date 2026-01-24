@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { SessionInfo, useSessionStore } from "../../stores/sessionStore";
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import SessionOptionsMenu from './SessionOptionsMenu';
 
 interface SessionItemProps {
   session: SessionInfo;
@@ -16,6 +17,8 @@ export default function SessionItem({ session, index }: SessionItemProps) {
 
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState('');
+  const [isHovered, setIsHovered] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const {
@@ -102,6 +105,11 @@ export default function SessionItem({ session, index }: SessionItemProps) {
     }
   };
 
+  const handleMenuClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setMenuOpen(!menuOpen);
+  };
+
   return (
     <div
       ref={setNodeRef}
@@ -109,10 +117,12 @@ export default function SessionItem({ session, index }: SessionItemProps) {
       {...attributes}
       {...listeners}
       onClick={handleClick}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
       className={`
         group flex items-center justify-between gap-2
         py-1.5 px-2 mx-1 rounded-lg
-        transition-colors duration-150
+        transition-colors duration-150 relative
         ${isDragging ? 'z-50 shadow-lg' : ''}
         ${isActive
           ? "bg-[#333333] border-l-2 border-purple-500"
@@ -121,19 +131,25 @@ export default function SessionItem({ session, index }: SessionItemProps) {
       `}
     >
       <div className="flex items-center flex-1 min-w-0 gap-2">
-        <svg
-          className="flex-shrink-0 w-4 h-4 text-gray-400"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-          />
-        </svg>
+        <div className="relative flex-shrink-0">
+          <svg
+            className="w-4 h-4 text-gray-400"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+            />
+          </svg>
+          {/* Notification indicator */}
+          {(session.notifyWhenDone || session.notifyOnActivity) && (
+            <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-purple-500 rounded-full" />
+          )}
+        </div>
         {isEditing ? (
           <input
             ref={inputRef}
@@ -156,10 +172,27 @@ export default function SessionItem({ session, index }: SessionItemProps) {
       </div>
 
       <div className="flex items-center flex-shrink-0 gap-1">
-        {showShortcut && (
+        {showShortcut && !isHovered && !menuOpen && (
           <span className="font-mono text-xs text-gray-500">
             ⌘{shortcutNumber}
           </span>
+        )}
+        {(isHovered || menuOpen) && (
+          <button
+            onClick={handleMenuClick}
+            className="p-0.5 rounded hover:bg-[#444444] transition-opacity duration-150"
+            title="Session options"
+          >
+            <svg
+              className="w-3.5 h-3.5 text-gray-400 hover:text-gray-200"
+              fill="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <circle cx="12" cy="5" r="2" />
+              <circle cx="12" cy="12" r="2" />
+              <circle cx="12" cy="19" r="2" />
+            </svg>
+          </button>
         )}
         <button
           onClick={handleClose}
@@ -181,6 +214,11 @@ export default function SessionItem({ session, index }: SessionItemProps) {
           </svg>
         </button>
       </div>
+
+      {/* Options dropdown menu */}
+      {menuOpen && (
+        <SessionOptionsMenu session={session} onClose={() => setMenuOpen(false)} />
+      )}
     </div>
   );
 }

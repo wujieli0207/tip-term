@@ -11,6 +11,8 @@ export interface SessionInfo {
   cwd?: string;
   terminalTitle?: string;  // Title set by terminal program via OSC sequences
   customName?: string;     // User-set custom name via double-click rename
+  notifyWhenDone?: boolean;    // Notify when command completes
+  notifyOnActivity?: boolean;  // Notify on new terminal output
 }
 
 export interface WorkspaceInfo {
@@ -37,6 +39,8 @@ interface SessionStore {
   updateSessionProcessInfo: (id: string, processName: string, cwd: string) => void;
   updateSessionTerminalTitle: (id: string, title: string) => void;
   setSessionCustomName: (id: string, customName: string | null) => void;
+  setNotifyWhenDone: (id: string, enabled: boolean) => void;
+  setNotifyOnActivity: (id: string, enabled: boolean) => void;
   getSessionsList: () => SessionInfo[];
   reorderSessions: (activeId: string, overId: string) => void;
 }
@@ -161,6 +165,34 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
       newSessions.set(id, {
         ...session,
         customName: customName || undefined
+      });
+      return { sessions: newSessions };
+    });
+  },
+
+  setNotifyWhenDone: (id: string, enabled: boolean) => {
+    set((state) => {
+      const session = state.sessions.get(id);
+      if (!session) return state;
+
+      const newSessions = new Map(state.sessions);
+      newSessions.set(id, {
+        ...session,
+        notifyWhenDone: enabled || undefined
+      });
+      return { sessions: newSessions };
+    });
+  },
+
+  setNotifyOnActivity: (id: string, enabled: boolean) => {
+    set((state) => {
+      const session = state.sessions.get(id);
+      if (!session) return state;
+
+      const newSessions = new Map(state.sessions);
+      newSessions.set(id, {
+        ...session,
+        notifyOnActivity: enabled || undefined
       });
       return { sessions: newSessions };
     });

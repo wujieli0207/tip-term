@@ -169,6 +169,7 @@ async fn get_session_info(
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_notification::init())
         .setup(|app| {
             app.manage(Arc::new(Mutex::new(TerminalState::new())));
             Ok(())
