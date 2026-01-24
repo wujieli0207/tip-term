@@ -25,16 +25,19 @@ pnpm tauri build  # Create distributable app
 
 ### Frontend (src/src/)
 - **React + TypeScript + Vite** with Tailwind CSS styling
-- **State Management**: Zustand store (`stores/sessionStore.ts`) manages sessions, active session ID, and sidebar state
+- **State Management**: Zustand stores
+  - `sessionStore.ts`: Sessions (terminal + settings pseudo-session), active session, sidebar state
+  - `settingsStore.ts`: Appearance settings (cursor style/blink) with localStorage persistence
 - **Terminal Rendering**: xterm.js in `XTerminal.tsx` with WebGL addon for GPU acceleration
   - FitAddon for automatic terminal sizing
   - Receives raw PTY bytes via Tauri events
   - Handles all VTE sequence parsing internally
 - **Keyboard Shortcuts** (handled in App.tsx):
   - Cmd+T: New session
-  - Cmd+W: Close active session
+  - Cmd+W: Close active session (not settings)
+  - Cmd+,: Open settings
   - Cmd+\: Toggle sidebar
-  - Cmd+1-9: Switch sessions
+  - Cmd+1-9: Switch terminal sessions
 
 ### Backend (src/src-tauri/src/)
 - **main.rs**: Tauri command handlers and app initialization
