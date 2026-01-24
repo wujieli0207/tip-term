@@ -19,11 +19,11 @@ function App() {
     useSessionStore.getState().createSession().catch(console.error);
   }, []);
 
-  // Poll session process info
+  // Poll session process info (only for terminal sessions)
   useEffect(() => {
     const pollInterval = setInterval(async () => {
-      const { getSessionsList, updateSessionProcessInfo, activeSessionId } = useSessionStore.getState();
-      const sessions = getSessionsList();
+      const { getTerminalSessions, updateSessionProcessInfo, activeSessionId } = useSessionStore.getState();
+      const sessions = getTerminalSessions();
 
       // Poll each session's process info
       for (const session of sessions) {
@@ -73,7 +73,14 @@ function App() {
   // Global keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      const { activeSessionId, createSession, closeSession, toggleSidebar, getSessionsList, setActiveSession } = useSessionStore.getState();
+      const { activeSessionId, createSession, closeSession, toggleSidebar, getTerminalSessions, setActiveSession, openSettings, isSettingsSession } = useSessionStore.getState();
+
+      // Cmd+,: Open settings
+      if (e.metaKey && e.key === ",") {
+        e.preventDefault();
+        openSettings();
+        return;
+      }
 
       // Cmd+T: New session
       if (e.metaKey && e.key === "t") {
@@ -82,10 +89,10 @@ function App() {
         return;
       }
 
-      // Cmd+W: Close current session
+      // Cmd+W: Close current session (not settings)
       if (e.metaKey && e.key === "w") {
         e.preventDefault();
-        if (activeSessionId) {
+        if (activeSessionId && !isSettingsSession(activeSessionId)) {
           closeSession(activeSessionId).catch(console.error);
         }
         return;
@@ -98,11 +105,11 @@ function App() {
         return;
       }
 
-      // Cmd+1-9: Switch to session by index
+      // Cmd+1-9: Switch to terminal session by index
       if (e.metaKey && e.key >= "1" && e.key <= "9") {
         e.preventDefault();
         const index = parseInt(e.key) - 1;
-        const sessions = getSessionsList();
+        const sessions = getTerminalSessions();
         if (index < sessions.length) {
           setActiveSession(sessions[index].id);
         }

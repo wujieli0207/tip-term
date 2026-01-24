@@ -4,6 +4,7 @@ import { invoke } from "@tauri-apps/api/core";
 export interface SessionInfo {
   id: string;
   name: string;
+  type: "terminal" | "settings";
   workspaceId: string | null;
   createdAt: number;
   order: number;
@@ -21,6 +22,8 @@ export interface WorkspaceInfo {
   isExpanded: boolean;
   order: number;
 }
+
+const SETTINGS_SESSION_ID = "__settings__";
 
 interface SessionStore {
   sessions: Map<string, SessionInfo>;
@@ -43,6 +46,11 @@ interface SessionStore {
   setNotifyOnActivity: (id: string, enabled: boolean) => void;
   getSessionsList: () => SessionInfo[];
   reorderSessions: (activeId: string, overId: string) => void;
+
+  // Settings-related actions
+  openSettings: () => void;
+  isSettingsSession: (id: string) => boolean;
+  getTerminalSessions: () => SessionInfo[];
 }
 
 let sessionCounter = 0;
@@ -61,6 +69,7 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
       const session: SessionInfo = {
         id,
         name: `Session ${sessionCounter}`,
+        type: "terminal",
         workspaceId: workspaceId ?? null,
         createdAt: Date.now(),
         order: sessionCounter,
@@ -223,5 +232,45 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
 
       return { sessions: newSessions };
     });
+  },
+
+  // Settings-related actions
+  openSettings: () => {
+    const state = get();
+    // If settings session already exists, just activate it
+    if (state.sessions.has(SETTINGS_SESSION_ID)) {
+      set({ activeSessionId: SETTINGS_SESSION_ID });
+      return;
+    }
+
+    // Create settings pseudo-session
+    const settingsSession: SessionInfo = {
+      id: SETTINGS_SESSION_ID,
+      name: "Settings",
+      type: "settings",
+      workspaceId: null,
+      createdAt: Date.now(),
+      order: -1, // Settings always at special position
+    };
+
+    set((state) => {
+      const newSessions = new Map(state.sessions);
+      newSessions.set(SETTINGS_SESSION_ID, settingsSession);
+      return {
+        sessions: newSessions,
+        activeSessionId: SETTINGS_SESSION_ID,
+      };
+    });
+  },
+
+  isSettingsSession: (id: string) => {
+    return id === SETTINGS_SESSION_ID;
+  },
+
+  getTerminalSessions: () => {
+    const state = get();
+    return Array.from(state.sessions.values())
+      .filter((s) => s.type === "terminal")
+      .sort((a, b) => a.order - b.order);
   },
 }));

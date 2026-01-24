@@ -6,6 +6,7 @@ import { FitAddon } from "@xterm/addon-fit";
 import { WebglAddon } from "@xterm/addon-webgl";
 import "@xterm/xterm/css/xterm.css";
 import { useSessionStore } from "../stores/sessionStore";
+import { useSettingsStore } from "../stores/settingsStore";
 import { sendNotification } from "../utils/notifications";
 
 interface XTerminalProps {
@@ -24,6 +25,9 @@ export default function XTerminal({ sessionId }: XTerminalProps) {
   const activeSessionId = useSessionStore((state) => state.activeSessionId);
   const sidebarCollapsed = useSessionStore((state) => state.sidebarCollapsed);
   const isActive = activeSessionId === sessionId;
+
+  const cursorStyle = useSettingsStore((state) => state.appearance.cursorStyle);
+  const cursorBlink = useSettingsStore((state) => state.appearance.cursorBlink);
 
   // Initialize terminal
   useEffect(() => {
@@ -55,8 +59,8 @@ export default function XTerminal({ sessionId }: XTerminalProps) {
         brightCyan: "#29b8db",
         brightWhite: "#ffffff",
       },
-      cursorBlink: true,
-      cursorStyle: "block",
+      cursorBlink: useSettingsStore.getState().appearance.cursorBlink,
+      cursorStyle: useSettingsStore.getState().appearance.cursorStyle,
       allowProposedApi: true,
     });
 
@@ -162,6 +166,20 @@ export default function XTerminal({ sessionId }: XTerminalProps) {
       });
     }
   }, [isActive, sidebarCollapsed]);
+
+  // Apply cursor style changes
+  useEffect(() => {
+    if (terminalRef.current) {
+      terminalRef.current.options.cursorStyle = cursorStyle;
+    }
+  }, [cursorStyle]);
+
+  // Apply cursor blink changes
+  useEffect(() => {
+    if (terminalRef.current) {
+      terminalRef.current.options.cursorBlink = cursorBlink;
+    }
+  }, [cursorBlink]);
 
   const handleClick = () => {
     terminalRef.current?.focus();

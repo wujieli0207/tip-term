@@ -1,12 +1,15 @@
 import { useSessionStore } from "../../stores/sessionStore";
 import XTerminal from "../XTerminal";
+import SettingsContainer from "../settings/SettingsContainer";
 
 export default function TerminalContainer() {
-  const { getSessionsList, activeSessionId, createSession } = useSessionStore();
+  const { getSessionsList, getTerminalSessions, activeSessionId, createSession } = useSessionStore();
   const sessions = getSessionsList();
+  const terminalSessions = getTerminalSessions();
 
-  // Show empty state if no sessions
-  if (sessions.length === 0) {
+  // Show empty state if no terminal sessions and settings is not active
+  const activeSession = sessions.find((s) => s.id === activeSessionId);
+  if (terminalSessions.length === 0 && activeSession?.type !== "settings") {
     return (
       <div className="flex-1 flex items-center justify-center bg-[#0a0a0a]">
         <div className="text-center">
@@ -34,7 +37,11 @@ export default function TerminalContainer() {
             session.id === activeSessionId ? "visible" : "invisible"
           }`}
         >
-          <XTerminal sessionId={session.id} />
+          {session.type === "terminal" ? (
+            <XTerminal sessionId={session.id} />
+          ) : (
+            <SettingsContainer />
+          )}
         </div>
       ))}
     </div>
