@@ -2,22 +2,32 @@ use std::io::{Read, Write};
 use std::sync::{Arc, Mutex};
 
 use portable_pty::{native_pty_system, CommandBuilder, MasterPty, PtySize};
+use serde::{Deserialize, Serialize};
+use sysinfo::{ProcessesToUpdate, System};
 
 /// Type alias for PTY writer that can be shared across threads
 pub type PtyWriter = Arc<Mutex<Box<dyn Write + Send>>>;
 
+/// Process information for a terminal session
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ProcessInfo {
+    pub name: String,
+    pub cwd: String,
+}
+
 /// Terminal session that manages PTY and passes raw output to frontend
 /// VTE parsing is handled by xterm.js on the frontend
 pub struct TerminalSession {
-    _child: Box<dyn portable_pty::Child + Send>,
+    child: Box<dyn portable_pty::Child + Send>,
     reader: Arc<Mutex<Box<dyn Read + Send>>>,
     master_pty: Box<dyn MasterPty + Send>,
+    child_pid: u32,
 }
 
 impl TerminalSession {
     /// Create a new terminal session
-    /// Returns the session and a separate writer handle for thread-safe writing
-    pub fn new(cols: usize, rows: usize, shell: String) -> std::io::Result<(Self, PtyWriter)> {
+    /// Returns the session, a separate writer handle, and the child PID
+    pub fn new(cols: usize, rows: usize, shell: String) -> std::io::Result<(Self, PtyWriter, u32)> {
         let pty_system = native_pty_system();
         let pty_size = PtySize {
             rows: rows as u16,
@@ -37,6 +47,9 @@ impl TerminalSession {
             .spawn_command(cmd)
             .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
 
+        // Get the child process ID
+        let child_pid = child.process_id().unwrap_or(0);
+
         // Get reader and writer from the master PTY
         let reader = pty_pair
             .master
@@ -51,12 +64,13 @@ impl TerminalSession {
         let writer_handle: PtyWriter = Arc::new(Mutex::new(writer));
 
         let session = Self {
-            _child: child,
+            child,
             reader: Arc::new(Mutex::new(reader)),
             master_pty: pty_pair.master,
+            child_pid,
         };
 
-        Ok((session, writer_handle))
+        Ok((session, writer_handle, child_pid))
     }
 
     /// Resize the terminal
@@ -112,6 +126,81 @@ impl TerminalSession {
     pub fn is_alive(&mut self) -> bool {
         // Try to poll the child process
         // Returns true if still running (None result), false if exited
-        self._child.try_wait().map(|status| status.is_none()).unwrap_or(true)
+        self.child.try_wait().map(|status| status.is_none()).unwrap_or(true)
     }
+
+    /// Get process information for the foreground process
+    pub fn get_process_info(&self) -> Option<ProcessInfo> {
+        #[cfg(target_os = "macos")]
+        {
+            self.get_process_info_unix()
+        }
+        #[cfg(target_os = "linux")]
+        {
+            self.get_process_info_unix()
+        }
+        #[cfg(target_os = "windows")]
+        {
+            self.get_process_info_windows()
+        }
+    }
+
+    #[cfg(any(target_os = "macos", target_os = "linux"))]
+    fn get_process_info_unix(&self) -> Option<ProcessInfo> {
+        // Get the foreground process group ID from the PTY
+        let fd = match self.master_pty.as_raw_fd() {
+            Some(fd) => fd,
+            None => {
+                // If we can't get FD, just use the child PID
+                return self.get_process_by_pid(self.child_pid);
+            }
+        };
+
+        let fg_pid = unsafe {
+            let pgrp = libc::tcgetpgrp(fd);
+            if pgrp < 0 {
+                // If we can't get the foreground process group, use the child PID
+                self.child_pid
+            } else {
+                pgrp as u32
+            }
+        };
+
+        self.get_process_by_pid(fg_pid)
+    }
+
+    /// Helper function to get process info by PID
+    fn get_process_by_pid(&self, pid: u32) -> Option<ProcessInfo> {
+        get_process_info_by_pid_impl(pid)
+    }
+
+    #[cfg(target_os = "windows")]
+    fn get_process_info_windows(&self) -> Option<ProcessInfo> {
+        // For Windows, we'll use the child PID directly
+        get_process_info_by_pid_impl(self.child_pid)
+    }
+}
+
+/// Get process information by PID (public function that doesn't require session lock)
+pub fn get_process_info_by_pid(pid: u32) -> Option<ProcessInfo> {
+    get_process_info_by_pid_impl(pid)
+}
+
+/// Internal implementation of process info lookup
+fn get_process_info_by_pid_impl(pid: u32) -> Option<ProcessInfo> {
+    // Use sysinfo to get process information
+    let mut system = System::new();
+    
+    // First refresh all processes to populate the system
+    system.refresh_processes(ProcessesToUpdate::All, true);
+    
+    let process_pid = sysinfo::Pid::from_u32(pid);
+    let process = system.process(process_pid)?;
+    
+    let name = process.name().to_string_lossy().to_string();
+    let cwd = process.cwd()
+        .map(|p| p.to_string_lossy().to_string())
+        .unwrap_or_else(|| "~".to_string());
+
+    Some(ProcessInfo { name, cwd })
 }

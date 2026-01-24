@@ -1,7 +1,13 @@
 import { useEffect } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import { useSessionStore } from "./stores/sessionStore";
 import Sidebar from "./components/sidebar/Sidebar";
 import TerminalContainer from "./components/terminal/TerminalContainer";
+
+interface ProcessInfo {
+  name: string;
+  cwd: string;
+}
 
 function App() {
   // Create initial session on mount
@@ -9,16 +15,35 @@ function App() {
     useSessionStore.getState().createSession().catch(console.error);
   }, []);
 
+  // Poll session process info
+  useEffect(() => {
+    const pollInterval = setInterval(async () => {
+      const { getSessionsList, updateSessionProcessInfo } = useSessionStore.getState();
+      const sessions = getSessionsList();
+
+      // Poll each session's process info
+      for (const session of sessions) {
+        try {
+          const info = await invoke<ProcessInfo | null>("get_session_info", { id: session.id });
+          if (info) {
+            updateSessionProcessInfo(session.id, info.name, info.cwd);
+          }
+        } catch (error) {
+          console.error(`[App] Failed to get process info for ${session.id}:`, error);
+        }
+      }
+    }, 1500); // Poll every 1.5 seconds
+
+    return () => clearInterval(pollInterval);
+  }, []);
+
   // Global keyboard shortcuts
   useEffect(() => {
-    console.log("[App] Setting up keyboard shortcuts listener");
-
     const handleKeyDown = (e: KeyboardEvent) => {
-      const { activeSessionId, createSession, closeSession, toggleSidebar, getSessionsList, setActiveSession, sidebarCollapsed } = useSessionStore.getState();
+      const { activeSessionId, createSession, closeSession, toggleSidebar, getSessionsList, setActiveSession } = useSessionStore.getState();
 
       // Cmd+T: New session
       if (e.metaKey && e.key === "t") {
-        console.log("[App] Cmd+T pressed, creating new session");
         e.preventDefault();
         createSession().catch(console.error);
         return;
@@ -26,7 +51,6 @@ function App() {
 
       // Cmd+W: Close current session
       if (e.metaKey && e.key === "w") {
-        console.log("[App] Cmd+W pressed, activeSessionId:", activeSessionId);
         e.preventDefault();
         if (activeSessionId) {
           closeSession(activeSessionId).catch(console.error);
@@ -36,10 +60,8 @@ function App() {
 
       // Cmd+\: Toggle sidebar
       if (e.metaKey && e.key === "\\") {
-        console.log("[App] Cmd+\\ pressed, current sidebarCollapsed:", sidebarCollapsed);
         e.preventDefault();
         toggleSidebar();
-        console.log("[App] After toggleSidebar, new sidebarCollapsed:", useSessionStore.getState().sidebarCollapsed);
         return;
       }
 
@@ -48,7 +70,6 @@ function App() {
         e.preventDefault();
         const index = parseInt(e.key) - 1;
         const sessions = getSessionsList();
-        console.log("[App] Cmd+" + e.key + " pressed, sessions count:", sessions.length);
         if (index < sessions.length) {
           setActiveSession(sessions[index].id);
         }
@@ -57,10 +78,7 @@ function App() {
     };
 
     window.addEventListener("keydown", handleKeyDown);
-    return () => {
-      console.log("[App] Removing keyboard shortcuts listener");
-      window.removeEventListener("keydown", handleKeyDown);
-    };
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
   return (

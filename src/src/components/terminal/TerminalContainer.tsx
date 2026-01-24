@@ -2,14 +2,8 @@ import { useSessionStore } from "../../stores/sessionStore";
 import XTerminal from "../XTerminal";
 
 export default function TerminalContainer() {
-  const { getSessionsList, activeSessionId, createSession, sidebarCollapsed } = useSessionStore();
+  const { getSessionsList, activeSessionId, createSession } = useSessionStore();
   const sessions = getSessionsList();
-
-  console.log("[TerminalContainer] Render:", {
-    sessionsCount: sessions.length,
-    activeSessionId,
-    sidebarCollapsed,
-  });
 
   // Show empty state if no sessions
   if (sessions.length === 0) {

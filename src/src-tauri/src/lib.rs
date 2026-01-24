@@ -2,4 +2,4 @@
 pub mod terminal;
 
 pub use terminal::TerminalSession;
-pub use terminal::vte_parser::PtyWriter;
+pub use terminal::vte_parser::{PtyWriter, ProcessInfo, get_process_info_by_pid};

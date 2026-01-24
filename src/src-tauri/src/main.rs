@@ -8,7 +8,7 @@ use tauri::{AppHandle, Emitter, Manager};
 use uuid::Uuid;
 
 // Import types from lib (tip_term library)
-use tip_term::TerminalSession;
+use tip_term::{TerminalSession, ProcessInfo};
 
 /// Type alias for the writer
 type PtyWriter = Arc<Mutex<Box<dyn Write + Send>>>;
@@ -17,6 +17,7 @@ type PtyWriter = Arc<Mutex<Box<dyn Write + Send>>>;
 pub struct TerminalState {
     pub sessions: HashMap<String, Arc<Mutex<TerminalSession>>>,
     pub writers: HashMap<String, PtyWriter>,
+    pub session_pids: HashMap<String, u32>, // Store PIDs separately to avoid locking
 }
 
 impl TerminalState {
@@ -24,6 +25,7 @@ impl TerminalState {
         Self {
             sessions: HashMap::new(),
             writers: HashMap::new(),
+            session_pids: HashMap::new(),
         }
     }
 }
@@ -37,13 +39,14 @@ async fn create_session(
 ) -> Result<String, String> {
     let session_id = Uuid::new_v4().to_string();
 
-    let (session, writer) = TerminalSession::new(80, 24, shell)
+    let (session, writer, child_pid) = TerminalSession::new(80, 24, shell)
         .map_err(|e| format!("Failed to create terminal: {}", e))?;
 
     let mut state = state.lock().unwrap();
     let session_arc = Arc::new(Mutex::new(session));
     state.sessions.insert(session_id.clone(), session_arc.clone());
     state.writers.insert(session_id.clone(), writer);
+    state.session_pids.insert(session_id.clone(), child_pid);
 
     let session_id_clone = session_id.clone();
     let app_clone = app.clone();
@@ -139,7 +142,28 @@ async fn close_session(
     let mut state = state.lock().unwrap();
     state.sessions.remove(&id);
     state.writers.remove(&id);
+    state.session_pids.remove(&id);
     Ok(())
+}
+
+/// Get process information for a terminal session
+#[tauri::command]
+async fn get_session_info(
+    id: String,
+    state: tauri::State<'_, Arc<Mutex<TerminalState>>>,
+) -> Result<Option<ProcessInfo>, String> {
+    // Get the child PID without locking the session
+    let child_pid = {
+        let state = state.lock().unwrap();
+        *state
+            .session_pids
+            .get(&id)
+            .ok_or_else(|| "Session not found".to_string())?
+    };
+
+    // Call get_process_info_by_pid directly without locking the session
+    let info = tip_term::get_process_info_by_pid(child_pid);
+    Ok(info)
 }
 
 fn main() {
@@ -154,6 +178,7 @@ fn main() {
             write_to_session,
             resize_terminal,
             close_session,
+            get_session_info,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

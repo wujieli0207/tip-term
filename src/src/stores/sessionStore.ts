@@ -7,6 +7,9 @@ export interface SessionInfo {
   workspaceId: string | null;
   createdAt: number;
   order: number;
+  processName?: string;
+  cwd?: string;
+  terminalTitle?: string;  // Title set by terminal program via OSC sequences
 }
 
 export interface WorkspaceInfo {
@@ -30,6 +33,8 @@ interface SessionStore {
   toggleSidebar: () => void;
   setSidebarWidth: (width: number) => void;
   renameSession: (id: string, name: string) => void;
+  updateSessionProcessInfo: (id: string, processName: string, cwd: string) => void;
+  updateSessionTerminalTitle: (id: string, title: string) => void;
   getSessionsList: () => SessionInfo[];
 }
 
@@ -104,8 +109,6 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
   },
 
   toggleSidebar: () => {
-    const currentState = get().sidebarCollapsed;
-    console.log("[sessionStore] toggleSidebar called, current:", currentState, "-> new:", !currentState);
     set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed }));
   },
 
@@ -120,6 +123,28 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
 
       const newSessions = new Map(state.sessions);
       newSessions.set(id, { ...session, name });
+      return { sessions: newSessions };
+    });
+  },
+
+  updateSessionProcessInfo: (id: string, processName: string, cwd: string) => {
+    set((state) => {
+      const session = state.sessions.get(id);
+      if (!session) return state;
+
+      const newSessions = new Map(state.sessions);
+      newSessions.set(id, { ...session, processName, cwd });
+      return { sessions: newSessions };
+    });
+  },
+
+  updateSessionTerminalTitle: (id: string, title: string) => {
+    set((state) => {
+      const session = state.sessions.get(id);
+      if (!session) return state;
+
+      const newSessions = new Map(state.sessions);
+      newSessions.set(id, { ...session, terminalTitle: title || undefined });
       return { sessions: newSessions };
     });
   },

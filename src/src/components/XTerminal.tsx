@@ -85,6 +85,11 @@ export default function XTerminal({ sessionId }: XTerminalProps) {
       invoke("write_to_session", { id: sessionId, data }).catch(console.error);
     });
 
+    // Listen for terminal title changes (OSC 0/1/2 sequences)
+    const titleDisposable = terminal.onTitleChange((title) => {
+      useSessionStore.getState().updateSessionTerminalTitle(sessionId, title);
+    });
+
     // Listen for terminal output from backend
     const unlistenPromise = listen<number[]>(`terminal-output-${sessionId}`, (event) => {
       const data = new Uint8Array(event.payload);
@@ -94,6 +99,7 @@ export default function XTerminal({ sessionId }: XTerminalProps) {
     // Cleanup
     return () => {
       dataDisposable.dispose();
+      titleDisposable.dispose();
       unlistenPromise.then((unlisten) => unlisten());
       terminal.dispose();
     };

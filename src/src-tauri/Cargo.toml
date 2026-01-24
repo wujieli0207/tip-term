@@ -20,6 +20,10 @@ portable-pty = "0.8"
 # UUID for session IDs
 uuid = { version = "1.11", features = ["v4"] }
 
+# Process information
+sysinfo = "0.32"
+libc = "0.2"
+
 [features]
 default = ["custom-protocol"]
 custom-protocol = ["tauri/custom-protocol"]

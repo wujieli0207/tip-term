@@ -6,14 +6,7 @@ export default function Sidebar() {
   const { sidebarCollapsed, sidebarWidth, getSessionsList } = useSessionStore();
   const sessions = getSessionsList();
 
-  console.log("[Sidebar] Render:", {
-    sidebarCollapsed,
-    sidebarWidth,
-    sessionsCount: sessions.length,
-  });
-
   if (sidebarCollapsed) {
-    console.log("[Sidebar] Collapsed, returning null");
     return null;
   }
 
@@ -24,17 +17,17 @@ export default function Sidebar() {
     >
       <SidebarHeader />
 
-      <div className="flex-1 overflow-y-auto py-2">
+      <div className="flex-1 py-2 overflow-y-auto">
         {sessions.length === 0 ? (
-          <div className="px-3 py-4 text-center text-gray-500 text-sm">
+          <div className="px-3 py-4 text-sm text-center text-gray-500">
             No sessions yet.
             <br />
             Press <kbd className="px-1 py-0.5 bg-[#2a2a2a] rounded text-xs">Cmd+T</kbd> to create one.
           </div>
         ) : (
           <div className="space-y-0.5">
-            {sessions.map((session) => (
-              <SessionItem key={session.id} session={session} />
+            {sessions.map((session, index) => (
+              <SessionItem key={session.id} session={session} index={index} />
             ))}
           </div>
         )}
