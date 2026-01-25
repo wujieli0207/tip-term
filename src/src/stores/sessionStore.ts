@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { invoke } from "@tauri-apps/api/core";
+import { useSplitPaneStore } from "./splitPaneStore";
 
 // Group color types and constants
 export type GroupColor = 'gray' | 'blue' | 'purple' | 'pink' | 'red' | 'orange' | 'yellow' | 'green' | 'cyan';
@@ -39,6 +40,7 @@ export interface SessionInfo {
   customName?: string;     // User-set custom name via double-click rename
   notifyWhenDone?: boolean;    // Notify when command completes
   notifyOnActivity?: boolean;  // Notify on new terminal output
+  ptyIds: string[];        // All PTY IDs belonging to this session (first is the primary)
 }
 
 // Sidebar item types for unified rendering
@@ -78,6 +80,11 @@ interface SessionStore {
   getSessionsList: () => SessionInfo[];
   reorderSessions: (activeId: string, overId: string) => void;
 
+  // PTY Management (for split panes within a session)
+  createPtyInSession: (sessionId: string) => Promise<string>;
+  closePty: (sessionId: string, ptyId: string) => Promise<void>;
+  getSessionPtys: (sessionId: string) => string[];
+
   // Group Actions
   createGroup: (sessionIds: string[], name?: string, color?: GroupColor) => string;
   deleteGroup: (groupId: string, deleteSessionsToo?: boolean) => Promise<void>;
@@ -116,28 +123,30 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
 
   createSession: async (workspaceId?: string, groupId?: string) => {
     try {
-      const id = await invoke<string>("create_session", { shell: "/bin/zsh" });
+      // Create the first PTY - its ID becomes the session ID
+      const ptyId = await invoke<string>("create_session", { shell: "/bin/zsh" });
       sessionCounter++;
       const session: SessionInfo = {
-        id,
+        id: ptyId,
         name: `Session ${sessionCounter}`,
         type: "terminal",
         workspaceId: workspaceId ?? null,
         groupId: groupId ?? null,
         createdAt: Date.now(),
         order: sessionCounter,
+        ptyIds: [ptyId], // Initialize with the first PTY
       };
 
       set((state) => {
         const newSessions = new Map(state.sessions);
-        newSessions.set(id, session);
+        newSessions.set(ptyId, session);
         return {
           sessions: newSessions,
-          activeSessionId: id,
+          activeSessionId: ptyId,
         };
       });
 
-      return id;
+      return ptyId;
     } catch (error) {
       console.error("Failed to create session:", error);
       throw error;
@@ -146,7 +155,22 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
 
   closeSession: async (id: string) => {
     try {
-      await invoke("close_session", { id });
+      const state = get();
+      const session = state.sessions.get(id);
+
+      // Close all PTYs belonging to this session
+      if (session?.ptyIds) {
+        for (const ptyId of session.ptyIds) {
+          try {
+            await invoke("close_session", { id: ptyId });
+          } catch (e) {
+            console.warn(`Failed to close PTY ${ptyId}:`, e);
+          }
+        }
+      } else {
+        // Fallback for sessions without ptyIds (shouldn't happen but safe)
+        await invoke("close_session", { id });
+      }
 
       set((state) => {
         const closingSession = state.sessions.get(id);
@@ -186,6 +210,16 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
     const state = get();
     if (state.sessions.has(id)) {
       set({ activeSessionId: id });
+
+      // Synchronously initialize split pane layout to ensure focus works correctly
+      const session = state.sessions.get(id);
+      if (session?.type === "terminal") {
+        const splitPaneStore = useSplitPaneStore.getState();
+        const existingLayout = splitPaneStore.getLayoutForSession(id);
+        if (!existingLayout && session.ptyIds.length > 0) {
+          splitPaneStore.initializeLayout(id, session.ptyIds[0]);
+        }
+      }
     }
   },
 
@@ -317,6 +351,7 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
       groupId: null, // Settings session is never grouped
       createdAt: Date.now(),
       order: -1, // Settings always at special position
+      ptyIds: [], // Settings has no PTYs
     };
 
     set((state) => {
@@ -338,6 +373,68 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
     return Array.from(state.sessions.values())
       .filter((s) => s.type === "terminal")
       .sort((a, b) => a.order - b.order);
+  },
+
+  // PTY Management (for split panes within a session)
+  createPtyInSession: async (sessionId: string) => {
+    try {
+      const state = get();
+      const session = state.sessions.get(sessionId);
+      if (!session || session.type !== "terminal") {
+        throw new Error(`Invalid session: ${sessionId}`);
+      }
+
+      // Create a new PTY
+      const newPtyId = await invoke<string>("create_session", { shell: "/bin/zsh" });
+
+      // Add the new PTY to the session's ptyIds list
+      set((state) => {
+        const session = state.sessions.get(sessionId);
+        if (!session) return state;
+
+        const newSessions = new Map(state.sessions);
+        newSessions.set(sessionId, {
+          ...session,
+          ptyIds: [...session.ptyIds, newPtyId],
+        });
+        return { sessions: newSessions };
+      });
+
+      return newPtyId;
+    } catch (error) {
+      console.error("Failed to create PTY in session:", error);
+      throw error;
+    }
+  },
+
+  closePty: async (sessionId: string, ptyId: string) => {
+    try {
+      // Close the PTY in the backend
+      await invoke("close_session", { id: ptyId });
+
+      // Remove the PTY from the session's ptyIds list
+      set((state) => {
+        const session = state.sessions.get(sessionId);
+        if (!session) return state;
+
+        const newPtyIds = session.ptyIds.filter((id) => id !== ptyId);
+        const newSessions = new Map(state.sessions);
+        newSessions.set(sessionId, {
+          ...session,
+          ptyIds: newPtyIds,
+        });
+        return { sessions: newSessions };
+      });
+    } catch (error) {
+      console.error("Failed to close PTY:", error);
+      throw error;
+    }
+  },
+
+  getSessionPtys: (sessionId: string) => {
+    const state = get();
+    const session = state.sessions.get(sessionId);
+    return session?.ptyIds ?? [];
   },
 
   // Group Actions
