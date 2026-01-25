@@ -23,50 +23,23 @@ pnpm tauri build  # Create distributable app
 
 ## Architecture
 
-### Frontend (src/src/)
-- **React + TypeScript + Vite** with Tailwind CSS styling
-- **State Management**: Zustand stores
-  - `sessionStore.ts`: Sessions, groups, active session, sidebar state
-  - `settingsStore.ts`: Appearance settings (cursor style/blink) with localStorage persistence
-  - `fileTreeStore.ts`: File tree panel visibility, width, and per-session directory trees
-- **Session Grouping**: Edge browser-style session organization
-  - Drag session onto another (hold 300ms) to create group
-  - 9 color themes per group (gray/blue/purple/pink/red/orange/yellow/green/cyan)
-  - Editable group names (double-click)
-  - Collapsible groups
-  - Components: `GroupHeader`, `GroupContainer`, `GroupOptionsMenu`, `DragMergeOverlay`
-- **Terminal Rendering**: xterm.js in `XTerminal.tsx` with WebGL addon for GPU acceleration
-  - FitAddon for automatic terminal sizing
-  - Receives raw PTY bytes via Tauri events
-  - Handles all VTE sequence parsing internally
-- **File Tree Panel**: Displays directory tree for active terminal session
-  - Uses session's cwd (current working directory)
-  - Collapsible/expandable directories
-  - File icons based on extension
-  - Default exclusion patterns (.git, node_modules, etc.)
-  - Components: `FileTreePanel`, `FileTreeHeader`, `FileTreeView`, `FileTreeItem`
-- **Keyboard Shortcuts** (handled in App.tsx):
-  - Cmd+T: New session
-  - Cmd+W: Close active session (not settings)
-  - Cmd+,: Open settings
-  - Cmd+\: Toggle sidebar
-  - Cmd+B: Toggle file tree panel
-  - Cmd+1-9: Switch terminal sessions
+### Frontend (`src/src/`)
+- **Tech**: React + TypeScript + Vite + Tailwind CSS
+- **State**: Zustand stores in `stores/` (session, settings, fileTree, quickOpen)
+- **Terminal**: xterm.js rendering in `components/XTerminal.tsx`
+- **Session Groups**: Edge-style grouping in `components/group/`
+- **File Tree**: Directory browser in `components/filetree/`
+- **Quick Open**: File search modal in `components/QuickOpenModal.tsx`
+- **Shortcuts**: Global keyboard handlers in `App.tsx`
 
-### Backend (src/src-tauri/src/)
-- **main.rs**: Tauri command handlers and app initialization
-  - 16ms event loop reading PTY output and emitting to frontend
-- **terminal/vte_parser.rs**: PTY session management (~100 lines)
-  - PTY creation via portable-pty crate
-  - Raw byte output passthrough (no VTE parsing)
-  - Terminal resize handling
-- **filesystem.rs**: File system operations for file tree
-  - `read_directory` command: Lists directory contents with filtering
-  - Excludes common patterns (.git, node_modules, etc.)
+### Backend (`src/src-tauri/src/`)
+- **main.rs**: Tauri commands and app setup
+- **terminal/vte_parser.rs**: PTY session management
+- **filesystem.rs**: File system operations (read_directory, search_files)
 
-### Communication Flow
-- Frontend → Backend: Tauri `invoke()` for commands (create_session, write_to_session, resize_terminal, close_session)
-- Backend → Frontend: Tauri event emissions with session-specific channel names (`terminal-output-{session_id}`) containing raw bytes
+### Communication
+- Frontend → Backend: Tauri `invoke()`
+- Backend → Frontend: Event emissions (`terminal-output-{session_id}`)
 
 ## Key Dependencies
 
@@ -74,6 +47,7 @@ pnpm tauri build  # Create distributable app
 - `portable-pty`: Cross-platform PTY management
 - `tokio`: Async runtime
 - `tauri`: Desktop app framework
+- `ignore`: Gitignore parsing (ripgrep's library)
 
 **TypeScript**:
 - `@xterm/xterm`: Terminal emulator (VTE parsing + rendering)
