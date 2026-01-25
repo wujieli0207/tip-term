@@ -1,13 +1,11 @@
 import { useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useSessionStore } from "./stores/sessionStore";
-import { useFileTreeStore } from "./stores/fileTreeStore";
-import { useEditorStore } from "./stores/editorStore";
-import { useQuickOpenStore } from "./stores/quickOpenStore";
 import Sidebar from "./components/sidebar/Sidebar";
 import TerminalContainer from "./components/terminal/TerminalContainer";
 import QuickOpenModal from "./components/quickopen/QuickOpenModal";
 import { isShellProcess, sendNotification } from "./utils/notifications";
+import { useHotkeyHandler } from "./hooks/useHotkeyHandler";
 
 interface ProcessInfo {
   name: string;
@@ -74,97 +72,8 @@ function App() {
     return () => clearInterval(pollInterval);
   }, []);
 
-  // Global keyboard shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const { activeSessionId, createSession, closeSession, toggleSidebar, getTerminalSessions, setActiveSession, openSettings, isSettingsSession } = useSessionStore.getState();
-
-      // Cmd+,: Open settings
-      if (e.metaKey && e.key === ",") {
-        e.preventDefault();
-        openSettings();
-        return;
-      }
-
-      // Cmd+P: Open quick file search
-      if (e.metaKey && e.key === "p") {
-        e.preventDefault();
-        useQuickOpenStore.getState().open();
-        return;
-      }
-
-      // Cmd+T: New session
-      if (e.metaKey && e.key === "t") {
-        e.preventDefault();
-        createSession().catch(console.error);
-        return;
-      }
-
-      // Cmd+W: Close active editor tab if editor is focused, else close terminal session
-      if (e.metaKey && e.key === "w") {
-        e.preventDefault();
-        const editorStore = useEditorStore.getState();
-
-        // Check if focus is in editor area (CodeMirror)
-        const isEditorFocused = document.activeElement?.closest('.cm-editor') !== null;
-
-        if (editorStore.editorVisible && editorStore.activeFilePath && isEditorFocused) {
-          // Close active editor tab
-          editorStore.closeActiveFile();
-        } else if (activeSessionId && !isSettingsSession(activeSessionId)) {
-          closeSession(activeSessionId).catch(console.error);
-        }
-        return;
-      }
-
-      // Cmd+\: Toggle sidebar
-      if (e.metaKey && e.key === "\\") {
-        e.preventDefault();
-        toggleSidebar();
-        return;
-      }
-
-      // Cmd+B: Toggle file tree
-      if (e.metaKey && e.key === "b") {
-        e.preventDefault();
-        useFileTreeStore.getState().toggleFileTreeVisible();
-        return;
-      }
-
-      // Cmd+E: Toggle editor panel
-      if (e.metaKey && e.key === "e") {
-        e.preventDefault();
-        useEditorStore.getState().toggleEditorVisible();
-        return;
-      }
-
-      // Cmd+S: Save active file in editor
-      if (e.metaKey && e.key === "s") {
-        e.preventDefault();
-        const editorStore = useEditorStore.getState();
-        if (editorStore.editorVisible && editorStore.activeFilePath) {
-          editorStore.saveActiveFile().catch((error) => {
-            console.error("Failed to save file:", error);
-          });
-        }
-        return;
-      }
-
-      // Cmd+1-9: Switch to terminal session by index
-      if (e.metaKey && e.key >= "1" && e.key <= "9") {
-        e.preventDefault();
-        const index = parseInt(e.key) - 1;
-        const sessions = getTerminalSessions();
-        if (index < sessions.length) {
-          setActiveSession(sessions[index].id);
-        }
-        return;
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
+  // Global keyboard shortcuts (handled by useHotkeyHandler hook)
+  useHotkeyHandler();
 
   return (
     <div className="flex h-screen w-screen bg-[#0a0a0a] overflow-hidden">

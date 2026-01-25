@@ -30,7 +30,8 @@ pnpm tauri build  # Create distributable app
 - **Session Groups**: Edge-style grouping in `components/group/`
 - **File Tree**: Directory browser in `components/filetree/`
 - **Quick Open**: File search modal in `components/QuickOpenModal.tsx`
-- **Shortcuts**: Global keyboard handlers in `App.tsx`
+- **Settings**: Settings panel in `components/settings/`
+- **Hotkeys**: Configurable shortcuts in `config/defaultHotkeys.ts`, handler in `hooks/useHotkeyHandler.ts`
 
 ### Backend (`src/src-tauri/src/`)
 - **main.rs**: Tauri commands and app setup
