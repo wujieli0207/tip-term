@@ -7,6 +7,7 @@ export interface FileEntry {
   is_directory: boolean;
   is_symlink: boolean;
   is_hidden: boolean;
+  match_type?: string; // Only used in search results
 }
 
 export interface DirectoryTree {

@@ -3,8 +3,10 @@ import { invoke } from "@tauri-apps/api/core";
 import { useSessionStore } from "./stores/sessionStore";
 import { useFileTreeStore } from "./stores/fileTreeStore";
 import { useEditorStore } from "./stores/editorStore";
+import { useQuickOpenStore } from "./stores/quickOpenStore";
 import Sidebar from "./components/sidebar/Sidebar";
 import TerminalContainer from "./components/terminal/TerminalContainer";
+import QuickOpenModal from "./components/quickopen/QuickOpenModal";
 import { isShellProcess, sendNotification } from "./utils/notifications";
 
 interface ProcessInfo {
@@ -81,6 +83,13 @@ function App() {
       if (e.metaKey && e.key === ",") {
         e.preventDefault();
         openSettings();
+        return;
+      }
+
+      // Cmd+P: Open quick file search
+      if (e.metaKey && e.key === "p") {
+        e.preventDefault();
+        useQuickOpenStore.getState().open();
         return;
       }
 
@@ -161,6 +170,7 @@ function App() {
     <div className="flex h-screen w-screen bg-[#0a0a0a] overflow-hidden">
       <Sidebar />
       <TerminalContainer />
+      <QuickOpenModal />
     </div>
   );
 }

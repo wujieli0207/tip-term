@@ -185,6 +185,7 @@ fn main() {
             filesystem::read_directory,
             filesystem::read_file,
             filesystem::write_file,
+            filesystem::search_files,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

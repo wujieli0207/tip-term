@@ -1,3 +1,4 @@
+use ignore::WalkBuilder;
 use serde::Serialize;
 use std::fs;
 use std::path::PathBuf;
@@ -10,6 +11,7 @@ pub struct FileEntry {
     pub is_directory: bool,
     pub is_symlink: bool,
     pub is_hidden: bool,
+    pub match_type: String, // "prefix" | "contains"
 }
 
 /// Expand tilde (~) in path to home directory
@@ -117,6 +119,7 @@ pub async fn read_directory(
             is_directory,
             is_symlink,
             is_hidden,
+            match_type: String::new(), // Not used for directory listing
         });
     }
 
@@ -182,4 +185,130 @@ pub async fn write_file(path: String, content: String) -> Result<(), String> {
     // Write content to file
     fs::write(file_path, content)
         .map_err(|e| format!("Failed to write file: {}", e))
+}
+
+/// Search files recursively by name (fuzzy match)
+/// Uses ignore crate to respect .gitignore files
+#[tauri::command]
+pub async fn search_files(
+    root_path: String,
+    query: String,
+    max_results: Option<usize>,
+    respect_gitignore: Option<bool>,
+) -> Result<Vec<FileEntry>, String> {
+    let expanded_path = expand_tilde(&root_path);
+    let dir_path = expanded_path.as_path();
+
+    if !dir_path.exists() {
+        return Err(format!("Directory does not exist: {}", dir_path.display()));
+    }
+
+    if !dir_path.is_dir() {
+        return Err(format!("Path is not a directory: {}", dir_path.display()));
+    }
+
+    let max_results = max_results.unwrap_or(50);
+    let respect_gitignore = respect_gitignore.unwrap_or(true);
+    let query_lower = query.to_lowercase();
+
+    let mut prefix_results: Vec<FileEntry> = Vec::new();
+    let mut contains_results: Vec<FileEntry> = Vec::new();
+
+    // Build walker with gitignore support
+    let walker = WalkBuilder::new(dir_path)
+        .hidden(false) // Don't skip hidden files (we filter them ourselves if needed)
+        .git_ignore(respect_gitignore)
+        .git_global(respect_gitignore)
+        .git_exclude(respect_gitignore)
+        .ignore(respect_gitignore) // Also respect .ignore files
+        .build();
+
+    for entry in walker {
+        // Check if we have enough results
+        if prefix_results.len() + contains_results.len() >= max_results * 2 {
+            break;
+        }
+
+        let entry = match entry {
+            Ok(e) => e,
+            Err(_) => continue,
+        };
+
+        let file_path = entry.path();
+
+        // Skip directories
+        let file_type = match entry.file_type() {
+            Some(ft) => ft,
+            None => continue,
+        };
+        if file_type.is_dir() {
+            continue;
+        }
+
+        let file_name = match file_path.file_name() {
+            Some(name) => name.to_string_lossy().to_string(),
+            None => continue,
+        };
+
+        // Skip files matching default exclude patterns (for files that gitignore doesn't cover)
+        let should_skip = DEFAULT_EXCLUDE_PATTERNS.iter().any(|pattern| {
+            if pattern.starts_with("*.") {
+                let ext = &pattern[1..]; // ".pyc"
+                file_name.ends_with(ext)
+            } else {
+                file_name == *pattern
+            }
+        });
+
+        if should_skip {
+            continue;
+        }
+
+        // Check if filename matches query
+        let name_lower = file_name.to_lowercase();
+        if !name_lower.contains(&query_lower) {
+            continue;
+        }
+
+        let is_symlink = file_path.is_symlink();
+        let is_hidden = file_name.starts_with('.');
+
+        // Determine match type: prefix or contains
+        let match_type = if name_lower.starts_with(&query_lower) {
+            "prefix".to_string()
+        } else {
+            "contains".to_string()
+        };
+
+        let file_entry = FileEntry {
+            name: file_name,
+            path: file_path.to_string_lossy().to_string(),
+            is_directory: false,
+            is_symlink,
+            is_hidden,
+            match_type: match_type.clone(),
+        };
+
+        if match_type == "prefix" {
+            prefix_results.push(file_entry);
+        } else {
+            contains_results.push(file_entry);
+        }
+    }
+
+    // Sort each group alphabetically
+    prefix_results.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
+    contains_results.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
+
+    // Combine results: prefix first, then contains
+    let mut results: Vec<FileEntry> = Vec::new();
+
+    // Take up to max_results, prioritizing prefix matches
+    let prefix_count = prefix_results.len().min(max_results);
+    results.extend(prefix_results.into_iter().take(prefix_count));
+
+    let remaining = max_results.saturating_sub(results.len());
+    results.extend(contains_results.into_iter().take(remaining));
+
+    Ok(results)
 }
