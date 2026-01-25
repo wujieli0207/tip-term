@@ -1,12 +1,15 @@
 import { useSessionStore } from "../../stores/sessionStore";
 import { useFileTreeStore } from "../../stores/fileTreeStore";
+import { useEditorStore } from "../../stores/editorStore";
 import XTerminal from "../XTerminal";
 import SettingsContainer from "../settings/SettingsContainer";
 import FileTreePanel from "../filetree/FileTreePanel";
+import EditorPanel from "../editor/EditorPanel";
 
 export default function TerminalContainer() {
   const { getSessionsList, getTerminalSessions, activeSessionId, createSession, sessions } = useSessionStore();
   const { fileTreeVisible } = useFileTreeStore();
+  const { editorVisible } = useEditorStore();
   const sessionsList = getSessionsList();
   const terminalSessions = getTerminalSessions();
 
@@ -38,6 +41,11 @@ export default function TerminalContainer() {
       {/* File tree panel - only shown for terminal sessions */}
       {fileTreeVisible && activeSession?.type === "terminal" && (
         <FileTreePanel />
+      )}
+
+      {/* Editor panel - shown for terminal sessions when visible */}
+      {editorVisible && activeSession?.type === "terminal" && (
+        <EditorPanel />
       )}
 
       {/* Terminal / Settings content area */}

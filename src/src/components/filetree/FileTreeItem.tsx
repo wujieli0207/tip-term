@@ -1,4 +1,5 @@
 import { FileEntry, useFileTreeStore } from "../../stores/fileTreeStore";
+import { useEditorStore } from "../../stores/editorStore";
 
 interface FileTreeItemProps {
   sessionId: string;
@@ -17,8 +18,10 @@ export default function FileTreeItem({ sessionId, entry, depth }: FileTreeItemPr
     if (entry.is_directory) {
       toggleDirectory(sessionId, entry.path);
     } else {
-      // TODO: File click functionality (open in editor, etc.)
-      console.log("File clicked:", entry.path);
+      // Open file in editor
+      useEditorStore.getState().openFile(entry.path).catch((error) => {
+        console.error("Failed to open file:", error);
+      });
     }
   };
 

@@ -183,6 +183,8 @@ fn main() {
             close_session,
             get_session_info,
             filesystem::read_directory,
+            filesystem::read_file,
+            filesystem::write_file,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

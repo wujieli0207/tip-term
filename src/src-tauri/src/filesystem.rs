@@ -131,3 +131,55 @@ pub async fn read_directory(
 
     Ok(entries)
 }
+
+/// Maximum file size for reading (5MB)
+const MAX_FILE_SIZE: u64 = 5 * 1024 * 1024;
+
+/// Read file contents as string
+#[tauri::command]
+pub async fn read_file(path: String) -> Result<String, String> {
+    let expanded_path = expand_tilde(&path);
+    let file_path = expanded_path.as_path();
+
+    if !file_path.exists() {
+        return Err(format!("File does not exist: {}", file_path.display()));
+    }
+
+    if !file_path.is_file() {
+        return Err(format!("Path is not a file: {}", file_path.display()));
+    }
+
+    // Check file size
+    let metadata = fs::metadata(file_path)
+        .map_err(|e| format!("Failed to read file metadata: {}", e))?;
+
+    if metadata.len() > MAX_FILE_SIZE {
+        return Err(format!(
+            "File too large: {} bytes (max {} bytes)",
+            metadata.len(),
+            MAX_FILE_SIZE
+        ));
+    }
+
+    // Read file contents
+    fs::read_to_string(file_path)
+        .map_err(|e| format!("Failed to read file: {}", e))
+}
+
+/// Write content to file
+#[tauri::command]
+pub async fn write_file(path: String, content: String) -> Result<(), String> {
+    let expanded_path = expand_tilde(&path);
+    let file_path = expanded_path.as_path();
+
+    // Ensure parent directory exists
+    if let Some(parent) = file_path.parent() {
+        if !parent.exists() {
+            return Err(format!("Parent directory does not exist: {}", parent.display()));
+        }
+    }
+
+    // Write content to file
+    fs::write(file_path, content)
+        .map_err(|e| format!("Failed to write file: {}", e))
+}

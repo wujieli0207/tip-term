@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useSessionStore } from "./stores/sessionStore";
 import { useFileTreeStore } from "./stores/fileTreeStore";
+import { useEditorStore } from "./stores/editorStore";
 import Sidebar from "./components/sidebar/Sidebar";
 import TerminalContainer from "./components/terminal/TerminalContainer";
 import { isShellProcess, sendNotification } from "./utils/notifications";
@@ -90,10 +91,18 @@ function App() {
         return;
       }
 
-      // Cmd+W: Close current session (not settings)
+      // Cmd+W: Close active editor tab if editor is focused, else close terminal session
       if (e.metaKey && e.key === "w") {
         e.preventDefault();
-        if (activeSessionId && !isSettingsSession(activeSessionId)) {
+        const editorStore = useEditorStore.getState();
+
+        // Check if focus is in editor area (CodeMirror)
+        const isEditorFocused = document.activeElement?.closest('.cm-editor') !== null;
+
+        if (editorStore.editorVisible && editorStore.activeFilePath && isEditorFocused) {
+          // Close active editor tab
+          editorStore.closeActiveFile();
+        } else if (activeSessionId && !isSettingsSession(activeSessionId)) {
           closeSession(activeSessionId).catch(console.error);
         }
         return;
@@ -110,6 +119,25 @@ function App() {
       if (e.metaKey && e.key === "b") {
         e.preventDefault();
         useFileTreeStore.getState().toggleFileTreeVisible();
+        return;
+      }
+
+      // Cmd+E: Toggle editor panel
+      if (e.metaKey && e.key === "e") {
+        e.preventDefault();
+        useEditorStore.getState().toggleEditorVisible();
+        return;
+      }
+
+      // Cmd+S: Save active file in editor
+      if (e.metaKey && e.key === "s") {
+        e.preventDefault();
+        const editorStore = useEditorStore.getState();
+        if (editorStore.editorVisible && editorStore.activeFilePath) {
+          editorStore.saveActiveFile().catch((error) => {
+            console.error("Failed to save file:", error);
+          });
+        }
         return;
       }
 
