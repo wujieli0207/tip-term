@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Terminal } from '@xterm/xterm'
 import '@xterm/xterm/css/xterm.css'
 import { useSidebarStore } from '../stores/sidebarStore'
@@ -18,7 +18,7 @@ export default function XTerminal({
   isFocusedPane = true,
   isRootActive = true,
 }: XTerminalProps) {
-  const containerRef = useRef<HTMLDivElement>(null)
+  const [containerEl, setContainerEl] = useState<HTMLDivElement | null>(null)
   const terminalRef = useRef<Terminal | null>(null)
   const fitAddonRef = useRef<TerminalEntry['fitAddon'] | null>(null)
 
@@ -27,20 +27,29 @@ export default function XTerminal({
   const cursorStyle = useSettingsStore((state) => state.appearance.cursorStyle)
   const cursorBlink = useSettingsStore((state) => state.appearance.cursorBlink)
 
+  const setContainerRef = useCallback((node: HTMLDivElement | null) => {
+    setContainerEl(node)
+  }, [])
+
   // Initialize terminal
   useEffect(() => {
-    const container = containerRef.current
+    const container = containerEl
     if (!container) return
 
     const entry = attachTerminal(sessionId, container)
     terminalRef.current = entry.terminal
     fitAddonRef.current = entry.fitAddon
+    if (isRootActive && isFocusedPane) {
+      requestAnimationFrame(() => {
+        entry.terminal.focus()
+      })
+    }
 
     const doFit = () => {
-      if (!fitAddonRef.current || !terminalRef.current || !containerRef.current) return
-      
+      if (!fitAddonRef.current || !terminalRef.current || !containerEl) return
+
       // Check if container has valid dimensions before fitting
-      const rect = containerRef.current.getBoundingClientRect()
+      const rect = containerEl.getBoundingClientRect()
       if (rect.width < 10 || rect.height < 10) {
         // Container not ready yet, skip this fit attempt
         return false
@@ -65,7 +74,7 @@ export default function XTerminal({
     // Try multiple times with exponential backoff for nested split panes
     let rafId2: number | null = null
     let timeoutId: number | null = null
-    
+
     const rafId1 = requestAnimationFrame(() => {
       if (!doFit()) {
         rafId2 = requestAnimationFrame(() => {
@@ -83,12 +92,11 @@ export default function XTerminal({
       if (timeoutId !== null) clearTimeout(timeoutId)
       detachTerminal(sessionId, container)
     }
-  }, [sessionId])
+  }, [sessionId, containerEl])
 
   // Handle resize
   useEffect(() => {
-    if (!containerRef.current || !fitAddonRef.current || !terminalRef.current)
-      return
+    if (!containerEl || !fitAddonRef.current || !terminalRef.current) return
 
     const handleResize = () => {
       if (!fitAddonRef.current || !terminalRef.current) return
@@ -110,12 +118,12 @@ export default function XTerminal({
       requestAnimationFrame(handleResize)
     })
 
-    resizeObserver.observe(containerRef.current)
+    resizeObserver.observe(containerEl)
 
     return () => {
       resizeObserver.disconnect()
     }
-  }, [sessionId])
+  }, [sessionId, containerEl, isRootActive, isFocusedPane])
 
   // Auto-focus when session becomes active, sidebar state changes, or pane focus changes
   useEffect(() => {
@@ -151,6 +159,10 @@ export default function XTerminal({
   }
 
   return (
-    <div ref={containerRef} className="w-full h-full" onClick={handleClick} />
+    <div
+      ref={setContainerRef}
+      className="w-full h-full"
+      onClick={handleClick}
+    />
   )
 }

@@ -149,6 +149,14 @@ export function attachTerminal(sessionId: string, container: HTMLElement): Termi
   }
 
   entry.container = container;
+  if (import.meta.env.DEV) {
+    const element = entry.terminal.element;
+    if (element && element.parentElement !== container) {
+      console.warn("[terminalRegistry] terminal element not attached", {
+        sessionId,
+      });
+    }
+  }
   return entry;
 }
 

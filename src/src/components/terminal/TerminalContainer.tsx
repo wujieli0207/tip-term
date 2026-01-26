@@ -3,6 +3,7 @@ import { useFileTreeStore } from "../../stores/fileTreeStore";
 import { useEditorStore } from "../../stores/editorStore";
 import { useEffect } from "react";
 import { useSplitPaneStore } from "../../stores/splitPaneStore";
+import type { PaneNode } from "../../types/splitPane";
 import XTerminal from "../XTerminal";
 import SplitPaneContainer from "./SplitPaneContainer";
 import SettingsContainer from "../settings/SettingsContainer";
@@ -22,7 +23,6 @@ export default function TerminalContainer() {
   const { editorVisible } = useEditorStore();
   const hasLayout = useSplitPaneStore((state) => state.hasLayout);
   const layouts = useSplitPaneStore((state) => state.layouts);
-  const getAllSessionIds = useSplitPaneStore((state) => state.getAllSessionIds);
   const sessionsList = getSessionsList();
   const terminalSessions = getTerminalSessions();
 
@@ -33,13 +33,20 @@ export default function TerminalContainer() {
     const activeIds = new Set<string>();
     for (const session of terminalSessions) {
       activeIds.add(session.id);
-      const splitSessionIds = getAllSessionIds(session.id);
-      for (const splitId of splitSessionIds) {
-        activeIds.add(splitId);
+    }
+    const collectSplitSessions = (node: PaneNode) => {
+      if (node.type === "terminal") {
+        activeIds.add(node.sessionId);
+        return;
       }
+      collectSplitSessions(node.children[0]);
+      collectSplitSessions(node.children[1]);
+    };
+    for (const layout of layouts.values()) {
+      collectSplitSessions(layout.root);
     }
     cleanupTerminals(activeIds);
-  }, [terminalSessions, layouts, getAllSessionIds]);
+  }, [terminalSessions, layouts]);
 
   // Show empty state if no terminal sessions and settings is not active
   if (terminalSessions.length === 0 && activeSession?.type !== "settings") {
