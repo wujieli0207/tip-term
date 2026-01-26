@@ -1,10 +1,12 @@
 import { useEffect } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import { useSessionStore } from "../stores/sessionStore";
 import { useSidebarStore } from "../stores/sidebarStore";
 import { useFileTreeStore } from "../stores/fileTreeStore";
 import { useEditorStore } from "../stores/editorStore";
 import { useQuickOpenStore } from "../stores/quickOpenStore";
 import { useSettingsStore } from "../stores/settingsStore";
+import { useSplitPaneStore } from "../stores/splitPaneStore";
 import { getEffectiveHotkeys, bindingsMatch, eventToBinding } from "../utils/hotkeyUtils";
 
 // Map of action names to their handler functions
@@ -34,6 +36,7 @@ export function useHotkeyHandler() {
       const editorStore = useEditorStore.getState();
       const fileTreeStore = useFileTreeStore.getState();
       const quickOpenStore = useQuickOpenStore.getState();
+      const splitPaneStore = useSplitPaneStore.getState();
 
       // Define action handlers
       const handlers: ActionHandlers = {
@@ -57,7 +60,26 @@ export function useHotkeyHandler() {
             sessionStore.activeSessionId &&
             !sessionStore.isSettingsSession(sessionStore.activeSessionId)
           ) {
-            sessionStore.closeSession(sessionStore.activeSessionId).catch(console.error);
+            const rootSessionId = sessionStore.activeSessionId;
+            const layout = splitPaneStore.getLayout(rootSessionId);
+
+            if (layout) {
+              // Close the focused pane
+              const paneSessionId = splitPaneStore.closePane(rootSessionId, layout.focusedPaneId);
+              if (paneSessionId) {
+                // Close the PTY session for the closed pane
+                invoke("close_session", { id: paneSessionId }).catch(console.error);
+              }
+
+              // Check if layout was removed (last pane closed)
+              if (!splitPaneStore.hasLayout(rootSessionId)) {
+                // Close the root session (tab)
+                sessionStore.closeSession(rootSessionId).catch(console.error);
+              }
+            } else {
+              // No split layout, close the session directly
+              sessionStore.closeSession(rootSessionId).catch(console.error);
+            }
           }
         },
         toggleSidebar: () => {
@@ -81,6 +103,99 @@ export function useHotkeyHandler() {
           if (index !== null) {
             switchToSession(index);
           }
+        },
+
+        // Split Pane handlers
+        splitVertical: () => {
+          if (!sessionStore.activeSessionId) return;
+          if (sessionStore.isSettingsSession(sessionStore.activeSessionId)) return;
+
+          const rootSessionId = sessionStore.activeSessionId;
+
+          // Create a new PTY session for the new pane
+          invoke<string>("create_session", { shell: "/bin/zsh" })
+            .then((newSessionId) => {
+              const layout = splitPaneStore.getLayout(rootSessionId);
+
+              if (!layout) {
+                // Initialize layout for the first split
+                splitPaneStore.initLayout(rootSessionId, rootSessionId);
+                const newLayout = splitPaneStore.getLayout(rootSessionId);
+                if (newLayout) {
+                  splitPaneStore.splitPane(
+                    rootSessionId,
+                    newLayout.focusedPaneId,
+                    "horizontal", // horizontal = vertical split visually (side by side)
+                    newSessionId
+                  );
+                }
+              } else {
+                // Split the focused pane
+                splitPaneStore.splitPane(
+                  rootSessionId,
+                  layout.focusedPaneId,
+                  "horizontal",
+                  newSessionId
+                );
+              }
+            })
+            .catch(console.error);
+        },
+
+        splitHorizontal: () => {
+          if (!sessionStore.activeSessionId) return;
+          if (sessionStore.isSettingsSession(sessionStore.activeSessionId)) return;
+
+          const rootSessionId = sessionStore.activeSessionId;
+
+          // Create a new PTY session for the new pane
+          invoke<string>("create_session", { shell: "/bin/zsh" })
+            .then((newSessionId) => {
+              const layout = splitPaneStore.getLayout(rootSessionId);
+
+              if (!layout) {
+                // Initialize layout for the first split
+                splitPaneStore.initLayout(rootSessionId, rootSessionId);
+                const newLayout = splitPaneStore.getLayout(rootSessionId);
+                if (newLayout) {
+                  splitPaneStore.splitPane(
+                    rootSessionId,
+                    newLayout.focusedPaneId,
+                    "vertical", // vertical = horizontal split visually (stacked)
+                    newSessionId
+                  );
+                }
+              } else {
+                // Split the focused pane
+                splitPaneStore.splitPane(
+                  rootSessionId,
+                  layout.focusedPaneId,
+                  "vertical",
+                  newSessionId
+                );
+              }
+            })
+            .catch(console.error);
+        },
+
+        navigatePaneUp: () => {
+          if (!sessionStore.activeSessionId) return;
+          splitPaneStore.navigateFocus(sessionStore.activeSessionId, "up");
+        },
+
+        navigatePaneDown: () => {
+          if (!sessionStore.activeSessionId) return;
+          splitPaneStore.navigateFocus(sessionStore.activeSessionId, "down");
+        },
+
+        navigatePaneLeft: () => {
+          if (!sessionStore.activeSessionId) return;
+          splitPaneStore.navigateFocus(sessionStore.activeSessionId, "left");
+        },
+
+        navigatePaneRight: () => {
+          if (!sessionStore.activeSessionId) return;
+          splitPaneStore.navigateFocus(sessionStore.activeSessionId, "right");
         },
       };
 

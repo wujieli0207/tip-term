@@ -102,6 +102,62 @@ export const DEFAULT_HOTKEYS: Omit<HotkeyDefinition, "currentBinding">[] = [
     defaultBinding: binding("s", "meta"),
     category: "Editor",
   },
+
+  // Split Pane
+  {
+    id: "splitVertical",
+    action: "splitVertical",
+    label: "Split Vertical",
+    description: "Split the current pane horizontally (new terminal on right)",
+    scope: "terminal",
+    defaultBinding: binding("d", "meta"),
+    category: "Split Pane",
+  },
+  {
+    id: "splitHorizontal",
+    action: "splitHorizontal",
+    label: "Split Horizontal",
+    description: "Split the current pane vertically (new terminal below)",
+    scope: "terminal",
+    defaultBinding: binding("d", "meta", "shift"),
+    category: "Split Pane",
+  },
+  {
+    id: "navigatePaneUp",
+    action: "navigatePaneUp",
+    label: "Navigate Pane Up",
+    description: "Move focus to the pane above",
+    scope: "terminal",
+    defaultBinding: binding("ArrowUp", "meta", "alt"),
+    category: "Split Pane",
+  },
+  {
+    id: "navigatePaneDown",
+    action: "navigatePaneDown",
+    label: "Navigate Pane Down",
+    description: "Move focus to the pane below",
+    scope: "terminal",
+    defaultBinding: binding("ArrowDown", "meta", "alt"),
+    category: "Split Pane",
+  },
+  {
+    id: "navigatePaneLeft",
+    action: "navigatePaneLeft",
+    label: "Navigate Pane Left",
+    description: "Move focus to the pane on the left",
+    scope: "terminal",
+    defaultBinding: binding("ArrowLeft", "meta", "alt"),
+    category: "Split Pane",
+  },
+  {
+    id: "navigatePaneRight",
+    action: "navigatePaneRight",
+    label: "Navigate Pane Right",
+    description: "Move focus to the pane on the right",
+    scope: "terminal",
+    defaultBinding: binding("ArrowRight", "meta", "alt"),
+    category: "Split Pane",
+  },
 ];
 
 // Get all unique categories in order

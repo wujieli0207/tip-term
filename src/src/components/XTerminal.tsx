@@ -12,12 +12,13 @@ import { sendNotification } from "../utils/notifications";
 
 interface XTerminalProps {
   sessionId: string;
+  isFocusedPane?: boolean; // For split pane support - defaults to true for single-pane usage
 }
 
 // Cooldown for activity notifications (5 seconds)
 const ACTIVITY_NOTIFICATION_COOLDOWN = 5000;
 
-export default function XTerminal({ sessionId }: XTerminalProps) {
+export default function XTerminal({ sessionId, isFocusedPane = true }: XTerminalProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const terminalRef = useRef<Terminal | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
@@ -81,14 +82,28 @@ export default function XTerminal({ sessionId }: XTerminalProps) {
       console.warn("[XTerminal] WebGL addon failed, using canvas renderer:", e);
     }
 
-    fitAddon.fit();
-
     terminalRef.current = terminal;
     fitAddonRef.current = fitAddon;
 
-    // Initial resize notification to backend
-    const { cols, rows } = terminal;
-    invoke("resize_terminal", { id: sessionId, cols, rows }).catch(console.error);
+    // Initial fit - may need retry if container has 0 dimensions
+    const doFit = () => {
+      if (!fitAddonRef.current || !terminalRef.current) return;
+      try {
+        fitAddonRef.current.fit();
+        const { cols, rows } = terminalRef.current;
+        if (cols > 0 && rows > 0) {
+          invoke("resize_terminal", { id: sessionId, cols, rows }).catch(console.error);
+        }
+      } catch (e) {
+        console.warn("[XTerminal] fit failed:", e);
+      }
+    };
+
+    // Try to fit immediately
+    doFit();
+
+    // Also try again after a short delay in case layout isn't ready
+    const timeoutId = setTimeout(doFit, 100);
 
     // Handle user input - send to backend
     const dataDisposable = terminal.onData((data) => {
@@ -129,6 +144,7 @@ export default function XTerminal({ sessionId }: XTerminalProps) {
 
     // Cleanup
     return () => {
+      clearTimeout(timeoutId);
       dataDisposable.dispose();
       titleDisposable.dispose();
       unlistenPromise.then((unlisten) => unlisten());
@@ -143,13 +159,19 @@ export default function XTerminal({ sessionId }: XTerminalProps) {
     const handleResize = () => {
       if (!fitAddonRef.current || !terminalRef.current) return;
 
-      fitAddonRef.current.fit();
-      const { cols, rows } = terminalRef.current;
-      invoke("resize_terminal", { id: sessionId, cols, rows }).catch(console.error);
+      try {
+        fitAddonRef.current.fit();
+        const { cols, rows } = terminalRef.current;
+        if (cols > 0 && rows > 0) {
+          invoke("resize_terminal", { id: sessionId, cols, rows }).catch(console.error);
+        }
+      } catch (e) {
+        // Silently ignore fit errors during resize
+      }
     };
 
     const resizeObserver = new ResizeObserver(() => {
-      handleResize();
+      requestAnimationFrame(handleResize);
     });
 
     resizeObserver.observe(containerRef.current);
@@ -159,14 +181,14 @@ export default function XTerminal({ sessionId }: XTerminalProps) {
     };
   }, [sessionId]);
 
-  // Auto-focus when session becomes active or sidebar state changes
+  // Auto-focus when session becomes active, sidebar state changes, or pane focus changes
   useEffect(() => {
-    if (isActive && terminalRef.current) {
+    if (isActive && isFocusedPane && terminalRef.current) {
       requestAnimationFrame(() => {
         terminalRef.current?.focus();
       });
     }
-  }, [isActive, sidebarCollapsed]);
+  }, [isActive, sidebarCollapsed, isFocusedPane]);
 
   // Apply cursor style changes
   useEffect(() => {

@@ -1,7 +1,9 @@
 import { useSessionStore } from "../../stores/sessionStore";
 import { useFileTreeStore } from "../../stores/fileTreeStore";
 import { useEditorStore } from "../../stores/editorStore";
+import { useSplitPaneStore } from "../../stores/splitPaneStore";
 import XTerminal from "../XTerminal";
+import SplitPaneContainer from "./SplitPaneContainer";
 import SettingsContainer from "../settings/SettingsContainer";
 import FileTreePanel from "../filetree/FileTreePanel";
 import EditorPanel from "../editor/EditorPanel";
@@ -10,6 +12,7 @@ export default function TerminalContainer() {
   const { getSessionsList, getTerminalSessions, activeSessionId, createSession, sessions } = useSessionStore();
   const { fileTreeVisible } = useFileTreeStore();
   const { editorVisible } = useEditorStore();
+  const hasLayout = useSplitPaneStore((state) => state.hasLayout);
   const sessionsList = getSessionsList();
   const terminalSessions = getTerminalSessions();
 
@@ -58,7 +61,11 @@ export default function TerminalContainer() {
             }`}
           >
             {session.type === "terminal" ? (
-              <XTerminal sessionId={session.id} />
+              hasLayout(session.id) ? (
+                <SplitPaneContainer rootSessionId={session.id} />
+              ) : (
+                <XTerminal sessionId={session.id} />
+              )
             ) : (
               <SettingsContainer />
             )}
