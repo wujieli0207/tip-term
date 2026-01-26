@@ -24,37 +24,44 @@ pnpm tauri build  # Create distributable app
 ## Architecture
 
 ### Frontend (`src/src/`)
+
 - **Tech**: React + TypeScript + Vite + Tailwind CSS
-- **State**: Zustand stores in `stores/` (sessionStore, sidebarStore, settingsStore, fileTreeStore, quickOpenStore, editorStore)
-- **Types**: Shared types in `types/` (session.ts, file.ts, hotkey.ts)
+- **State**: Zustand stores in `stores/` (sessionStore, sidebarStore, settingsStore, fileTreeStore, quickOpenStore, editorStore, splitPaneStore)
+- **Types**: Shared types in `types/` (session.ts, file.ts, hotkey.ts, splitPane.ts)
 - **Hooks**: Reusable hooks in `hooks/` (useResizable, useHotkeyHandler, useProcessPolling)
 - **Terminal**: xterm.js rendering in `components/XTerminal.tsx`
+- **Split Panes**: Multi-window layout with `react-resizable-panels` in `components/terminal/` (SplitPaneContainer, TerminalPaneWrapper, TerminalContainer)
 - **Sidebar**: Session list and groups in `components/sidebar/`
 - **File Tree**: Directory browser in `components/filetree/`
 - **Quick Open**: File search in `components/quickopen/` (QuickOpenModal, ResultItem, HighlightMatch)
 - **Editor**: Code editor in `components/editor/`
 - **Settings**: Settings panel in `components/settings/`
-- **Hotkeys**: Configurable shortcuts in `config/defaultHotkeys.ts`
+- **Hotkeys**: Configurable shortcuts in `config/defaultHotkeys.ts` (includes split pane navigation: `Cmd+D`, `Cmd+Shift+D`, `Cmd+Alt+Arrow`)
 
 ### Backend (`src/src-tauri/src/`)
+
 - **main.rs**: Tauri commands and app setup
 - **terminal/vte_parser.rs**: PTY session management
 - **filesystem.rs**: File system operations (read_directory, search_files)
 
 ### Communication
+
 - Frontend → Backend: Tauri `invoke()`
 - Backend → Frontend: Event emissions (`terminal-output-{session_id}`)
 
 ## Key Dependencies
 
 **Rust**:
+
 - `portable-pty`: Cross-platform PTY management
 - `tokio`: Async runtime
 - `tauri`: Desktop app framework
 - `ignore`: Gitignore parsing (ripgrep's library)
 
 **TypeScript**:
+
 - `@xterm/xterm`: Terminal emulator (VTE parsing + rendering)
 - `@xterm/addon-fit`: Auto-resize terminal to container
 - `@xterm/addon-webgl`: GPU-accelerated rendering
 - `zustand`: State management
+- `react-resizable-panels`: Resizable panel dividers for split panes
