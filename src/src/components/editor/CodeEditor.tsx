@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import CodeMirror from "@uiw/react-codemirror";
 import { javascript } from "@codemirror/lang-javascript";
 import { json } from "@codemirror/lang-json";
@@ -95,12 +96,15 @@ const customTheme = EditorView.theme(
 );
 
 export default function CodeEditor({ content, language, onChange }: CodeEditorProps) {
-  const extensions = [
-    oneDark,
-    customTheme,
-    EditorView.lineWrapping,
-    ...getLanguageExtension(language),
-  ];
+  const extensions = useMemo(
+    () => [
+      oneDark,
+      customTheme,
+      EditorView.lineWrapping,
+      ...getLanguageExtension(language),
+    ],
+    [language]
+  );
 
   return (
     <CodeMirror

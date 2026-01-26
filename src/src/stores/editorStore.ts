@@ -16,6 +16,7 @@ interface EditorStore {
   editorWidth: number;
   openFiles: Map<string, EditorFile>;
   activeFilePath: string | null;
+  loadingFilePath: string | null;
 
   // Actions
   openFile: (path: string) => Promise<void>;
@@ -33,6 +34,9 @@ interface EditorStore {
 }
 
 const DEFAULT_EDITOR_WIDTH = 500;
+
+// Request ID for cancellation mechanism
+let currentRequestId = 0;
 
 // File size limit for warning (1MB)
 const WARNING_FILE_SIZE = 1 * 1024 * 1024;
@@ -100,13 +104,18 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
   editorWidth: DEFAULT_EDITOR_WIDTH,
   openFiles: new Map(),
   activeFilePath: null,
+  loadingFilePath: null,
 
   toggleEditorVisible: () => {
     set((state) => ({ editorVisible: !state.editorVisible }));
   },
 
   setEditorVisible: (visible: boolean) => {
-    set({ editorVisible: visible });
+    if (!visible) {
+      // Cancel any pending file load when hiding editor
+      currentRequestId++;
+    }
+    set({ editorVisible: visible, loadingFilePath: visible ? get().loadingFilePath : null });
   },
 
   setEditorWidth: (width: number) => {
@@ -118,12 +127,26 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
 
     // If file is already open, just make it active
     if (state.openFiles.has(path)) {
-      set({ activeFilePath: path, editorVisible: true });
+      set({ activeFilePath: path, editorVisible: true, loadingFilePath: null });
       return;
     }
 
+    // Skip if already loading this file
+    if (state.loadingFilePath === path) {
+      return;
+    }
+
+    // Generate new request ID and set loading state
+    const requestId = ++currentRequestId;
+    set({ loadingFilePath: path });
+
     try {
       const content = await invoke<string>("read_file", { path });
+
+      // Check if request was cancelled
+      if (currentRequestId !== requestId) {
+        return;
+      }
 
       // Check file size for warning
       if (content.length > WARNING_FILE_SIZE) {
@@ -147,11 +170,16 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
           openFiles: newFiles,
           activeFilePath: path,
           editorVisible: true,
+          loadingFilePath: null,
         };
       });
     } catch (error) {
-      console.error("Failed to open file:", error);
-      throw error;
+      // Only handle error if request wasn't cancelled
+      if (currentRequestId === requestId) {
+        set({ loadingFilePath: null });
+        console.error("Failed to open file:", error);
+        throw error;
+      }
     }
   },
 

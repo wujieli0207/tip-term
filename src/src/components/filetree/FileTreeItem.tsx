@@ -10,15 +10,21 @@ interface FileTreeItemProps {
 
 export default function FileTreeItem({ sessionId, entry, depth }: FileTreeItemProps) {
   const { sessionTrees, toggleDirectory } = useFileTreeStore();
+  const loadingFilePath = useEditorStore((state) => state.loadingFilePath);
   const tree = sessionTrees.get(sessionId);
 
   const isExpanded = tree?.expandedPaths.has(entry.path) ?? false;
   const children = tree?.entries.get(entry.path);
+  const isAnyFileLoading = loadingFilePath !== null;
 
   const handleClick = () => {
     if (entry.is_directory) {
       toggleDirectory(sessionId, entry.path);
     } else {
+      // Block clicks while a file is loading to prevent race conditions
+      if (isAnyFileLoading) {
+        return;
+      }
       // Open file in editor
       useEditorStore.getState().openFile(entry.path).catch((error) => {
         console.error("Failed to open file:", error);
