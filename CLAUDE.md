@@ -29,9 +29,11 @@ pnpm tauri build  # Create distributable app
 - **Terminal**: xterm.js rendering in `components/XTerminal.tsx`
 - **Session Groups**: Edge-style grouping in `components/group/`
 - **File Tree**: Directory browser in `components/filetree/`
-- **Quick Open**: File search modal in `components/QuickOpenModal.tsx`
+- **Quick Open**: File search modal in `components/quickopen/QuickOpenModal.tsx`
 - **Settings**: Settings panel in `components/settings/`
 - **Hotkeys**: Configurable shortcuts in `config/defaultHotkeys.ts`, handler in `hooks/useHotkeyHandler.ts`
+- **Process Polling**: Session process polling in `hooks/useProcessPolling.ts`
+- **Shared Types**: File entries in `types/file.ts`
 
 ### Backend (`src/src-tauri/src/`)
 - **main.rs**: Tauri commands and app setup

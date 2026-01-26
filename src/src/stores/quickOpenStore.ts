@@ -1,19 +1,11 @@
 import { create } from "zustand";
 import { invoke } from "@tauri-apps/api/core";
-
-export interface FileEntry {
-  name: string;
-  path: string;
-  is_directory: boolean;
-  is_symlink: boolean;
-  is_hidden: boolean;
-  match_type: "prefix" | "contains";
-}
+import { SearchFileEntry } from "../types/file";
 
 interface QuickOpenStore {
   isOpen: boolean;
   query: string;
-  results: FileEntry[];
+  results: SearchFileEntry[];
   selectedIndex: number;
   isLoading: boolean;
 
@@ -23,7 +15,7 @@ interface QuickOpenStore {
   setQuery: (query: string) => void;
   search: (rootPath: string) => Promise<void>;
   moveSelection: (direction: "up" | "down") => void;
-  getSelectedFile: () => FileEntry | null;
+  getSelectedFile: () => SearchFileEntry | null;
   reset: () => void;
 }
 
@@ -56,7 +48,7 @@ export const useQuickOpenStore = create<QuickOpenStore>((set, get) => ({
     set({ isLoading: true });
 
     try {
-      const results = await invoke<FileEntry[]>("search_files", {
+      const results = await invoke<SearchFileEntry[]>("search_files", {
         rootPath,
         query: query.trim(),
         maxResults: 50,

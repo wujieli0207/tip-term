@@ -1,14 +1,6 @@
 import { create } from "zustand";
 import { invoke } from "@tauri-apps/api/core";
-
-export interface FileEntry {
-  name: string;
-  path: string;
-  is_directory: boolean;
-  is_symlink: boolean;
-  is_hidden: boolean;
-  match_type?: string; // Only used in search results
-}
+import { FileEntry } from "../types/file";
 
 export interface DirectoryTree {
   rootPath: string;

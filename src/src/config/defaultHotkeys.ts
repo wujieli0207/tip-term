@@ -47,7 +47,7 @@ export const DEFAULT_HOTKEYS: Omit<HotkeyDefinition, "currentBinding">[] = [
   },
   {
     id: "switchSession1",
-    action: "switchSession1",
+    action: "switchSession",
     label: "Switch to Session 1",
     description: "Switch to the first terminal session",
     scope: "global",
@@ -56,7 +56,7 @@ export const DEFAULT_HOTKEYS: Omit<HotkeyDefinition, "currentBinding">[] = [
   },
   {
     id: "switchSession2",
-    action: "switchSession2",
+    action: "switchSession",
     label: "Switch to Session 2",
     description: "Switch to the second terminal session",
     scope: "global",
@@ -65,7 +65,7 @@ export const DEFAULT_HOTKEYS: Omit<HotkeyDefinition, "currentBinding">[] = [
   },
   {
     id: "switchSession3",
-    action: "switchSession3",
+    action: "switchSession",
     label: "Switch to Session 3",
     description: "Switch to the third terminal session",
     scope: "global",
@@ -74,7 +74,7 @@ export const DEFAULT_HOTKEYS: Omit<HotkeyDefinition, "currentBinding">[] = [
   },
   {
     id: "switchSession4",
-    action: "switchSession4",
+    action: "switchSession",
     label: "Switch to Session 4",
     description: "Switch to the fourth terminal session",
     scope: "global",
@@ -83,7 +83,7 @@ export const DEFAULT_HOTKEYS: Omit<HotkeyDefinition, "currentBinding">[] = [
   },
   {
     id: "switchSession5",
-    action: "switchSession5",
+    action: "switchSession",
     label: "Switch to Session 5",
     description: "Switch to the fifth terminal session",
     scope: "global",
@@ -92,7 +92,7 @@ export const DEFAULT_HOTKEYS: Omit<HotkeyDefinition, "currentBinding">[] = [
   },
   {
     id: "switchSession6",
-    action: "switchSession6",
+    action: "switchSession",
     label: "Switch to Session 6",
     description: "Switch to the sixth terminal session",
     scope: "global",
@@ -101,7 +101,7 @@ export const DEFAULT_HOTKEYS: Omit<HotkeyDefinition, "currentBinding">[] = [
   },
   {
     id: "switchSession7",
-    action: "switchSession7",
+    action: "switchSession",
     label: "Switch to Session 7",
     description: "Switch to the seventh terminal session",
     scope: "global",
@@ -110,7 +110,7 @@ export const DEFAULT_HOTKEYS: Omit<HotkeyDefinition, "currentBinding">[] = [
   },
   {
     id: "switchSession8",
-    action: "switchSession8",
+    action: "switchSession",
     label: "Switch to Session 8",
     description: "Switch to the eighth terminal session",
     scope: "global",
@@ -119,7 +119,7 @@ export const DEFAULT_HOTKEYS: Omit<HotkeyDefinition, "currentBinding">[] = [
   },
   {
     id: "switchSession9",
-    action: "switchSession9",
+    action: "switchSession",
     label: "Switch to Session 9",
     description: "Switch to the ninth terminal session",
     scope: "global",

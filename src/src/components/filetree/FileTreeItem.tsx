@@ -1,4 +1,5 @@
-import { FileEntry, useFileTreeStore } from "../../stores/fileTreeStore";
+import { useFileTreeStore } from "../../stores/fileTreeStore";
+import { FileEntry } from "../../types/file";
 import { useEditorStore } from "../../stores/editorStore";
 
 interface FileTreeItemProps {

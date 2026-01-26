@@ -1,5 +1,6 @@
 import { useEffect, useRef, useCallback, useMemo, Fragment } from "react";
-import { useQuickOpenStore, FileEntry } from "../../stores/quickOpenStore";
+import { useQuickOpenStore } from "../../stores/quickOpenStore";
+import { SearchFileEntry } from "../../types/file";
 import { useSessionStore } from "../../stores/sessionStore";
 import { useEditorStore } from "../../stores/editorStore";
 import { invoke } from "@tauri-apps/api/core";
@@ -90,7 +91,7 @@ function SectionHeader({ title }: { title: string }) {
 }
 
 interface ResultItemProps {
-  file: FileEntry;
+  file: SearchFileEntry;
   isSelected: boolean;
   query: string;
   onClick: () => void;
@@ -208,7 +209,7 @@ export default function QuickOpenModal() {
       useQuickOpenStore.setState({ isLoading: true });
 
       try {
-        const searchResults = await invoke<FileEntry[]>("search_files", {
+        const searchResults = await invoke<SearchFileEntry[]>("search_files", {
           rootPath,
           query: searchQuery,
           maxResults: 50,
@@ -239,7 +240,7 @@ export default function QuickOpenModal() {
 
   // Handle file selection
   const handleSelectFile = useCallback(
-    (file: FileEntry) => {
+    (file: SearchFileEntry) => {
       if (!file.is_directory) {
         openFile(file.path);
         close();

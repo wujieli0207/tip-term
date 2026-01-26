@@ -74,15 +74,12 @@ export function useHotkeyHandler() {
             });
           }
         },
-        switchSession1: () => switchToSession(0),
-        switchSession2: () => switchToSession(1),
-        switchSession3: () => switchToSession(2),
-        switchSession4: () => switchToSession(3),
-        switchSession5: () => switchToSession(4),
-        switchSession6: () => switchToSession(5),
-        switchSession7: () => switchToSession(6),
-        switchSession8: () => switchToSession(7),
-        switchSession9: () => switchToSession(8),
+        switchSession: () => {
+          const index = getSwitchSessionIndex(matchedHotkey.id);
+          if (index !== null) {
+            switchToSession(index);
+          }
+        },
       };
 
       // Helper function for session switching
@@ -91,6 +88,14 @@ export function useHotkeyHandler() {
         if (index < sessions.length) {
           sessionStore.setActiveSession(sessions[index].id);
         }
+      }
+
+      function getSwitchSessionIndex(id: string): number | null {
+        const match = id.match(/^switchSession(\d+)$/);
+        if (!match) return null;
+        const index = Number(match[1]);
+        if (!Number.isInteger(index) || index < 1) return null;
+        return index - 1;
       }
 
       // Execute the action handler
