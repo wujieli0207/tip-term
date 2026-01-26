@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect } from "react";
 import { useSessionStore } from "../../stores/sessionStore";
 import { useFileTreeStore } from "../../stores/fileTreeStore";
+import { useResizable } from "../../hooks/useResizable";
 import FileTreeHeader from "./FileTreeHeader";
 import FileTreeView from "./FileTreeView";
 
@@ -19,37 +20,9 @@ export default function FileTreePanel() {
   }, [activeSessionId, cwd, initSessionTree]);
 
   // Resize handling
-  const panelRef = useRef<HTMLDivElement>(null);
-  const [isResizing, setIsResizing] = useState(false);
-
-  const handleMouseDown = (e: React.MouseEvent) => {
-    e.preventDefault();
-    setIsResizing(true);
-  };
-
-  useEffect(() => {
-    if (!isResizing) return;
-
-    const handleMouseMove = (e: MouseEvent) => {
-      if (panelRef.current) {
-        const rect = panelRef.current.getBoundingClientRect();
-        const newWidth = e.clientX - rect.left;
-        setFileTreeWidth(newWidth);
-      }
-    };
-
-    const handleMouseUp = () => {
-      setIsResizing(false);
-    };
-
-    document.addEventListener("mousemove", handleMouseMove);
-    document.addEventListener("mouseup", handleMouseUp);
-
-    return () => {
-      document.removeEventListener("mousemove", handleMouseMove);
-      document.removeEventListener("mouseup", handleMouseUp);
-    };
-  }, [isResizing, setFileTreeWidth]);
+  const { panelRef, isResizing, handleMouseDown } = useResizable({
+    onResize: setFileTreeWidth,
+  });
 
   // Don't show if no active terminal session or no cwd
   if (!activeSessionId || activeSession?.type !== "terminal" || !cwd) {

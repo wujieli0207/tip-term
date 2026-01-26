@@ -5,6 +5,22 @@ function binding(key: string, ...modifiers: HotkeyDefinition["defaultBinding"]["
   return { key, modifiers };
 }
 
+// Ordinal words for session numbers
+const ORDINALS = ["first", "second", "third", "fourth", "fifth", "sixth", "seventh", "eighth", "ninth"];
+
+// Factory for switchSession hotkeys
+function createSwitchSessionHotkeys(): Omit<HotkeyDefinition, "currentBinding">[] {
+  return Array.from({ length: 9 }, (_, i) => ({
+    id: `switchSession${i + 1}`,
+    action: "switchSession" as const,
+    label: `Switch to Session ${i + 1}`,
+    description: `Switch to the ${ORDINALS[i]} terminal session`,
+    scope: "global" as const,
+    defaultBinding: binding(String(i + 1), "meta"),
+    category: "Session" as const,
+  }));
+}
+
 export const DEFAULT_HOTKEYS: Omit<HotkeyDefinition, "currentBinding">[] = [
   // General
   {
@@ -45,87 +61,7 @@ export const DEFAULT_HOTKEYS: Omit<HotkeyDefinition, "currentBinding">[] = [
     defaultBinding: binding("w", "meta"),
     category: "Session",
   },
-  {
-    id: "switchSession1",
-    action: "switchSession",
-    label: "Switch to Session 1",
-    description: "Switch to the first terminal session",
-    scope: "global",
-    defaultBinding: binding("1", "meta"),
-    category: "Session",
-  },
-  {
-    id: "switchSession2",
-    action: "switchSession",
-    label: "Switch to Session 2",
-    description: "Switch to the second terminal session",
-    scope: "global",
-    defaultBinding: binding("2", "meta"),
-    category: "Session",
-  },
-  {
-    id: "switchSession3",
-    action: "switchSession",
-    label: "Switch to Session 3",
-    description: "Switch to the third terminal session",
-    scope: "global",
-    defaultBinding: binding("3", "meta"),
-    category: "Session",
-  },
-  {
-    id: "switchSession4",
-    action: "switchSession",
-    label: "Switch to Session 4",
-    description: "Switch to the fourth terminal session",
-    scope: "global",
-    defaultBinding: binding("4", "meta"),
-    category: "Session",
-  },
-  {
-    id: "switchSession5",
-    action: "switchSession",
-    label: "Switch to Session 5",
-    description: "Switch to the fifth terminal session",
-    scope: "global",
-    defaultBinding: binding("5", "meta"),
-    category: "Session",
-  },
-  {
-    id: "switchSession6",
-    action: "switchSession",
-    label: "Switch to Session 6",
-    description: "Switch to the sixth terminal session",
-    scope: "global",
-    defaultBinding: binding("6", "meta"),
-    category: "Session",
-  },
-  {
-    id: "switchSession7",
-    action: "switchSession",
-    label: "Switch to Session 7",
-    description: "Switch to the seventh terminal session",
-    scope: "global",
-    defaultBinding: binding("7", "meta"),
-    category: "Session",
-  },
-  {
-    id: "switchSession8",
-    action: "switchSession",
-    label: "Switch to Session 8",
-    description: "Switch to the eighth terminal session",
-    scope: "global",
-    defaultBinding: binding("8", "meta"),
-    category: "Session",
-  },
-  {
-    id: "switchSession9",
-    action: "switchSession",
-    label: "Switch to Session 9",
-    description: "Switch to the ninth terminal session",
-    scope: "global",
-    defaultBinding: binding("9", "meta"),
-    category: "Session",
-  },
+  ...createSwitchSessionHotkeys(),
 
   // View
   {

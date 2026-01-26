@@ -6,6 +6,7 @@ import { FitAddon } from "@xterm/addon-fit";
 import { WebglAddon } from "@xterm/addon-webgl";
 import "@xterm/xterm/css/xterm.css";
 import { useSessionStore } from "../stores/sessionStore";
+import { useSidebarStore } from "../stores/sidebarStore";
 import { useSettingsStore } from "../stores/settingsStore";
 import { sendNotification } from "../utils/notifications";
 
@@ -23,7 +24,7 @@ export default function XTerminal({ sessionId }: XTerminalProps) {
   const lastActivityNotificationRef = useRef<number>(0);
 
   const activeSessionId = useSessionStore((state) => state.activeSessionId);
-  const sidebarCollapsed = useSessionStore((state) => state.sidebarCollapsed);
+  const sidebarCollapsed = useSidebarStore((state) => state.collapsed);
   const isActive = activeSessionId === sessionId;
 
   const cursorStyle = useSettingsStore((state) => state.appearance.cursorStyle);

@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useSessionStore } from "../stores/sessionStore";
+import { useSidebarStore } from "../stores/sidebarStore";
 import { useFileTreeStore } from "../stores/fileTreeStore";
 import { useEditorStore } from "../stores/editorStore";
 import { useQuickOpenStore } from "../stores/quickOpenStore";
@@ -29,6 +30,7 @@ export function useHotkeyHandler() {
 
       // Get stores
       const sessionStore = useSessionStore.getState();
+      const sidebarStore = useSidebarStore.getState();
       const editorStore = useEditorStore.getState();
       const fileTreeStore = useFileTreeStore.getState();
       const quickOpenStore = useQuickOpenStore.getState();
@@ -59,7 +61,7 @@ export function useHotkeyHandler() {
           }
         },
         toggleSidebar: () => {
-          sessionStore.toggleSidebar();
+          sidebarStore.toggle();
         },
         toggleFileTree: () => {
           fileTreeStore.toggleFileTreeVisible();

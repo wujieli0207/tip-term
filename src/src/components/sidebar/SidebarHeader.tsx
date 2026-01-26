@@ -1,7 +1,9 @@
 import { useSessionStore } from "../../stores/sessionStore";
+import { useSidebarStore } from "../../stores/sidebarStore";
 
 export default function SidebarHeader() {
-  const { createSession, toggleSidebar } = useSessionStore();
+  const { createSession } = useSessionStore();
+  const { toggle: toggleSidebar } = useSidebarStore();
 
   const handleNewSession = async () => {
     try {

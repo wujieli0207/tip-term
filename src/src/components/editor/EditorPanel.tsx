@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from "react";
 import { useEditorStore } from "../../stores/editorStore";
+import { useResizable } from "../../hooks/useResizable";
 import EditorHeader from "./EditorHeader";
 import EditorStatusBar from "./EditorStatusBar";
 import CodeEditor from "./CodeEditor";
@@ -9,38 +9,9 @@ export default function EditorPanel() {
   const activeFile = getActiveFile();
 
   // Resize handling
-  const panelRef = useRef<HTMLDivElement>(null);
-  const [isResizing, setIsResizing] = useState(false);
-
-  const handleMouseDown = (e: React.MouseEvent) => {
-    e.preventDefault();
-    setIsResizing(true);
-  };
-
-  useEffect(() => {
-    if (!isResizing) return;
-
-    const handleMouseMove = (e: MouseEvent) => {
-      if (panelRef.current) {
-        const rect = panelRef.current.getBoundingClientRect();
-        // Resize from left edge (editor is on the left of terminal)
-        const newWidth = e.clientX - rect.left;
-        setEditorWidth(newWidth);
-      }
-    };
-
-    const handleMouseUp = () => {
-      setIsResizing(false);
-    };
-
-    document.addEventListener("mousemove", handleMouseMove);
-    document.addEventListener("mouseup", handleMouseUp);
-
-    return () => {
-      document.removeEventListener("mousemove", handleMouseMove);
-      document.removeEventListener("mouseup", handleMouseUp);
-    };
-  }, [isResizing, setEditorWidth]);
+  const { panelRef, isResizing, handleMouseDown } = useResizable({
+    onResize: setEditorWidth,
+  });
 
   const handleChange = (value: string) => {
     if (activeFile) {

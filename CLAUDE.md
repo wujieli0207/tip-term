@@ -25,15 +25,16 @@ pnpm tauri build  # Create distributable app
 
 ### Frontend (`src/src/`)
 - **Tech**: React + TypeScript + Vite + Tailwind CSS
-- **State**: Zustand stores in `stores/` (session, settings, fileTree, quickOpen)
+- **State**: Zustand stores in `stores/` (sessionStore, sidebarStore, settingsStore, fileTreeStore, quickOpenStore, editorStore)
+- **Types**: Shared types in `types/` (session.ts, file.ts, hotkey.ts)
+- **Hooks**: Reusable hooks in `hooks/` (useResizable, useHotkeyHandler, useProcessPolling)
 - **Terminal**: xterm.js rendering in `components/XTerminal.tsx`
-- **Session Groups**: Edge-style grouping in `components/group/`
+- **Sidebar**: Session list and groups in `components/sidebar/`
 - **File Tree**: Directory browser in `components/filetree/`
-- **Quick Open**: File search modal in `components/quickopen/QuickOpenModal.tsx`
+- **Quick Open**: File search in `components/quickopen/` (QuickOpenModal, ResultItem, HighlightMatch)
+- **Editor**: Code editor in `components/editor/`
 - **Settings**: Settings panel in `components/settings/`
-- **Hotkeys**: Configurable shortcuts in `config/defaultHotkeys.ts`, handler in `hooks/useHotkeyHandler.ts`
-- **Process Polling**: Session process polling in `hooks/useProcessPolling.ts`
-- **Shared Types**: File entries in `types/file.ts`
+- **Hotkeys**: Configurable shortcuts in `config/defaultHotkeys.ts`
 
 ### Backend (`src/src-tauri/src/`)
 - **main.rs**: Tauri commands and app setup

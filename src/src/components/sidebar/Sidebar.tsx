@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useSessionStore } from "../../stores/sessionStore";
+import { useSidebarStore } from "../../stores/sidebarStore";
 import SidebarHeader from "./SidebarHeader";
 import SessionItem from "./SessionItem";
 import GroupContainer from "./GroupContainer";
@@ -25,9 +26,8 @@ import {
 const MERGE_DELAY_MS = 300;
 
 export default function Sidebar() {
+  const { collapsed, width } = useSidebarStore();
   const {
-    sidebarCollapsed,
-    sidebarWidth,
     getSidebarItems,
     getTerminalSessions,
     reorderSessions,
@@ -186,7 +186,7 @@ export default function Sidebar() {
     setShowMergePreview(false);
   };
 
-  if (sidebarCollapsed) {
+  if (collapsed) {
     return null;
   }
 
@@ -204,7 +204,7 @@ export default function Sidebar() {
   return (
     <div
       className="flex flex-col h-full bg-[#1a1a1a] border-r border-[#2a2a2a]"
-      style={{ width: sidebarWidth }}
+      style={{ width }}
     >
       <SidebarHeader />
 
