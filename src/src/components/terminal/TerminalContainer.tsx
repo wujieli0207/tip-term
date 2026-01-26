@@ -1,23 +1,45 @@
 import { useSessionStore } from "../../stores/sessionStore";
 import { useFileTreeStore } from "../../stores/fileTreeStore";
 import { useEditorStore } from "../../stores/editorStore";
+import { useEffect } from "react";
 import { useSplitPaneStore } from "../../stores/splitPaneStore";
 import XTerminal from "../XTerminal";
 import SplitPaneContainer from "./SplitPaneContainer";
 import SettingsContainer from "../settings/SettingsContainer";
 import FileTreePanel from "../filetree/FileTreePanel";
 import EditorPanel from "../editor/EditorPanel";
+import { cleanupTerminals } from "../../utils/terminalRegistry";
 
 export default function TerminalContainer() {
-  const { getSessionsList, getTerminalSessions, activeSessionId, createSession, sessions } = useSessionStore();
+  const {
+    getSessionsList,
+    getTerminalSessions,
+    activeSessionId,
+    createSession,
+    sessions,
+  } = useSessionStore();
   const { fileTreeVisible } = useFileTreeStore();
   const { editorVisible } = useEditorStore();
   const hasLayout = useSplitPaneStore((state) => state.hasLayout);
+  const layouts = useSplitPaneStore((state) => state.layouts);
+  const getAllSessionIds = useSplitPaneStore((state) => state.getAllSessionIds);
   const sessionsList = getSessionsList();
   const terminalSessions = getTerminalSessions();
 
   // Get active session to check if it's a terminal
   const activeSession = activeSessionId ? sessions.get(activeSessionId) : null;
+
+  useEffect(() => {
+    const activeIds = new Set<string>();
+    for (const session of terminalSessions) {
+      activeIds.add(session.id);
+      const splitSessionIds = getAllSessionIds(session.id);
+      for (const splitId of splitSessionIds) {
+        activeIds.add(splitId);
+      }
+    }
+    cleanupTerminals(activeIds);
+  }, [terminalSessions, layouts, getAllSessionIds]);
 
   // Show empty state if no terminal sessions and settings is not active
   if (terminalSessions.length === 0 && activeSession?.type !== "settings") {
@@ -64,7 +86,10 @@ export default function TerminalContainer() {
               hasLayout(session.id) ? (
                 <SplitPaneContainer rootSessionId={session.id} />
               ) : (
-                <XTerminal sessionId={session.id} />
+                <XTerminal
+                  sessionId={session.id}
+                  isRootActive={session.id === activeSessionId}
+                />
               )
             ) : (
               <SettingsContainer />

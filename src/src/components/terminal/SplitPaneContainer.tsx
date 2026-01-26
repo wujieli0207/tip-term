@@ -63,7 +63,7 @@ function SplitNodeRenderer({
         minSize={10}
         className="flex flex-col"
       >
-        <PaneNodeRenderer node={node.children[0]} rootSessionId={rootSessionId} />
+        <PaneNodeRenderer key={node.children[0].id} node={node.children[0]} rootSessionId={rootSessionId} />
       </Panel>
       <ResizeHandle direction={node.direction} />
       <Panel
@@ -72,7 +72,7 @@ function SplitNodeRenderer({
         minSize={10}
         className="flex flex-col"
       >
-        <PaneNodeRenderer node={node.children[1]} rootSessionId={rootSessionId} />
+        <PaneNodeRenderer key={node.children[1].id} node={node.children[1]} rootSessionId={rootSessionId} />
       </Panel>
     </PanelGroup>
   );

@@ -1,5 +1,6 @@
 import { PaneId } from "../../types/splitPane";
 import { useSplitPaneStore } from "../../stores/splitPaneStore";
+import { useSessionStore } from "../../stores/sessionStore";
 import XTerminal from "../XTerminal";
 
 interface TerminalPaneWrapperProps {
@@ -18,6 +19,8 @@ export default function TerminalPaneWrapper({
   );
   const setFocusedPane = useSplitPaneStore((state) => state.setFocusedPane);
   const isFocused = focusedPaneId === paneId;
+  const activeSessionId = useSessionStore((state) => state.activeSessionId);
+  const isRootActive = activeSessionId === rootSessionId;
 
   const handleClick = () => {
     if (!isFocused) {
@@ -31,7 +34,11 @@ export default function TerminalPaneWrapper({
       onClick={handleClick}
     >
       <div className="absolute inset-0">
-        <XTerminal sessionId={sessionId} isFocusedPane={isFocused} />
+        <XTerminal
+          sessionId={sessionId}
+          isFocusedPane={isFocused}
+          isRootActive={isRootActive}
+        />
       </div>
       {/* Dark overlay for unfocused panes */}
       {!isFocused && (

@@ -1,218 +1,156 @@
-import { useEffect, useRef } from "react";
-import { invoke } from "@tauri-apps/api/core";
-import { listen } from "@tauri-apps/api/event";
-import { Terminal } from "@xterm/xterm";
-import { FitAddon } from "@xterm/addon-fit";
-import { WebglAddon } from "@xterm/addon-webgl";
-import "@xterm/xterm/css/xterm.css";
-import { useSessionStore } from "../stores/sessionStore";
-import { useSidebarStore } from "../stores/sidebarStore";
-import { useSettingsStore } from "../stores/settingsStore";
-import { sendNotification } from "../utils/notifications";
+import { useEffect, useRef } from 'react'
+import { Terminal } from '@xterm/xterm'
+import '@xterm/xterm/css/xterm.css'
+import { useSidebarStore } from '../stores/sidebarStore'
+import { useSettingsStore } from '../stores/settingsStore'
+import { invoke } from '@tauri-apps/api/core'
+import { attachTerminal, detachTerminal } from '../utils/terminalRegistry'
+import type { TerminalEntry } from '../utils/terminalRegistry'
 
 interface XTerminalProps {
-  sessionId: string;
-  isFocusedPane?: boolean; // For split pane support - defaults to true for single-pane usage
+  sessionId: string
+  isFocusedPane?: boolean // For split pane support - defaults to true for single-pane usage
+  isRootActive?: boolean
 }
 
-// Cooldown for activity notifications (5 seconds)
-const ACTIVITY_NOTIFICATION_COOLDOWN = 5000;
+export default function XTerminal({
+  sessionId,
+  isFocusedPane = true,
+  isRootActive = true,
+}: XTerminalProps) {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const terminalRef = useRef<Terminal | null>(null)
+  const fitAddonRef = useRef<TerminalEntry['fitAddon'] | null>(null)
 
-export default function XTerminal({ sessionId, isFocusedPane = true }: XTerminalProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const terminalRef = useRef<Terminal | null>(null);
-  const fitAddonRef = useRef<FitAddon | null>(null);
-  const lastActivityNotificationRef = useRef<number>(0);
+  const sidebarCollapsed = useSidebarStore((state) => state.collapsed)
 
-  const activeSessionId = useSessionStore((state) => state.activeSessionId);
-  const sidebarCollapsed = useSidebarStore((state) => state.collapsed);
-  const isActive = activeSessionId === sessionId;
-
-  const cursorStyle = useSettingsStore((state) => state.appearance.cursorStyle);
-  const cursorBlink = useSettingsStore((state) => state.appearance.cursorBlink);
+  const cursorStyle = useSettingsStore((state) => state.appearance.cursorStyle)
+  const cursorBlink = useSettingsStore((state) => state.appearance.cursorBlink)
 
   // Initialize terminal
   useEffect(() => {
-    if (!containerRef.current) return;
+    const container = containerRef.current
+    if (!container) return
 
-    const terminal = new Terminal({
-      fontFamily: '"JetBrains Mono", Monaco, monospace',
-      fontSize: 14,
-      theme: {
-        background: "#0a0a0a",
-        foreground: "#e5e5e5",
-        cursor: "#e5e5e5",
-        cursorAccent: "#0a0a0a",
-        selectionBackground: "#444444",
-        black: "#000000",
-        red: "#cd3131",
-        green: "#0dbc79",
-        yellow: "#e5e510",
-        blue: "#2472c8",
-        magenta: "#bc3fbc",
-        cyan: "#11a8cd",
-        white: "#e5e5e5",
-        brightBlack: "#666666",
-        brightRed: "#f14c4c",
-        brightGreen: "#23d18b",
-        brightYellow: "#f5f543",
-        brightBlue: "#3b8eea",
-        brightMagenta: "#d670d6",
-        brightCyan: "#29b8db",
-        brightWhite: "#ffffff",
-      },
-      cursorBlink: useSettingsStore.getState().appearance.cursorBlink,
-      cursorStyle: useSettingsStore.getState().appearance.cursorStyle,
-      allowProposedApi: true,
-    });
+    const entry = attachTerminal(sessionId, container)
+    terminalRef.current = entry.terminal
+    fitAddonRef.current = entry.fitAddon
 
-    const fitAddon = new FitAddon();
-    terminal.loadAddon(fitAddon);
-
-    terminal.open(containerRef.current);
-
-    // Try to load WebGL addon with fallback
-    try {
-      const webglAddon = new WebglAddon();
-      webglAddon.onContextLoss(() => {
-        webglAddon.dispose();
-      });
-      terminal.loadAddon(webglAddon);
-    } catch (e) {
-      console.warn("[XTerminal] WebGL addon failed, using canvas renderer:", e);
-    }
-
-    terminalRef.current = terminal;
-    fitAddonRef.current = fitAddon;
-
-    // Initial fit - may need retry if container has 0 dimensions
     const doFit = () => {
-      if (!fitAddonRef.current || !terminalRef.current) return;
+      if (!fitAddonRef.current || !terminalRef.current || !containerRef.current) return
+      
+      // Check if container has valid dimensions before fitting
+      const rect = containerRef.current.getBoundingClientRect()
+      if (rect.width < 10 || rect.height < 10) {
+        // Container not ready yet, skip this fit attempt
+        return false
+      }
+
       try {
-        fitAddonRef.current.fit();
-        const { cols, rows } = terminalRef.current;
+        fitAddonRef.current.fit()
+        const { cols, rows } = terminalRef.current
         if (cols > 0 && rows > 0) {
-          invoke("resize_terminal", { id: sessionId, cols, rows }).catch(console.error);
+          invoke('resize_terminal', { id: sessionId, cols, rows }).catch(
+            console.error,
+          )
+          return true
         }
       } catch (e) {
-        console.warn("[XTerminal] fit failed:", e);
+        console.warn('[XTerminal] fit failed:', e)
       }
-    };
+      return false
+    }
 
-    // Try to fit immediately
-    doFit();
-
-    // Also try again after a short delay in case layout isn't ready
-    const timeoutId = setTimeout(doFit, 100);
-
-    // Handle user input - send to backend
-    const dataDisposable = terminal.onData((data) => {
-      invoke("write_to_session", { id: sessionId, data }).catch(console.error);
-    });
-
-    // Listen for terminal title changes (OSC 0/1/2 sequences)
-    const titleDisposable = terminal.onTitleChange((title) => {
-      useSessionStore.getState().updateSessionTerminalTitle(sessionId, title);
-    });
-
-    // Listen for terminal output from backend
-    const unlistenPromise = listen<number[]>(`terminal-output-${sessionId}`, (event) => {
-      const data = new Uint8Array(event.payload);
-      terminal.write(data);
-
-      // Activity notification for non-active sessions
-      const currentState = useSessionStore.getState();
-      const currentSession = currentState.sessions.get(sessionId);
-      const isCurrentlyActive = currentState.activeSessionId === sessionId;
-
-      if (
-        currentSession?.notifyOnActivity &&
-        !isCurrentlyActive &&
-        data.length > 0
-      ) {
-        const now = Date.now();
-        if (now - lastActivityNotificationRef.current >= ACTIVITY_NOTIFICATION_COOLDOWN) {
-          lastActivityNotificationRef.current = now;
-          sendNotification({
-            title: "Terminal Activity",
-            body: `New output in session`,
-            sessionId,
-          });
-        }
+    // Use requestAnimationFrame to ensure layout is complete
+    // Try multiple times with exponential backoff for nested split panes
+    let rafId2: number | null = null
+    let timeoutId: number | null = null
+    
+    const rafId1 = requestAnimationFrame(() => {
+      if (!doFit()) {
+        rafId2 = requestAnimationFrame(() => {
+          if (!doFit()) {
+            // Final attempt after a longer delay for complex layouts
+            timeoutId = setTimeout(doFit, 100) as unknown as number
+          }
+        })
       }
-    });
+    })
 
-    // Cleanup
     return () => {
-      clearTimeout(timeoutId);
-      dataDisposable.dispose();
-      titleDisposable.dispose();
-      unlistenPromise.then((unlisten) => unlisten());
-      terminal.dispose();
-    };
-  }, [sessionId]);
+      cancelAnimationFrame(rafId1)
+      if (rafId2 !== null) cancelAnimationFrame(rafId2)
+      if (timeoutId !== null) clearTimeout(timeoutId)
+      detachTerminal(sessionId, container)
+    }
+  }, [sessionId])
 
   // Handle resize
   useEffect(() => {
-    if (!containerRef.current || !fitAddonRef.current || !terminalRef.current) return;
+    if (!containerRef.current || !fitAddonRef.current || !terminalRef.current)
+      return
 
     const handleResize = () => {
-      if (!fitAddonRef.current || !terminalRef.current) return;
+      if (!fitAddonRef.current || !terminalRef.current) return
 
       try {
-        fitAddonRef.current.fit();
-        const { cols, rows } = terminalRef.current;
+        fitAddonRef.current.fit()
+        const { cols, rows } = terminalRef.current
         if (cols > 0 && rows > 0) {
-          invoke("resize_terminal", { id: sessionId, cols, rows }).catch(console.error);
+          invoke('resize_terminal', { id: sessionId, cols, rows }).catch(
+            console.error,
+          )
         }
       } catch (e) {
         // Silently ignore fit errors during resize
       }
-    };
+    }
 
     const resizeObserver = new ResizeObserver(() => {
-      requestAnimationFrame(handleResize);
-    });
+      requestAnimationFrame(handleResize)
+    })
 
-    resizeObserver.observe(containerRef.current);
+    resizeObserver.observe(containerRef.current)
 
     return () => {
-      resizeObserver.disconnect();
-    };
-  }, [sessionId]);
+      resizeObserver.disconnect()
+    }
+  }, [sessionId])
 
   // Auto-focus when session becomes active, sidebar state changes, or pane focus changes
   useEffect(() => {
-    if (isActive && isFocusedPane && terminalRef.current) {
+    const terminal = terminalRef.current
+    if (!terminal) return
+
+    if (isRootActive && isFocusedPane) {
       requestAnimationFrame(() => {
-        terminalRef.current?.focus();
-      });
+        terminal.focus()
+      })
+    } else {
+      terminal.blur()
     }
-  }, [isActive, sidebarCollapsed, isFocusedPane]);
+  }, [isRootActive, sidebarCollapsed, isFocusedPane])
 
   // Apply cursor style changes
   useEffect(() => {
     if (terminalRef.current) {
-      terminalRef.current.options.cursorStyle = cursorStyle;
+      terminalRef.current.options.cursorStyle = cursorStyle
     }
-  }, [cursorStyle]);
+  }, [cursorStyle])
 
   // Apply cursor blink changes
   useEffect(() => {
     if (terminalRef.current) {
-      terminalRef.current.options.cursorBlink = cursorBlink;
+      const shouldBlink = isRootActive && isFocusedPane && cursorBlink
+      terminalRef.current.options.cursorBlink = shouldBlink
     }
-  }, [cursorBlink]);
+  }, [cursorBlink, isRootActive, isFocusedPane])
 
   const handleClick = () => {
-    terminalRef.current?.focus();
-  };
+    terminalRef.current?.focus()
+  }
 
   return (
-    <div
-      ref={containerRef}
-      className="w-full h-full"
-      onClick={handleClick}
-    />
-  );
+    <div ref={containerRef} className="w-full h-full" onClick={handleClick} />
+  )
 }
