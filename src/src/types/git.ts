@@ -36,6 +36,13 @@ export interface CommitInfo {
   author: string;
   time: number;
   timeRelative: string;
+  isPushed: boolean;
+}
+
+export interface BranchStatus {
+  ahead: number;
+  behind: number;
+  remoteBranch: string | null;
 }
 
 export interface CommitResult {

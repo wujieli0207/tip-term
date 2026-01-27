@@ -83,7 +83,7 @@ export default function GitPanel() {
               <CommitActions sessionId={activeSessionId} />
             </div>
 
-            <RecentCommits />
+            <RecentCommits sessionId={activeSessionId} />
           </>
         ) : (
           <div className="p-4 text-[#666]">

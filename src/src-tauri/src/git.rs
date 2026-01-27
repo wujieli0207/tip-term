@@ -50,6 +50,15 @@ pub struct CommitInfo {
     pub author: String,
     pub time: i64,
     pub time_relative: String,
+    pub is_pushed: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BranchStatus {
+    pub ahead: usize,
+    pub behind: usize,
+    pub remote_branch: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -559,6 +568,22 @@ pub fn get_file_diff(
     })
 }
 
+/// Get the remote tracking branch OID for the current branch
+fn get_remote_tracking_oid(repo: &Repository) -> Option<git2::Oid> {
+    let head = repo.head().ok()?;
+    let branch_name = head.shorthand()?;
+
+    // Try common remote patterns
+    for remote in ["origin", "upstream"] {
+        let remote_ref = format!("refs/remotes/{}/{}", remote, branch_name);
+        if let Ok(reference) = repo.find_reference(&remote_ref) {
+            return reference.target();
+        }
+    }
+
+    None
+}
+
 /// Get recent commits
 #[tauri::command]
 pub fn get_recent_commits(repo_path: String, count: Option<usize>) -> Result<Vec<CommitInfo>, String> {
@@ -568,10 +593,25 @@ pub fn get_recent_commits(repo_path: String, count: Option<usize>) -> Result<Vec
     let head = repo.head().map_err(|e| format!("Failed to get HEAD: {}", e))?;
     let oid = head.target().ok_or("HEAD has no target")?;
 
+    // Get remote tracking branch OID to determine push status
+    let remote_oid = get_remote_tracking_oid(&repo);
+
+    // Collect all OIDs that exist on remote (ancestors of remote tracking branch)
+    let mut remote_commits = std::collections::HashSet::new();
+    if let Some(remote_oid) = remote_oid {
+        let mut revwalk = repo.revwalk().map_err(|e| format!("Failed to create revwalk: {}", e))?;
+        revwalk.push(remote_oid).ok();
+        for oid_result in revwalk {
+            if let Ok(oid) = oid_result {
+                remote_commits.insert(oid);
+            }
+        }
+    }
+
     let mut revwalk = repo.revwalk().map_err(|e| format!("Failed to create revwalk: {}", e))?;
     revwalk.push(oid).map_err(|e| format!("Failed to push oid: {}", e))?;
 
-    let limit = count.unwrap_or(5);
+    let limit = count.unwrap_or(50);
     let mut commits = Vec::new();
 
     for oid_result in revwalk.take(limit) {
@@ -584,6 +624,7 @@ pub fn get_recent_commits(repo_path: String, count: Option<usize>) -> Result<Vec
         let author = commit.author().name().unwrap_or("Unknown").to_string();
         let time = commit.time().seconds();
         let time_relative = relative_time(time);
+        let is_pushed = remote_commits.contains(&oid);
 
         commits.push(CommitInfo {
             id,
@@ -592,6 +633,7 @@ pub fn get_recent_commits(repo_path: String, count: Option<usize>) -> Result<Vec
             author,
             time,
             time_relative,
+            is_pushed,
         });
     }
 
@@ -633,6 +675,82 @@ pub fn discard_changes(repo_path: String, file_path: String) -> Result<(), Strin
             std::fs::remove_file(&full_path)
                 .map_err(|e| format!("Failed to delete file: {}", e))?;
         }
+    }
+
+    Ok(())
+}
+
+/// Get branch status (ahead/behind counts relative to tracking branch)
+#[tauri::command]
+pub fn get_branch_status(repo_path: String) -> Result<BranchStatus, String> {
+    let repo = Repository::discover(&repo_path)
+        .map_err(|e| format!("Not a git repository: {}", e))?;
+
+    let head = repo.head().map_err(|e| format!("Failed to get HEAD: {}", e))?;
+    let branch_name = head.shorthand().unwrap_or("HEAD");
+
+    // Find remote tracking branch
+    let mut remote_branch = None;
+    let mut remote_oid = None;
+
+    for remote in ["origin", "upstream"] {
+        let remote_ref = format!("refs/remotes/{}/{}", remote, branch_name);
+        if let Ok(reference) = repo.find_reference(&remote_ref) {
+            remote_branch = Some(format!("{}/{}", remote, branch_name));
+            remote_oid = reference.target();
+            break;
+        }
+    }
+
+    let head_oid = head.target().ok_or("HEAD has no target")?;
+
+    let (ahead, behind) = if let Some(remote_oid) = remote_oid {
+        // Count commits ahead (local commits not on remote)
+        let mut ahead_count = 0;
+        let mut revwalk = repo.revwalk().map_err(|e| format!("Failed to create revwalk: {}", e))?;
+        revwalk.push(head_oid).ok();
+        revwalk.hide(remote_oid).ok();
+        for _ in revwalk {
+            ahead_count += 1;
+        }
+
+        // Count commits behind (remote commits not on local)
+        let mut behind_count = 0;
+        let mut revwalk = repo.revwalk().map_err(|e| format!("Failed to create revwalk: {}", e))?;
+        revwalk.push(remote_oid).ok();
+        revwalk.hide(head_oid).ok();
+        for _ in revwalk {
+            behind_count += 1;
+        }
+
+        (ahead_count, behind_count)
+    } else {
+        (0, 0)
+    };
+
+    Ok(BranchStatus {
+        ahead,
+        behind,
+        remote_branch,
+    })
+}
+
+/// Push to remote using shell command (for credential handling)
+#[tauri::command]
+pub fn git_push(repo_path: String, remote: Option<String>) -> Result<(), String> {
+    let remote_name = remote.unwrap_or_else(|| "origin".to_string());
+
+    let output = std::process::Command::new("git")
+        .arg("push")
+        .arg(&remote_name)
+        .arg("HEAD")
+        .current_dir(&repo_path)
+        .output()
+        .map_err(|e| format!("Failed to execute git push: {}", e))?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(format!("Push failed: {}", stderr));
     }
 
     Ok(())

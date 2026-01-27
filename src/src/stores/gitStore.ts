@@ -7,6 +7,7 @@ import {
   CommitResult,
   SessionGitState,
   FileStatus,
+  BranchStatus,
 } from "../types/git";
 
 interface GitStore {
@@ -35,6 +36,10 @@ interface GitStore {
   // Commit state
   commitMessage: string;
   isCommitting: boolean;
+
+  // Push state
+  isPushing: boolean;
+  branchStatus: BranchStatus | null;
 
   // Recent commits
   recentCommits: CommitInfo[];
@@ -69,8 +74,10 @@ interface GitStore {
   setCommitMessage: (message: string) => void;
   commit: (sessionId: string) => Promise<CommitResult>;
   commitAndPush: (sessionId: string) => Promise<CommitResult>;
+  push: (sessionId: string) => Promise<{ success: boolean; error?: string }>;
 
-  loadRecentCommits: (sessionId: string) => Promise<void>;
+  loadBranchStatus: (sessionId: string) => Promise<void>;
+  loadRecentCommits: (sessionId: string, count?: number) => Promise<void>;
 }
 
 const DEFAULT_GIT_PANEL_WIDTH = 300;
@@ -92,6 +99,8 @@ export const useGitStore = create<GitStore>((set, get) => ({
   isDiffLoading: false,
   commitMessage: "",
   isCommitting: false,
+  isPushing: false,
+  branchStatus: null,
   recentCommits: [],
 
   toggleGitPanel: () => {
@@ -141,8 +150,9 @@ export const useGitStore = create<GitStore>((set, get) => ({
         return { sessionGitState: newState };
       });
 
-      // Also load recent commits
+      // Also load recent commits and branch status
       get().loadRecentCommits(sessionId);
+      get().loadBranchStatus(sessionId);
     } catch (error) {
       set((state) => {
         const newState = new Map(state.sessionGitState);
@@ -328,19 +338,63 @@ export const useGitStore = create<GitStore>((set, get) => ({
     }
   },
 
-  loadRecentCommits: async (sessionId: string) => {
+  loadRecentCommits: async (sessionId: string, count?: number) => {
     const gitState = get().sessionGitState.get(sessionId);
     if (!gitState) return;
 
     try {
       const commits = await invoke<CommitInfo[]>("get_recent_commits", {
         repoPath: gitState.repoPath,
-        count: 5,
+        count: count ?? 50,
       });
       set({ recentCommits: commits });
     } catch (error) {
       console.error("Failed to load recent commits:", error);
       set({ recentCommits: [] });
+    }
+  },
+
+  loadBranchStatus: async (sessionId: string) => {
+    const gitState = get().sessionGitState.get(sessionId);
+    if (!gitState) return;
+
+    try {
+      const status = await invoke<BranchStatus>("get_branch_status", {
+        repoPath: gitState.repoPath,
+      });
+      set({ branchStatus: status });
+    } catch (error) {
+      console.error("Failed to load branch status:", error);
+      set({ branchStatus: null });
+    }
+  },
+
+  push: async (sessionId: string) => {
+    const gitState = get().sessionGitState.get(sessionId);
+    if (!gitState) {
+      return { success: false, error: "No git state" };
+    }
+
+    set({ isPushing: true });
+
+    try {
+      await invoke("git_push", {
+        repoPath: gitState.repoPath,
+        remote: null,
+      });
+
+      set({ isPushing: false });
+
+      // Reload status and commits after push
+      await get().loadGitStatus(sessionId, gitState.repoPath);
+
+      return { success: true };
+    } catch (error) {
+      set({ isPushing: false });
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      };
     }
   },
 }));

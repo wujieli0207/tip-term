@@ -197,6 +197,8 @@ fn main() {
             git::get_file_diff,
             git::get_recent_commits,
             git::discard_changes,
+            git::get_branch_status,
+            git::git_push,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
