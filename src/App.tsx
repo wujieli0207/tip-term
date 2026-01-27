@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useSessionStore } from "./stores/sessionStore";
 import Sidebar from "./components/sidebar/Sidebar";
+import DetailPanelsContainer from "./components/sidebar/DetailPanelsContainer";
 import TerminalContainer from "./components/terminal/TerminalContainer";
 import QuickOpenModal from "./components/quickopen/QuickOpenModal";
 import { useHotkeyHandler } from "./hooks/useHotkeyHandler";
@@ -20,6 +21,7 @@ function App() {
   return (
     <div className="flex h-screen w-screen bg-[#0a0a0a] overflow-hidden">
       <Sidebar />
+      <DetailPanelsContainer />
       <TerminalContainer />
       <QuickOpenModal />
     </div>

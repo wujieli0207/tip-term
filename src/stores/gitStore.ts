@@ -12,7 +12,6 @@ import {
 
 interface GitStore {
   // Panel visibility
-  gitPanelVisible: boolean;
   gitPanelWidth: number;
 
   // Diff panel visibility
@@ -45,8 +44,6 @@ interface GitStore {
   recentCommits: CommitInfo[];
 
   // Actions
-  toggleGitPanel: () => void;
-  setGitPanelWidth: (width: number) => void;
   toggleGitDiffPanel: () => void;
   setGitDiffPanelWidth: (width: number) => void;
 
@@ -85,7 +82,6 @@ const DEFAULT_GIT_DIFF_PANEL_WIDTH = 400;
 
 export const useGitStore = create<GitStore>((set, get) => ({
   // Initial state
-  gitPanelVisible: false,
   gitPanelWidth: DEFAULT_GIT_PANEL_WIDTH,
   gitDiffPanelVisible: false,
   gitDiffPanelWidth: DEFAULT_GIT_DIFF_PANEL_WIDTH,
@@ -102,14 +98,6 @@ export const useGitStore = create<GitStore>((set, get) => ({
   isPushing: false,
   branchStatus: null,
   recentCommits: [],
-
-  toggleGitPanel: () => {
-    set((state) => ({ gitPanelVisible: !state.gitPanelVisible }));
-  },
-
-  setGitPanelWidth: (width: number) => {
-    set({ gitPanelWidth: Math.max(250, Math.min(500, width)) });
-  },
 
   toggleGitDiffPanel: () => {
     set((state) => ({ gitDiffPanelVisible: !state.gitDiffPanelVisible }));

@@ -100,6 +100,33 @@ export const DEFAULT_HOTKEYS: Omit<HotkeyDefinition, "currentBinding">[] = [
     defaultBinding: binding("g", "meta", "shift"),
     category: "View",
   },
+  {
+    id: "switchToSessionTab",
+    action: "switchToSessionTab",
+    label: "Switch to Session Tab",
+    description: "Switch to the Session tab in sidebar",
+    scope: "global",
+    defaultBinding: binding("1", "meta", "ctrl"),
+    category: "View",
+  },
+  {
+    id: "switchToFileTreeTab",
+    action: "switchToFileTreeTab",
+    label: "Switch to File Tree Tab",
+    description: "Switch to the File Tree tab in sidebar",
+    scope: "global",
+    defaultBinding: binding("2", "meta", "ctrl"),
+    category: "View",
+  },
+  {
+    id: "switchToGitTab",
+    action: "switchToGitTab",
+    label: "Switch to Git Tab",
+    description: "Switch to the Git tab in sidebar",
+    scope: "global",
+    defaultBinding: binding("3", "meta", "ctrl"),
+    category: "View",
+  },
 
   // Editor
   {

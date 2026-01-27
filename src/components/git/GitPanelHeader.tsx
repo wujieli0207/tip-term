@@ -1,5 +1,5 @@
 import { useGitStore } from "../../stores/gitStore";
-import { IconGitBranch, IconRefresh, IconX } from "@/components/ui/icons";
+import { IconGitBranch, IconRefresh } from "@/components/ui/icons";
 
 interface GitPanelHeaderProps {
   sessionId: string;
@@ -8,7 +8,6 @@ interface GitPanelHeaderProps {
 export default function GitPanelHeader({ sessionId }: GitPanelHeaderProps) {
   const {
     sessionGitState,
-    toggleGitPanel,
     loadGitStatus,
   } = useGitStore();
 
@@ -41,13 +40,6 @@ export default function GitPanelHeader({ sessionId }: GitPanelHeaderProps) {
           title="Refresh"
         >
           <IconRefresh className="w-4 h-4" stroke={2} />
-        </button>
-        <button
-          onClick={toggleGitPanel}
-          className="p-1 rounded hover:bg-[#333] text-[#888] hover:text-[#e0e0e0] transition-colors"
-          title="Close"
-        >
-          <IconX className="w-4 h-4" stroke={2} />
         </button>
       </div>
     </div>

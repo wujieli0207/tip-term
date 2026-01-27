@@ -1,10 +1,10 @@
 import { useEffect } from "react";
 import { useSessionStore } from "../../stores/sessionStore";
 import { useFileTreeStore } from "../../stores/fileTreeStore";
-import FileTreeHeader from "./FileTreeHeader";
-import FileTreeView from "./FileTreeView";
+import FileTreeHeader from "../filetree/FileTreeHeader";
+import FileTreeView from "../filetree/FileTreeView";
 
-export default function FileTreePanel() {
+export default function FileTreeTabContent() {
   const { activeSessionId, sessions } = useSessionStore();
   const { initSessionTree } = useFileTreeStore();
 
@@ -20,13 +20,16 @@ export default function FileTreePanel() {
 
   // Don't show if no active terminal session or no cwd
   if (!activeSessionId || activeSession?.type !== "terminal" || !cwd) {
-    return null;
+    return (
+      <div className="px-3 py-4 text-sm text-center text-gray-500">
+        No active session or working directory.
+      </div>
+    );
   }
 
   return (
-    <div className="flex flex-col h-full bg-[#0f0f0f]">
+    <div className="flex-1 overflow-y-auto overflow-x-hidden flex flex-col">
       <FileTreeHeader sessionId={activeSessionId} />
-
       <div className="flex-1 overflow-y-auto overflow-x-hidden">
         <FileTreeView sessionId={activeSessionId} />
       </div>

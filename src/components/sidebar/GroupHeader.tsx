@@ -3,6 +3,7 @@ import { GroupInfo, GroupColor, GROUP_COLORS, useSessionStore } from '../../stor
 import { IconChevronRight, IconPlus, IconDotsVertical, IconX } from "@/components/ui/icons";
 import {
   DropdownMenu,
+  DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
@@ -28,7 +29,6 @@ export default function GroupHeader({ group }: GroupHeaderProps) {
   } = useSessionStore();
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState('');
-  const [menuOpen, setMenuOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const colors = GROUP_COLORS[group.color];
@@ -74,7 +74,6 @@ export default function GroupHeader({ group }: GroupHeaderProps) {
 
   const handleNewSessionFromMenu = async () => {
     await createSessionInGroup(group.id);
-    setMenuOpen(false);
   };
 
   const handleColorSelect = (color: GroupColor) => {
@@ -83,17 +82,14 @@ export default function GroupHeader({ group }: GroupHeaderProps) {
 
   const handleUngroup = () => {
     dissolveGroup(group.id);
-    setMenuOpen(false);
   };
 
   const handleCloseAll = async () => {
     await closeAllInGroup(group.id);
-    setMenuOpen(false);
   };
 
   const handleDelete = async () => {
     await deleteGroup(group.id, true);
-    setMenuOpen(false);
   };
 
   return (
@@ -155,17 +151,16 @@ export default function GroupHeader({ group }: GroupHeaderProps) {
       </button>
 
       {/* Menu button */}
-      <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            setMenuOpen(!menuOpen);
-          }}
-          className="p-0.5 rounded hover:bg-[#444444] transition-colors flex-shrink-0"
-          title="Group options"
-        >
-          <IconDotsVertical className="w-3.5 h-3.5 text-gray-400 hover:text-gray-200" stroke={2} />
-        </button>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button
+            onClick={(e) => e.stopPropagation()}
+            className="p-0.5 rounded hover:bg-[#444444] transition-colors flex-shrink-0"
+            title="Group options"
+          >
+            <IconDotsVertical className="w-3.5 h-3.5 text-gray-400 hover:text-gray-200" stroke={2} />
+          </button>
+        </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-[180px]" onClick={(e) => e.stopPropagation()}>
           {/* New session */}
           <DropdownMenuItem onClick={handleNewSessionFromMenu}>

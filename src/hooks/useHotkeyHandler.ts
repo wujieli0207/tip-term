@@ -2,7 +2,6 @@ import { useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useSessionStore } from "../stores/sessionStore";
 import { useSidebarStore } from "../stores/sidebarStore";
-import { useFileTreeStore } from "../stores/fileTreeStore";
 import { useEditorStore } from "../stores/editorStore";
 import { useQuickOpenStore } from "../stores/quickOpenStore";
 import { useSettingsStore } from "../stores/settingsStore";
@@ -35,7 +34,6 @@ export function useHotkeyHandler() {
       const sessionStore = useSessionStore.getState();
       const sidebarStore = useSidebarStore.getState();
       const editorStore = useEditorStore.getState();
-      const fileTreeStore = useFileTreeStore.getState();
       const quickOpenStore = useQuickOpenStore.getState();
       const splitPaneStore = useSplitPaneStore.getState();
       const gitStore = useGitStore.getState();
@@ -88,16 +86,16 @@ export function useHotkeyHandler() {
           sidebarStore.toggle();
         },
         toggleFileTree: () => {
-          fileTreeStore.toggleFileTreeVisible();
+          sidebarStore.setActiveTab('filetree');
         },
         toggleEditor: () => {
           editorStore.toggleEditorVisible();
         },
         toggleGitPanel: () => {
-          gitStore.toggleGitPanel();
+          sidebarStore.setActiveTab('git');
 
-          // Load status when opening
-          if (!gitStore.gitPanelVisible && sessionStore.activeSessionId) {
+          // Load status when switching to git tab
+          if (sessionStore.activeSessionId) {
             const session = sessionStore.sessions.get(sessionStore.activeSessionId);
             if (session?.cwd) {
               gitStore.loadGitStatus(sessionStore.activeSessionId, session.cwd);
@@ -110,6 +108,15 @@ export function useHotkeyHandler() {
               console.error("Failed to save file:", error);
             });
           }
+        },
+        switchToSessionTab: () => {
+          sidebarStore.setActiveTab('session');
+        },
+        switchToFileTreeTab: () => {
+          sidebarStore.setActiveTab('filetree');
+        },
+        switchToGitTab: () => {
+          sidebarStore.setActiveTab('git');
         },
         switchSession: () => {
           const index = getSwitchSessionIndex(matchedHotkey.id);

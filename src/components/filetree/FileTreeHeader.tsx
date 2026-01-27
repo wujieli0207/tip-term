@@ -1,13 +1,13 @@
 import { useFileTreeStore } from "../../stores/fileTreeStore";
 import { useSessionStore } from "../../stores/sessionStore";
-import { IconFolderFilled, IconRefresh, IconX } from "@/components/ui/icons";
+import { IconFolderFilled, IconRefresh } from "@/components/ui/icons";
 
 interface FileTreeHeaderProps {
   sessionId: string;
 }
 
 export default function FileTreeHeader({ sessionId }: FileTreeHeaderProps) {
-  const { refreshRoot, toggleFileTreeVisible } = useFileTreeStore();
+  const { refreshRoot } = useFileTreeStore();
   const { sessions } = useSessionStore();
 
   const session = sessions.get(sessionId);
@@ -37,13 +37,6 @@ export default function FileTreeHeader({ sessionId }: FileTreeHeaderProps) {
           title="Refresh"
         >
           <IconRefresh className="w-4 h-4" stroke={2} />
-        </button>
-        <button
-          onClick={toggleFileTreeVisible}
-          className="p-1 hover:bg-[#2a2a2a] rounded text-gray-400 hover:text-gray-200 transition-colors"
-          title="Close (Cmd+B)"
-        >
-          <IconX className="w-4 h-4" stroke={2} />
         </button>
       </div>
     </div>

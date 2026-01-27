@@ -6,6 +6,7 @@ import { IconTerminal2, IconDotsVertical, IconX, IconPlus, IconFolder } from "@/
 import { requestNotificationPermission } from "../../utils/notifications";
 import {
   DropdownMenu,
+  DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
@@ -150,17 +151,14 @@ export default function SessionItem({ session, index, inGroup = false, isDropTar
 
   const handleCreateNewGroup = () => {
     createGroup([session.id]);
-    setMenuOpen(false);
   };
 
   const handleAddToGroup = (groupId: string) => {
     addSessionToGroup(session.id, groupId);
-    setMenuOpen(false);
   };
 
   const handleRemoveFromGroup = () => {
     removeSessionFromGroup(session.id);
-    setMenuOpen(false);
   };
 
   return (
@@ -225,17 +223,16 @@ export default function SessionItem({ session, index, inGroup = false, isDropTar
           </span>
         )}
         {(isHovered || menuOpen) && (
-          <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setMenuOpen(!menuOpen);
-              }}
-              className="p-0.5 rounded hover:bg-[#444444] transition-opacity duration-150"
-              title="Session options"
-            >
-              <IconDotsVertical className="w-3.5 h-3.5 text-gray-400 hover:text-gray-200" stroke={2} />
-            </button>
+          <DropdownMenu onOpenChange={setMenuOpen}>
+            <DropdownMenuTrigger asChild>
+              <button
+                onClick={(e) => e.stopPropagation()}
+                className="p-0.5 rounded hover:bg-[#444444] transition-opacity duration-150"
+                title="Session options"
+              >
+                <IconDotsVertical className="w-3.5 h-3.5 text-gray-400 hover:text-gray-200" stroke={2} />
+              </button>
+            </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-[200px]" onClick={(e) => e.stopPropagation()}>
               {/* Process info */}
               {session.processName && (

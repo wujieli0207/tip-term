@@ -1,16 +1,10 @@
 import { useSessionStore } from "../../stores/sessionStore";
-import { useFileTreeStore } from "../../stores/fileTreeStore";
-import { useEditorStore } from "../../stores/editorStore";
-import { useGitStore } from "../../stores/gitStore";
 import { useEffect } from "react";
 import { useSplitPaneStore } from "../../stores/splitPaneStore";
 import type { PaneNode } from "../../types/splitPane";
 import XTerminal from "../XTerminal";
 import SplitPaneContainer from "./SplitPaneContainer";
 import SettingsContainer from "../settings/SettingsContainer";
-import FileTreePanel from "../filetree/FileTreePanel";
-import EditorPanel from "../editor/EditorPanel";
-import { GitPanel, GitDiffPanel } from "../git";
 import { cleanupTerminals } from "../../utils/terminalRegistry";
 
 export default function TerminalContainer() {
@@ -21,9 +15,6 @@ export default function TerminalContainer() {
     createSession,
     sessions,
   } = useSessionStore();
-  const { fileTreeVisible } = useFileTreeStore();
-  const { editorVisible } = useEditorStore();
-  const { gitPanelVisible, gitDiffPanelVisible } = useGitStore();
   const hasLayout = useSplitPaneStore((state) => state.hasLayout);
   const layouts = useSplitPaneStore((state) => state.layouts);
   const sessionsList = getSessionsList();
@@ -73,20 +64,6 @@ export default function TerminalContainer() {
 
   return (
     <div className="flex-1 flex bg-[#0a0a0a]">
-      {/* Left side panels */}
-      {fileTreeVisible && activeSession?.type === "terminal" && (
-        <FileTreePanel />
-      )}
-      {gitPanelVisible && activeSession?.type === "terminal" && (
-        <GitPanel />
-      )}
-      {gitDiffPanelVisible && activeSession?.type === "terminal" && (
-        <GitDiffPanel />
-      )}
-      {editorVisible && activeSession?.type === "terminal" && (
-        <EditorPanel />
-      )}
-
       {/* Terminal / Settings content area */}
       <div className="relative flex-1">
         {sessionsList.map((session) => (

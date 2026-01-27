@@ -12,12 +12,10 @@ export interface DirectoryTree {
 
 interface FileTreeStore {
   // State
-  fileTreeVisible: boolean;
   fileTreeWidth: number;
   sessionTrees: Map<string, DirectoryTree>;
 
   // Actions
-  toggleFileTreeVisible: () => void;
   setFileTreeWidth: (width: number) => void;
   loadDirectory: (sessionId: string, path: string) => Promise<void>;
   toggleDirectory: (sessionId: string, path: string) => void;
@@ -30,13 +28,8 @@ interface FileTreeStore {
 const DEFAULT_FILE_TREE_WIDTH = 250;
 
 export const useFileTreeStore = create<FileTreeStore>((set, get) => ({
-  fileTreeVisible: false,
   fileTreeWidth: DEFAULT_FILE_TREE_WIDTH,
   sessionTrees: new Map(),
-
-  toggleFileTreeVisible: () => {
-    set((state) => ({ fileTreeVisible: !state.fileTreeVisible }));
-  },
 
   setFileTreeWidth: (width: number) => {
     set({ fileTreeWidth: Math.max(150, Math.min(500, width)) });
