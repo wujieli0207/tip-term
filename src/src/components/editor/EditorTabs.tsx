@@ -1,4 +1,5 @@
 import { useEditorStore, EditorFile } from "../../stores/editorStore";
+import { IconX } from "@/components/ui/icons";
 
 export default function EditorTabs() {
   const { openFiles, activeFilePath, setActiveFile, closeFile } = useEditorStore();
@@ -44,9 +45,7 @@ export default function EditorTabs() {
             onClick={(e) => handleClose(e, file.path)}
             className="ml-1 p-0.5 rounded hover:bg-[#3a3a3a] text-gray-500 hover:text-gray-300"
           >
-            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            <IconX className="w-3 h-3" stroke={2} />
           </span>
         </button>
       ))}

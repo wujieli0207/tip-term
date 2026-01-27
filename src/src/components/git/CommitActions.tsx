@@ -1,4 +1,5 @@
 import { useGitStore } from "../../stores/gitStore";
+import { IconLoader2, IconArrowRight, IconArrowUp } from "@/components/ui/icons";
 
 interface CommitActionsProps {
   sessionId: string;
@@ -58,14 +59,7 @@ export default function CommitActions({ sessionId }: CommitActionsProps) {
       >
         {isCommitting ? (
           <span className="flex items-center justify-center gap-2">
-            <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path
-                className="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-              />
-            </svg>
+            <IconLoader2 className="w-4 h-4 animate-spin" stroke={2} />
             Committing...
           </span>
         ) : (
@@ -83,10 +77,7 @@ export default function CommitActions({ sessionId }: CommitActionsProps) {
         }`}
         title="Commit and Push"
       >
-        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M5 12h14" />
-          <path d="M12 5l7 7-7 7" />
-        </svg>
+        <IconArrowRight className="w-4 h-4" stroke={2} />
       </button>
 
       {(canPush || isPushing) && (
@@ -104,22 +95,12 @@ export default function CommitActions({ sessionId }: CommitActionsProps) {
         >
           {isPushing ? (
             <>
-              <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                />
-              </svg>
+              <IconLoader2 className="w-4 h-4 animate-spin" stroke={2} />
               <span className="text-xs">Pushing</span>
             </>
           ) : (
             <>
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M12 19V5" />
-                <path d="M5 12l7-7 7 7" />
-              </svg>
+              <IconArrowUp className="w-4 h-4" stroke={2} />
               <span>{aheadCount}</span>
             </>
           )}

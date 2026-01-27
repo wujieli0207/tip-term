@@ -1,5 +1,6 @@
 import { useGitStore } from "../../stores/gitStore";
 import { FileStatus } from "../../types/git";
+import { IconMinus, IconPlus, IconX } from "@/components/ui/icons";
 
 interface FileStatusItemProps {
   file: FileStatus;
@@ -95,9 +96,7 @@ export default function FileStatusItem({
             className="p-0.5 rounded hover:bg-[#333] text-[#888] hover:text-red-400"
             title="Unstage"
           >
-            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
+            <IconMinus className="w-3.5 h-3.5" stroke={2} />
           </button>
         ) : (
           <>
@@ -106,10 +105,7 @@ export default function FileStatusItem({
               className="p-0.5 rounded hover:bg-[#333] text-[#888] hover:text-green-400"
               title="Stage"
             >
-              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <line x1="12" y1="5" x2="12" y2="19" />
-                <line x1="5" y1="12" x2="19" y2="12" />
-              </svg>
+              <IconPlus className="w-3.5 h-3.5" stroke={2} />
             </button>
             {!isUntracked && (
               <button
@@ -117,10 +113,7 @@ export default function FileStatusItem({
                 className="p-0.5 rounded hover:bg-[#333] text-[#888] hover:text-red-400"
                 title="Discard changes"
               >
-                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <line x1="18" y1="6" x2="6" y2="18" />
-                  <line x1="6" y1="6" x2="18" y2="18" />
-                </svg>
+                <IconX className="w-3.5 h-3.5" stroke={2} />
               </button>
             )}
           </>

@@ -1,4 +1,5 @@
 import { SessionInfo, GROUP_COLORS } from '../../stores/sessionStore';
+import { IconTerminal2, IconFolder } from "@/components/ui/icons";
 
 interface DragMergeOverlayProps {
   session: SessionInfo;
@@ -47,19 +48,7 @@ export default function DragMergeOverlay({ session, showMergePreview }: DragMerg
         {showMergePreview ? (
           <>
             {/* Group icon when merging */}
-            <svg
-              className="w-4 h-4 text-gray-400 flex-shrink-0"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
-              />
-            </svg>
+            <IconFolder className="w-4 h-4 text-gray-400 flex-shrink-0" stroke={2} />
             <span className="text-sm text-gray-300 truncate">
               Create group
             </span>
@@ -67,19 +56,7 @@ export default function DragMergeOverlay({ session, showMergePreview }: DragMerg
         ) : (
           <>
             {/* Terminal icon */}
-            <svg
-              className="w-4 h-4 text-gray-400 flex-shrink-0"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-              />
-            </svg>
+            <IconTerminal2 className="w-4 h-4 text-gray-400 flex-shrink-0" stroke={2} />
             <span className="text-sm text-gray-300 truncate">
               {displayName}
             </span>

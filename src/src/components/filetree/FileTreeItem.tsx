@@ -1,6 +1,7 @@
 import { useFileTreeStore } from "../../stores/fileTreeStore";
 import { FileEntry } from "../../types/file";
 import { useEditorStore } from "../../stores/editorStore";
+import { IconChevronDown, IconChevronRight, IconFile, IconFolderFilled, IconFolderOpen } from "@/components/ui/icons";
 
 interface FileTreeItemProps {
   sessionId: string;
@@ -32,19 +33,18 @@ export default function FileTreeItem({ sessionId, entry, depth }: FileTreeItemPr
     }
   };
 
-  const getFileIcon = () => {
+  const getChevronIcon = () => {
     if (entry.is_directory) {
       return isExpanded ? (
-        <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-        </svg>
+        <IconChevronDown className="w-4 h-4 text-gray-400" stroke={2} />
       ) : (
-        <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-        </svg>
+        <IconChevronRight className="w-4 h-4 text-gray-400" stroke={2} />
       );
     }
+    return null;
+  };
 
+  const getFileIcon = () => {
     // File icon - use different colors based on extension
     const ext = entry.name.split(".").pop()?.toLowerCase() || "";
     let iconColor = "text-gray-500";
@@ -57,26 +57,14 @@ export default function FileTreeItem({ sessionId, entry, depth }: FileTreeItemPr
     else if (["css", "scss", "sass"].includes(ext)) iconColor = "text-pink-400";
     else if (["html"].includes(ext)) iconColor = "text-orange-300";
 
-    return (
-      <svg className={`w-4 h-4 ${iconColor}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-      </svg>
-    );
+    return <IconFile className={`w-4 h-4 ${iconColor}`} stroke={2} />;
   };
 
   const getFolderIcon = () => {
     if (isExpanded) {
-      return (
-        <svg className="w-4 h-4 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
-          <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
-        </svg>
-      );
+      return <IconFolderOpen className="w-4 h-4 text-yellow-500" stroke={2} />;
     }
-    return (
-      <svg className="w-4 h-4 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
-        <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
-      </svg>
-    );
+    return <IconFolderFilled className="w-4 h-4 text-yellow-600" />;
   };
 
   return (
@@ -88,7 +76,7 @@ export default function FileTreeItem({ sessionId, entry, depth }: FileTreeItemPr
       >
         {entry.is_directory ? (
           <>
-            <span className="flex-shrink-0 w-4">{getFileIcon()}</span>
+            <span className="flex-shrink-0 w-4">{getChevronIcon()}</span>
             <span className="flex-shrink-0">{getFolderIcon()}</span>
           </>
         ) : (

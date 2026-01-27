@@ -1,8 +1,20 @@
 import { useState, useRef, useEffect } from 'react';
-import { SessionInfo, useSessionStore } from "../../stores/sessionStore";
+import { SessionInfo, useSessionStore, GROUP_COLORS } from "../../stores/sessionStore";
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import SessionOptionsMenu from './SessionOptionsMenu';
+import { IconTerminal2, IconDotsVertical, IconX, IconPlus, IconFolder } from "@/components/ui/icons";
+import { requestNotificationPermission } from "../../utils/notifications";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuCheckboxItem,
+  DropdownMenuLabel,
+} from "@/components/ui/dropdown-menu";
 
 interface SessionItemProps {
   session: SessionInfo;
@@ -12,7 +24,18 @@ interface SessionItemProps {
 }
 
 export default function SessionItem({ session, index, inGroup = false, isDropTarget = false }: SessionItemProps) {
-  const { activeSessionId, setActiveSession, closeSession, setSessionCustomName } = useSessionStore();
+  const {
+    activeSessionId,
+    setActiveSession,
+    closeSession,
+    setSessionCustomName,
+    setNotifyWhenDone,
+    setNotifyOnActivity,
+    groups,
+    createGroup,
+    addSessionToGroup,
+    removeSessionFromGroup,
+  } = useSessionStore();
   const isActive = activeSessionId === session.id;
   const shortcutNumber = index + 1;
   const showShortcut = shortcutNumber <= 9;
@@ -22,6 +45,8 @@ export default function SessionItem({ session, index, inGroup = false, isDropTar
   const [isHovered, setIsHovered] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const availableGroups = Array.from(groups.values()).filter(g => g.id !== session.groupId);
 
   const {
     attributes,
@@ -107,9 +132,35 @@ export default function SessionItem({ session, index, inGroup = false, isDropTar
     }
   };
 
-  const handleMenuClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setMenuOpen(!menuOpen);
+  const handleNotifyWhenDoneChange = async (checked: boolean) => {
+    if (checked) {
+      const granted = await requestNotificationPermission();
+      if (!granted) return;
+    }
+    setNotifyWhenDone(session.id, checked);
+  };
+
+  const handleNotifyOnActivityChange = async (checked: boolean) => {
+    if (checked) {
+      const granted = await requestNotificationPermission();
+      if (!granted) return;
+    }
+    setNotifyOnActivity(session.id, checked);
+  };
+
+  const handleCreateNewGroup = () => {
+    createGroup([session.id]);
+    setMenuOpen(false);
+  };
+
+  const handleAddToGroup = (groupId: string) => {
+    addSessionToGroup(session.id, groupId);
+    setMenuOpen(false);
+  };
+
+  const handleRemoveFromGroup = () => {
+    removeSessionFromGroup(session.id);
+    setMenuOpen(false);
   };
 
   return (
@@ -140,19 +191,7 @@ export default function SessionItem({ session, index, inGroup = false, isDropTar
     >
       <div className="flex items-center flex-1 min-w-0 gap-2">
         <div className="relative flex-shrink-0">
-          <svg
-            className="w-4 h-4 text-gray-400"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-            />
-          </svg>
+          <IconTerminal2 className="w-4 h-4 text-gray-400" stroke={2} />
           {/* Notification indicator */}
           {(session.notifyWhenDone || session.notifyOnActivity) && (
             <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-purple-500 rounded-full" />
@@ -186,47 +225,92 @@ export default function SessionItem({ session, index, inGroup = false, isDropTar
           </span>
         )}
         {(isHovered || menuOpen) && (
-          <button
-            onClick={handleMenuClick}
-            className="p-0.5 rounded hover:bg-[#444444] transition-opacity duration-150"
-            title="Session options"
-          >
-            <svg
-              className="w-3.5 h-3.5 text-gray-400 hover:text-gray-200"
-              fill="currentColor"
-              viewBox="0 0 24 24"
+          <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setMenuOpen(!menuOpen);
+              }}
+              className="p-0.5 rounded hover:bg-[#444444] transition-opacity duration-150"
+              title="Session options"
             >
-              <circle cx="12" cy="5" r="2" />
-              <circle cx="12" cy="12" r="2" />
-              <circle cx="12" cy="19" r="2" />
-            </svg>
-          </button>
+              <IconDotsVertical className="w-3.5 h-3.5 text-gray-400 hover:text-gray-200" stroke={2} />
+            </button>
+            <DropdownMenuContent align="end" className="w-[200px]" onClick={(e) => e.stopPropagation()}>
+              {/* Process info */}
+              {session.processName && (
+                <>
+                  <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">
+                    Current process: {session.processName}
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                </>
+              )}
+
+              {/* Group options */}
+              {session.groupId ? (
+                <DropdownMenuItem onClick={handleRemoveFromGroup}>
+                  <IconFolder className="w-4 h-4" stroke={2} />
+                  Remove from group
+                </DropdownMenuItem>
+              ) : (
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger>
+                    <IconFolder className="w-4 h-4" stroke={2} />
+                    Add to group
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent>
+                    <DropdownMenuItem onClick={handleCreateNewGroup}>
+                      <IconPlus className="w-4 h-4" stroke={2} />
+                      New group
+                    </DropdownMenuItem>
+                    {availableGroups.length > 0 && (
+                      <>
+                        <DropdownMenuSeparator />
+                        {availableGroups.map((group) => {
+                          const colors = GROUP_COLORS[group.color];
+                          return (
+                            <DropdownMenuItem key={group.id} onClick={() => handleAddToGroup(group.id)}>
+                              <div
+                                className="w-3 h-3 rounded-full flex-shrink-0"
+                                style={{ backgroundColor: colors.text }}
+                              />
+                              <span className="truncate">{group.name}</span>
+                            </DropdownMenuItem>
+                          );
+                        })}
+                      </>
+                    )}
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
+              )}
+
+              <DropdownMenuSeparator />
+
+              {/* Notification options */}
+              <DropdownMenuCheckboxItem
+                checked={session.notifyWhenDone || false}
+                onCheckedChange={handleNotifyWhenDoneChange}
+              >
+                Notify when done
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={session.notifyOnActivity || false}
+                onCheckedChange={handleNotifyOnActivityChange}
+              >
+                Notify on activity
+              </DropdownMenuCheckboxItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         )}
         <button
           onClick={handleClose}
           className="p-0.5 rounded opacity-0 group-hover:opacity-100 hover:bg-[#444444] transition-opacity duration-150"
           title="Close session"
         >
-          <svg
-            className="w-3.5 h-3.5 text-gray-400 hover:text-gray-200"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M6 18L18 6M6 6l12 12"
-            />
-          </svg>
+          <IconX className="w-3.5 h-3.5 text-gray-400 hover:text-gray-200" stroke={2} />
         </button>
       </div>
-
-      {/* Options dropdown menu */}
-      {menuOpen && (
-        <SessionOptionsMenu session={session} onClose={() => setMenuOpen(false)} />
-      )}
     </div>
   );
 }

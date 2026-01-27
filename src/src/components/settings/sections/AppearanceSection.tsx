@@ -1,6 +1,7 @@
 import { useSettingsStore } from "../../../stores/settingsStore";
 import SettingRow from "../shared/SettingRow";
 import RadioGroup from "../shared/RadioGroup";
+import { Switch } from "@/components/ui/switch";
 
 const cursorStyleOptions = [
   { value: "block", label: "Block █" },
@@ -31,18 +32,10 @@ export default function AppearanceSection() {
           title="Cursor Blink"
           description="Enable or disable cursor blinking"
         >
-          <button
-            onClick={() => setCursorBlink(!appearance.cursorBlink)}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-              appearance.cursorBlink ? "bg-purple-600" : "bg-[#3a3a3a]"
-            }`}
-          >
-            <span
-              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                appearance.cursorBlink ? "translate-x-6" : "translate-x-1"
-              }`}
-            />
-          </button>
+          <Switch
+            checked={appearance.cursorBlink}
+            onCheckedChange={setCursorBlink}
+          />
         </SettingRow>
       </div>
     </div>

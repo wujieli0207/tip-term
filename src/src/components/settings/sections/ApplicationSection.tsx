@@ -1,3 +1,5 @@
+import { IconTerminal2 } from "@/components/ui/icons";
+
 export default function ApplicationSection() {
   return (
     <div>
@@ -7,19 +9,7 @@ export default function ApplicationSection() {
         <div className="bg-[#1a1a1a] rounded-lg p-4 border border-[#2a2a2a]">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 bg-purple-600 rounded-lg flex items-center justify-center">
-              <svg
-                className="w-7 h-7 text-white"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                />
-              </svg>
+              <IconTerminal2 className="w-7 h-7 text-white" stroke={2} />
             </div>
             <div>
               <div className="text-gray-200 font-medium">TipTerm</div>

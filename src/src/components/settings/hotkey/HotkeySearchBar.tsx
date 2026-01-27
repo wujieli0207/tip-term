@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { HotkeyBinding } from "../../../types/hotkey";
 import { eventToBinding } from "../../../utils/hotkeyUtils";
 import HotkeyBadge from "./HotkeyBadge";
+import { IconSearch, IconX, IconKeyboard } from "@/components/ui/icons";
 
 interface HotkeySearchBarProps {
   textQuery: string;
@@ -94,14 +95,7 @@ export default function HotkeySearchBar({
       >
         {/* Search icon */}
         <div className="pl-3 text-gray-500">
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-            />
-          </svg>
+          <IconSearch className="w-4 h-4" stroke={2} />
         </div>
 
         {/* Input area */}
@@ -135,14 +129,7 @@ export default function HotkeySearchBar({
             className="px-2 text-gray-500 hover:text-gray-300 transition-colors"
             title="Clear search"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
+            <IconX className="w-4 h-4" stroke={2} />
           </button>
         )}
 
@@ -156,14 +143,7 @@ export default function HotkeySearchBar({
           }`}
           title={isKeyboardMode ? "Switch to text search" : "Search by pressing keys"}
         >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <rect x="2" y="6" width="20" height="12" rx="2" strokeWidth={2} />
-            <path
-              strokeLinecap="round"
-              strokeWidth={2}
-              d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"
-            />
-          </svg>
+          <IconKeyboard className="w-4 h-4" stroke={2} />
         </button>
       </div>
 
