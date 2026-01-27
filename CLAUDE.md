@@ -23,17 +23,21 @@ pnpm tauri build  # Create distributable app
 ### Frontend (`src/`)
 
 - **Tech**: React + TypeScript + Vite + Tailwind CSS
-- **State**: Zustand stores in `stores/` (sessionStore, sidebarStore, settingsStore, fileTreeStore, quickOpenStore, editorStore, splitPaneStore)
-- **Types**: Shared types in `types/` (session.ts, file.ts, hotkey.ts, splitPane.ts)
+- **State**: Zustand stores in `stores/` (sessionStore, sidebarStore, settingsStore, fileTreeStore, gitStore, quickOpenStore, editorStore, splitPaneStore)
+- **Types**: Shared types in `types/` (session.ts, file.ts, hotkey.ts, splitPane.ts, git.ts)
 - **Hooks**: Reusable hooks in `hooks/` (useResizable, useHotkeyHandler, useProcessPolling)
 - **Terminal**: xterm.js rendering in `components/XTerminal.tsx`
 - **Split Panes**: Multi-window layout with `react-resizable-panels` in `components/terminal/` (SplitPaneContainer, TerminalPaneWrapper, TerminalContainer)
-- **Sidebar**: Session list and groups in `components/sidebar/`
+- **Sidebar**: Tab-based sidebar with Session/FileTree/Git tabs in `components/sidebar/` (Sidebar, SidebarHeader, SidebarTabSelector, SessionTabContent, FileTreeTabContent, GitTabContent, DetailPanelsContainer)
 - **File Tree**: Directory browser in `components/filetree/`
+- **Git**: Git status, diff viewer, and commit actions in `components/git/`
 - **Quick Open**: File search in `components/quickopen/` (QuickOpenModal, ResultItem, HighlightMatch)
 - **Editor**: Code editor in `components/editor/`
 - **Settings**: Settings panel in `components/settings/`
-- **Hotkeys**: Configurable shortcuts in `config/defaultHotkeys.ts` (includes split pane navigation: `Cmd+D`, `Cmd+Shift+D`, `Cmd+Alt+Arrow`)
+- **UI Components**: Reusable components in `components/ui/` (Tooltip, icons, button, dialog, etc.)
+- **Hotkeys**: Configurable shortcuts in `config/defaultHotkeys.ts`
+  - Sidebar tabs: `⌃⌘1/2/3` for Session/Files/Git
+  - Split pane: `Cmd+D`, `Cmd+Shift+D`, `Cmd+Alt+Arrow`
 
 ### Backend (`src-tauri/src/`)
 
@@ -45,6 +49,28 @@ pnpm tauri build  # Create distributable app
 
 - Frontend → Backend: Tauri `invoke()`
 - Backend → Frontend: Event emissions (`terminal-output-{session_id}`)
+
+## Layout Structure
+
+```
+┌───────────────────────────────────────────────────────────────┐
+│  App                                                          │
+│  ┌────────────┬─────────────┬──────────────────────────────┐  │
+│  │ Sidebar    │ DetailPanel │ TerminalContainer             │  │
+│  │ ┌────────┐ │ ┌─────────┐ │ ┌──────────────────────────┐  │  │
+│  │ │ Header │ │ │GitDiff  │ │ │ XTerminal / SplitPane    │  │  │
+│  │ │[Tabs]  │ │ │or Editor│ │ │                          │  │  │
+│  │ ├────────┤ │ └─────────┘ │ └──────────────────────────┘  │  │
+│  │ │Content │ │             │                              │  │
+│  │ │(Tab)   │ │             │                              │  │
+│  │ └────────┘ │             │                              │  │
+│  └────────────┴─────────────┴──────────────────────────────┘  │
+└───────────────────────────────────────────────────────────────┘
+```
+
+- **Sidebar**: Tab-based panel with Session/FileTree/Git tabs (icon buttons with tooltips)
+- **DetailPanelsContainer**: GitDiffPanel and EditorPanel (right of sidebar, triggered by file selection)
+- **TerminalContainer**: Terminal instances and split panes (main content area)
 
 ## Key Dependencies
 
