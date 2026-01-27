@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useSessionStore } from "./stores/sessionStore";
+import { TitleBar } from "./components/titlebar";
 import Sidebar from "./components/sidebar/Sidebar";
 import DetailPanelsContainer from "./components/sidebar/DetailPanelsContainer";
 import TerminalContainer from "./components/terminal/TerminalContainer";
@@ -19,10 +20,13 @@ function App() {
   useHotkeyHandler();
 
   return (
-    <div className="flex h-screen w-screen bg-[#0a0a0a] overflow-hidden">
-      <Sidebar />
-      <DetailPanelsContainer />
-      <TerminalContainer />
+    <div className="flex flex-col h-screen w-screen bg-[#0a0a0a] overflow-hidden">
+      <TitleBar />
+      <div className="flex flex-1 overflow-hidden">
+        <Sidebar />
+        <DetailPanelsContainer />
+        <TerminalContainer />
+      </div>
       <QuickOpenModal />
     </div>
   );

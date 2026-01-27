@@ -10,7 +10,6 @@ export default function Sidebar() {
   const {
     getTerminalSessions,
     groups,
-    openSettings,
   } = useSessionStore();
 
   const terminalSessions = getTerminalSessions();
@@ -19,16 +18,12 @@ export default function Sidebar() {
     return null;
   }
 
-  const handleSettingsClick = () => {
-    openSettings();
-  };
-
   return (
     <div
       className="flex flex-col h-full bg-[#1a1a1a] border-r border-[#2a2a2a] overflow-visible"
       style={{ width }}
     >
-      <SidebarHeader onSettingsClick={handleSettingsClick} />
+      <SidebarHeader />
 
       {/* Tab content */}
       <div className="flex-1 overflow-hidden">

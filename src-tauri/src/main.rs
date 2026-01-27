@@ -20,7 +20,7 @@ type PtyWriter = Arc<Mutex<Box<dyn Write + Send>>>;
 pub struct TerminalState {
     pub sessions: HashMap<String, Arc<Mutex<TerminalSession>>>,
     pub writers: HashMap<String, PtyWriter>,
-    pub session_pids: HashMap<String, u32>, // Store PIDs separately to avoid locking
+    pub session_pids: HashMap<String, u32>,
 }
 
 impl TerminalState {
@@ -58,21 +58,18 @@ async fn create_session(
         loop {
             tokio::time::sleep(std::time::Duration::from_millis(16)).await;
 
-            // Read raw output from PTY and emit to frontend
             let output = {
                 let mut session = session_arc.lock().unwrap();
                 session.read_output().unwrap_or(None)
             };
 
             if let Some(data) = output {
-                // Emit raw bytes to frontend - xterm.js will parse VTE sequences
                 if let Err(e) = app_clone.emit(&format!("terminal-output-{}", session_id_clone), data) {
                     eprintln!("Failed to emit terminal output: {}", e);
                     break;
                 }
             }
 
-            // Check if the terminal is still alive
             {
                 let mut session = session_arc.lock().unwrap();
                 if !session.is_alive() {
@@ -93,7 +90,6 @@ async fn write_to_session(
     data: String,
     state: tauri::State<'_, Arc<Mutex<TerminalState>>>,
 ) -> Result<(), String> {
-    // Get the writer from state - this doesn't require locking the session
     let writer = {
         let state = state.lock().unwrap();
         state
@@ -103,7 +99,6 @@ async fn write_to_session(
             .clone()
     };
 
-    // Write directly to PTY without holding any session lock
     let mut writer = writer.lock().unwrap();
     writer
         .write_all(data.as_bytes())
@@ -120,7 +115,6 @@ async fn resize_terminal(
     rows: usize,
     state: tauri::State<'_, Arc<Mutex<TerminalState>>>,
 ) -> Result<(), String> {
-    // Get the session Arc first, then release the state lock
     let session = {
         let state = state.lock().unwrap();
         state
@@ -130,7 +124,6 @@ async fn resize_terminal(
             .clone()
     };
 
-    // Now lock the session without holding the state lock
     let mut session = session.lock().unwrap();
     session.resize(cols, rows).map_err(|e| format!("Resize failed: {}", e))?;
     Ok(())
@@ -155,7 +148,6 @@ async fn get_session_info(
     id: String,
     state: tauri::State<'_, Arc<Mutex<TerminalState>>>,
 ) -> Result<Option<ProcessInfo>, String> {
-    // Get the child PID without locking the session
     let child_pid = {
         let state = state.lock().unwrap();
         *state
@@ -164,9 +156,32 @@ async fn get_session_info(
             .ok_or_else(|| "Session not found".to_string())?
     };
 
-    // Call get_process_info_by_pid directly without locking the session
     let info = tip_term::get_process_info_by_pid(child_pid);
     Ok(info)
+}
+
+/// Get the current platform (darwin, linux, windows)
+#[tauri::command]
+fn get_platform() -> String {
+    std::env::consts::OS.to_string()
+}
+
+/// Maximize or restore the window
+#[tauri::command]
+fn maximize_window(window: tauri::Window) -> Result<bool, String> {
+    if window.is_maximized().map_err(|e| e.to_string())? {
+        window.unmaximize().map_err(|e| e.to_string())?;
+        Ok(false)
+    } else {
+        window.maximize().map_err(|e| e.to_string())?;
+        Ok(true)
+    }
+}
+
+/// Start dragging the window
+#[tauri::command]
+fn start_dragging(window: tauri::Window) -> Result<(), String> {
+    window.start_dragging().map_err(|e| e.to_string())
 }
 
 fn main() {
@@ -199,6 +214,9 @@ fn main() {
             git::discard_changes,
             git::get_branch_status,
             git::git_push,
+            get_platform,
+            maximize_window,
+            start_dragging,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -7,8 +7,6 @@
     "core:window:default",
     "core:window:allow-start-dragging",
     "core:window:allow-maximize",
-    "core:window:allow-minimize",
-    "core:window:allow-close",
     "shell:allow-open",
     "notification:default",
     "notification:allow-is-permission-granted",

@@ -1,15 +1,11 @@
 import { useSessionStore } from "../../stores/sessionStore";
 import { useSidebarStore } from "../../stores/sidebarStore";
-import { IconPlus, IconMenu2, IconSettings } from "@/components/ui/icons";
+import { IconPlus } from "@/components/ui/icons";
 import SidebarTabSelector from "./SidebarTabSelector";
 
-interface SidebarHeaderProps {
-  onSettingsClick?: () => void;
-}
-
-export default function SidebarHeader({ onSettingsClick }: SidebarHeaderProps) {
+export default function SidebarHeader() {
   const { createSession } = useSessionStore();
-  const { toggle: toggleSidebar, activeTab } = useSidebarStore();
+  const { activeTab } = useSidebarStore();
 
   const handleNewSession = async () => {
     try {
@@ -26,37 +22,16 @@ export default function SidebarHeader({ onSettingsClick }: SidebarHeaderProps) {
         <SidebarTabSelector />
       </div>
 
-      {/* Right side: Action buttons */}
-      <div className="flex items-center gap-0.5">
-        {/* New session button - only show on session tab */}
-        {activeTab === 'session' && (
-          <button
-            onClick={handleNewSession}
-            className="p-1.5 rounded hover:bg-[#2a2a2a] transition-colors"
-            title="New Session (Cmd+T)"
-          >
-            <IconPlus className="w-4 h-4 text-gray-400 hover:text-gray-200" stroke={2} />
-          </button>
-        )}
-
-        {/* Settings button */}
+      {/* Right side: New session button (only on session tab) */}
+      {activeTab === 'session' && (
         <button
-          onClick={onSettingsClick}
+          onClick={handleNewSession}
           className="p-1.5 rounded hover:bg-[#2a2a2a] transition-colors"
-          title="Settings (Cmd+,)"
+          title="New Session (Cmd+T)"
         >
-          <IconSettings className="w-4 h-4 text-gray-400 hover:text-gray-200" stroke={2} />
+          <IconPlus className="w-4 h-4 text-gray-400 hover:text-gray-200" stroke={2} />
         </button>
-
-        {/* Collapse button */}
-        <button
-          onClick={toggleSidebar}
-          className="p-1.5 rounded hover:bg-[#2a2a2a] transition-colors"
-          title="Toggle Sidebar (Cmd+\)"
-        >
-          <IconMenu2 className="w-4 h-4 text-gray-400 hover:text-gray-200" stroke={2} />
-        </button>
-      </div>
+      )}
     </div>
   );
 }
