@@ -9,9 +9,6 @@ TipTerm is a Tauri-based terminal emulator application with a React/TypeScript f
 ## Development Commands
 
 ```bash
-# All commands run from /src directory
-cd src
-
 # Development (run both in separate terminals)
 pnpm dev          # Start Vite dev server on port 1420
 pnpm tauri dev    # Start Tauri app with hot reload
@@ -23,7 +20,7 @@ pnpm tauri build  # Create distributable app
 
 ## Architecture
 
-### Frontend (`src/src/`)
+### Frontend (`src/`)
 
 - **Tech**: React + TypeScript + Vite + Tailwind CSS
 - **State**: Zustand stores in `stores/` (sessionStore, sidebarStore, settingsStore, fileTreeStore, quickOpenStore, editorStore, splitPaneStore)
@@ -38,7 +35,7 @@ pnpm tauri build  # Create distributable app
 - **Settings**: Settings panel in `components/settings/`
 - **Hotkeys**: Configurable shortcuts in `config/defaultHotkeys.ts` (includes split pane navigation: `Cmd+D`, `Cmd+Shift+D`, `Cmd+Alt+Arrow`)
 
-### Backend (`src/src-tauri/src/`)
+### Backend (`src-tauri/src/`)
 
 - **main.rs**: Tauri commands and app setup
 - **terminal/vte_parser.rs**: PTY session management
