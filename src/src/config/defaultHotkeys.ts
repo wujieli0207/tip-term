@@ -91,6 +91,15 @@ export const DEFAULT_HOTKEYS: Omit<HotkeyDefinition, "currentBinding">[] = [
     defaultBinding: binding("e", "meta"),
     category: "View",
   },
+  {
+    id: "toggleGitPanel",
+    action: "toggleGitPanel",
+    label: "Toggle Git Panel",
+    description: "Show or hide the git panel",
+    scope: "global",
+    defaultBinding: binding("g", "meta", "shift"),
+    category: "View",
+  },
 
   // Editor
   {

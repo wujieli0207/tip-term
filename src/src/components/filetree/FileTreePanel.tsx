@@ -19,9 +19,10 @@ export default function FileTreePanel() {
     }
   }, [activeSessionId, cwd, initSessionTree]);
 
-  // Resize handling
+  // Resize handling - resize from right edge for left-side panel
   const { panelRef, isResizing, handleMouseDown } = useResizable({
     onResize: setFileTreeWidth,
+    direction: "right",
   });
 
   // Don't show if no active terminal session or no cwd

@@ -28,6 +28,9 @@ ignore = "0.4"
 sysinfo = "0.32"
 libc = "0.2"
 
+# Git operations
+git2 = "0.19"
+
 [features]
 default = ["custom-protocol"]
 custom-protocol = ["tauri/custom-protocol"]

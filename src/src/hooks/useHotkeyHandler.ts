@@ -7,6 +7,7 @@ import { useEditorStore } from "../stores/editorStore";
 import { useQuickOpenStore } from "../stores/quickOpenStore";
 import { useSettingsStore } from "../stores/settingsStore";
 import { useSplitPaneStore } from "../stores/splitPaneStore";
+import { useGitStore } from "../stores/gitStore";
 import { getEffectiveHotkeys, bindingsMatch, eventToBinding } from "../utils/hotkeyUtils";
 
 // Map of action names to their handler functions
@@ -37,6 +38,7 @@ export function useHotkeyHandler() {
       const fileTreeStore = useFileTreeStore.getState();
       const quickOpenStore = useQuickOpenStore.getState();
       const splitPaneStore = useSplitPaneStore.getState();
+      const gitStore = useGitStore.getState();
 
       // Define action handlers
       const handlers: ActionHandlers = {
@@ -90,6 +92,17 @@ export function useHotkeyHandler() {
         },
         toggleEditor: () => {
           editorStore.toggleEditorVisible();
+        },
+        toggleGitPanel: () => {
+          gitStore.toggleGitPanel();
+
+          // Load status when opening
+          if (!gitStore.gitPanelVisible && sessionStore.activeSessionId) {
+            const session = sessionStore.sessions.get(sessionStore.activeSessionId);
+            if (session?.cwd) {
+              gitStore.loadGitStatus(sessionStore.activeSessionId, session.cwd);
+            }
+          }
         },
         saveFile: () => {
           if (editorStore.editorVisible && editorStore.activeFilePath) {

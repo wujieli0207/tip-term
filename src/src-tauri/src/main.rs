@@ -2,6 +2,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod filesystem;
+mod git;
 
 use std::collections::HashMap;
 use std::io::Write;
@@ -186,6 +187,16 @@ fn main() {
             filesystem::read_file,
             filesystem::write_file,
             filesystem::search_files,
+            git::get_git_status,
+            git::stage_file,
+            git::unstage_file,
+            git::stage_all,
+            git::unstage_all,
+            git::commit,
+            git::commit_and_push,
+            git::get_file_diff,
+            git::get_recent_commits,
+            git::discard_changes,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

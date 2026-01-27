@@ -10,9 +10,10 @@ export default function EditorPanel() {
   const activeFile = getActiveFile();
   const isLoading = loadingFilePath !== null;
 
-  // Resize handling
+  // Resize handling - resize from right edge for left-side panel
   const { panelRef, isResizing, handleMouseDown } = useResizable({
     onResize: setEditorWidth,
+    direction: "right",
   });
 
   const handleChange = (value: string) => {

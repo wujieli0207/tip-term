@@ -2,9 +2,10 @@ import { useEffect, useRef, useState } from "react";
 
 interface UseResizableOptions {
   onResize: (width: number) => void;
+  direction?: "left" | "right"; // Which edge the resize handle is on
 }
 
-export function useResizable({ onResize }: UseResizableOptions) {
+export function useResizable({ onResize, direction = "left" }: UseResizableOptions) {
   const panelRef = useRef<HTMLDivElement>(null);
   const [isResizing, setIsResizing] = useState(false);
 
@@ -19,7 +20,11 @@ export function useResizable({ onResize }: UseResizableOptions) {
     const handleMouseMove = (e: MouseEvent) => {
       if (panelRef.current) {
         const rect = panelRef.current.getBoundingClientRect();
-        const newWidth = e.clientX - rect.left;
+        // For left-side panels (resize handle on right), calculate width from left edge
+        // For right-side panels (resize handle on left), calculate width from right edge
+        const newWidth = direction === "right"
+          ? e.clientX - rect.left
+          : rect.right - e.clientX;
         onResize(newWidth);
       }
     };
@@ -35,7 +40,7 @@ export function useResizable({ onResize }: UseResizableOptions) {
       document.removeEventListener("mousemove", handleMouseMove);
       document.removeEventListener("mouseup", handleMouseUp);
     };
-  }, [isResizing, onResize]);
+  }, [isResizing, onResize, direction]);
 
   return { panelRef, isResizing, handleMouseDown };
 }

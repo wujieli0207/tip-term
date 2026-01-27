@@ -1,6 +1,7 @@
 import { useSessionStore } from "../../stores/sessionStore";
 import { useFileTreeStore } from "../../stores/fileTreeStore";
 import { useEditorStore } from "../../stores/editorStore";
+import { useGitStore } from "../../stores/gitStore";
 import { useEffect } from "react";
 import { useSplitPaneStore } from "../../stores/splitPaneStore";
 import type { PaneNode } from "../../types/splitPane";
@@ -9,6 +10,7 @@ import SplitPaneContainer from "./SplitPaneContainer";
 import SettingsContainer from "../settings/SettingsContainer";
 import FileTreePanel from "../filetree/FileTreePanel";
 import EditorPanel from "../editor/EditorPanel";
+import { GitPanel, GitDiffPanel } from "../git";
 import { cleanupTerminals } from "../../utils/terminalRegistry";
 
 export default function TerminalContainer() {
@@ -21,6 +23,7 @@ export default function TerminalContainer() {
   } = useSessionStore();
   const { fileTreeVisible } = useFileTreeStore();
   const { editorVisible } = useEditorStore();
+  const { gitPanelVisible, gitDiffPanelVisible } = useGitStore();
   const hasLayout = useSplitPaneStore((state) => state.hasLayout);
   const layouts = useSplitPaneStore((state) => state.layouts);
   const sessionsList = getSessionsList();
@@ -53,14 +56,14 @@ export default function TerminalContainer() {
     return (
       <div className="flex-1 flex items-center justify-center bg-[#0a0a0a]">
         <div className="text-center">
-          <div className="text-gray-500 mb-4">No active sessions</div>
+          <div className="mb-4 text-gray-500">No active sessions</div>
           <button
             onClick={() => createSession()}
-            className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
+            className="px-4 py-2 text-white transition-colors bg-purple-600 rounded-lg hover:bg-purple-700"
           >
             Create New Session
           </button>
-          <div className="mt-3 text-gray-600 text-sm">
+          <div className="mt-3 text-sm text-gray-600">
             or press <kbd className="px-1.5 py-0.5 bg-[#2a2a2a] rounded text-xs">Cmd+T</kbd>
           </div>
         </div>
@@ -70,18 +73,22 @@ export default function TerminalContainer() {
 
   return (
     <div className="flex-1 flex bg-[#0a0a0a]">
-      {/* File tree panel - only shown for terminal sessions */}
+      {/* Left side panels */}
       {fileTreeVisible && activeSession?.type === "terminal" && (
         <FileTreePanel />
       )}
-
-      {/* Editor panel - shown for terminal sessions when visible */}
+      {gitPanelVisible && activeSession?.type === "terminal" && (
+        <GitPanel />
+      )}
+      {gitDiffPanelVisible && activeSession?.type === "terminal" && (
+        <GitDiffPanel />
+      )}
       {editorVisible && activeSession?.type === "terminal" && (
         <EditorPanel />
       )}
 
       {/* Terminal / Settings content area */}
-      <div className="flex-1 relative">
+      <div className="relative flex-1">
         {sessionsList.map((session) => (
           <div
             key={session.id}
