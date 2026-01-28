@@ -13,7 +13,7 @@ import {
 export type { GroupColor, GroupInfo, SessionInfo, SidebarItem, WorkspaceInfo };
 export { GROUP_COLORS };
 
-const SETTINGS_SESSION_ID = "__settings__";
+export const SETTINGS_SESSION_ID = "__settings__";
 
 interface SessionStore {
   sessions: Map<string, SessionInfo>;
@@ -55,6 +55,8 @@ interface SessionStore {
 
   // Settings-related actions
   openSettings: () => void;
+  closeSettings: () => void;
+  getSettingsSession: () => SessionInfo | null;
   isSettingsSession: (id: string) => boolean;
   getTerminalSessions: () => SessionInfo[];
 }
@@ -273,6 +275,32 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
         activeSessionId: SETTINGS_SESSION_ID,
       };
     });
+  },
+
+  closeSettings: () => {
+    set((state) => {
+      const newSessions = new Map(state.sessions);
+      newSessions.delete(SETTINGS_SESSION_ID);
+
+      // Switch to last terminal session if settings was active
+      let newActiveId = state.activeSessionId;
+      if (state.activeSessionId === SETTINGS_SESSION_ID) {
+        const terminalSessions = Array.from(newSessions.values())
+          .filter(s => s.type === 'terminal')
+          .sort((a, b) => b.order - a.order);
+        newActiveId = terminalSessions.length > 0 ? terminalSessions[0].id : null;
+      }
+
+      return {
+        sessions: newSessions,
+        activeSessionId: newActiveId,
+      };
+    });
+  },
+
+  getSettingsSession: () => {
+    const state = get();
+    return state.sessions.get(SETTINGS_SESSION_ID) ?? null;
   },
 
   isSettingsSession: (id: string) => {

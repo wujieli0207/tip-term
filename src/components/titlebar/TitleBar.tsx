@@ -3,12 +3,12 @@ import { invoke } from '@tauri-apps/api/core'
 import SearchBox from './SearchBox'
 import { IconMenu2, IconSettings } from '@/components/ui/icons'
 import { useSidebarStore } from '@/stores/sidebarStore'
-import { useSessionStore } from '@/stores/sessionStore'
+import { useSessionStore, SETTINGS_SESSION_ID } from '@/stores/sessionStore'
 
 export default function TitleBar() {
   const [osPlatform, setOsPlatform] = useState<string>('unknown')
   const { toggle: toggleSidebar } = useSidebarStore()
-  const { openSettings } = useSessionStore()
+  const { openSettings, closeSettings, activeSessionId } = useSessionStore()
 
   // Detect platform on mount
   useEffect(() => {
@@ -26,7 +26,11 @@ export default function TitleBar() {
   }
 
   const handleSettingsClick = () => {
-    openSettings()
+    if (activeSessionId === SETTINGS_SESSION_ID) {
+      closeSettings()
+    } else {
+      openSettings()
+    }
   }
 
   return (

@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useSessionStore } from "../../stores/sessionStore";
 import SessionItem from "./SessionItem";
+import SettingsItem from "./SettingsItem";
 import GroupContainer from "./GroupContainer";
 import DragMergeOverlay from "./DragMergeOverlay";
 import {
@@ -27,6 +28,7 @@ export default function SessionTabContent() {
   const {
     getSidebarItems,
     getTerminalSessions,
+    getSettingsSession,
     reorderSessions,
     createGroup,
     addSessionToGroup,
@@ -36,6 +38,7 @@ export default function SessionTabContent() {
 
   const sidebarItems = getSidebarItems();
   const terminalSessions = getTerminalSessions();
+  const settingsSession = getSettingsSession();
 
   // Drag state
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -181,7 +184,7 @@ export default function SessionTabContent() {
     setShowMergePreview(false);
   };
 
-  if (terminalSessions.length === 0) {
+  if (terminalSessions.length === 0 && !settingsSession) {
     return (
       <div className="px-3 py-4 text-sm text-center text-gray-500">
         No sessions yet.
@@ -204,20 +207,32 @@ export default function SessionTabContent() {
 
   return (
     <div className="flex-1 overflow-y-auto">
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragStart={handleDragStart}
-        onDragOver={handleDragOver}
-        onDragEnd={handleDragEnd}
-        onDragCancel={handleDragCancel}
-      >
-        <SortableContext
-          items={sortableIds}
-          strategy={verticalListSortingStrategy}
+      {/* Settings item - always at top, not draggable */}
+      {settingsSession && (
+        <>
+          <SettingsItem />
+          {terminalSessions.length > 0 && (
+            <div className="mx-3 my-2 border-t border-[#3a3a3a]" />
+          )}
+        </>
+      )}
+
+      {/* Terminal sessions - draggable */}
+      {terminalSessions.length > 0 && (
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragStart={handleDragStart}
+          onDragOver={handleDragOver}
+          onDragEnd={handleDragEnd}
+          onDragCancel={handleDragCancel}
         >
-          <div className="space-y-0.5">
-            {sidebarItems.map((item) => {
+          <SortableContext
+            items={sortableIds}
+            strategy={verticalListSortingStrategy}
+          >
+            <div className="space-y-0.5">
+              {sidebarItems.map((item) => {
               if (item.type === 'group') {
                 return (
                   <GroupContainer
@@ -246,19 +261,20 @@ export default function SessionTabContent() {
                   />
                 );
               }
-            })}
-          </div>
-        </SortableContext>
+              })}
+            </div>
+          </SortableContext>
 
-        <DragOverlay>
-          {activeSession && (
-            <DragMergeOverlay
-              session={activeSession}
-              showMergePreview={showMergePreview}
-            />
-          )}
-        </DragOverlay>
-      </DndContext>
+          <DragOverlay>
+            {activeSession && (
+              <DragMergeOverlay
+                session={activeSession}
+                showMergePreview={showMergePreview}
+              />
+            )}
+          </DragOverlay>
+        </DndContext>
+      )}
     </div>
   );
 }
