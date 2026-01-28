@@ -98,13 +98,24 @@ export default function XTerminal({
   useEffect(() => {
     if (!containerEl || !fitAddonRef.current || !terminalRef.current) return
 
-    const handleResize = () => {
-      if (!fitAddonRef.current || !terminalRef.current) return
+    let lastCols = 0
+    let lastRows = 0
+    let settleTimeoutId: number | null = null
+
+    const fitAndMaybeResize = (shouldInvoke: boolean) => {
+      if (!fitAddonRef.current || !terminalRef.current || !containerEl) return
+
+      const rect = containerEl.getBoundingClientRect()
+      if (rect.width < 10 || rect.height < 10) return
 
       try {
         fitAddonRef.current.fit()
+        if (!shouldInvoke) return
+
         const { cols, rows } = terminalRef.current
-        if (cols > 0 && rows > 0) {
+        if (cols > 0 && rows > 0 && (cols !== lastCols || rows !== lastRows)) {
+          lastCols = cols
+          lastRows = rows
           invoke('resize_terminal', { id: sessionId, cols, rows }).catch(
             console.error,
           )
@@ -112,6 +123,26 @@ export default function XTerminal({
       } catch (e) {
         // Silently ignore fit errors during resize
       }
+    }
+
+    const handleResize = () => {
+      // Clear previous settle timer
+      if (settleTimeoutId !== null) {
+        clearTimeout(settleTimeoutId)
+      }
+
+      // Fit immediately for responsive layout
+      fitAndMaybeResize(false)
+
+      // Settle: only invoke backend resize after resize stops
+      settleTimeoutId = setTimeout(() => {
+        fitAndMaybeResize(true)
+        if (isRootActive && isFocusedPane) {
+          requestAnimationFrame(() => {
+            terminalRef.current?.focus()
+          })
+        }
+      }, 200)
     }
 
     const resizeObserver = new ResizeObserver(() => {
@@ -122,6 +153,7 @@ export default function XTerminal({
 
     return () => {
       resizeObserver.disconnect()
+      if (settleTimeoutId !== null) clearTimeout(settleTimeoutId)
     }
   }, [sessionId, containerEl, isRootActive, isFocusedPane])
 

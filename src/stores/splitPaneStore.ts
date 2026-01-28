@@ -314,6 +314,13 @@ export const useSplitPaneStore = create<SplitPaneStore>((set, get) => ({
       const splitNode = findPane(layout.root, splitId);
       if (!splitNode || splitNode.type !== "split") return state;
 
+      // Check if sizes actually changed (avoid floating point comparison issues)
+      const [oldSize0, oldSize1] = splitNode.sizes;
+      const [newSize0, newSize1] = sizes;
+      if (Math.abs(oldSize0 - newSize0) < 0.1 && Math.abs(oldSize1 - newSize1) < 0.1) {
+        return state; // Sizes didn't change, skip update
+      }
+
       const newSplitNode: SplitNode = { ...splitNode, sizes };
       const newRoot = replaceNode(layout.root, splitId, newSplitNode);
 
