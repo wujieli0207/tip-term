@@ -1,0 +1,58 @@
+# Dependencies
+node_modules
+pnpm-lock.yaml
+package-lock.json
+yarn.lock
+
+# Build outputs
+dist
+build
+.output
+.vercel
+.tauri
+
+# Generated files
+gen
+*.min.js
+*.min.css
+
+# Images and media
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.svg
+*.ico
+*.webp
+*.avif
+*.mp4
+*.webm
+*.ogg
+*.mp3
+*.wav
+
+# Tauri specific
+src-tauri/target
+src-tauri/Cargo.lock
+src-tauri/gen
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Config files that shouldn't be formatted
+*.json
+!tsconfig.json
+!package.json
+
+# Other
+*.log
+.env
+.env.*
