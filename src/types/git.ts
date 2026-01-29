@@ -29,6 +29,24 @@ export interface FileDiff {
   hunks: DiffHunk[];
 }
 
+export interface FileDiffWithStats {
+  path: string;
+  oldPath?: string;
+  status: "added" | "modified" | "deleted" | "renamed" | "copied";
+  additions: number;
+  deletions: number;
+  hunks: DiffHunk[];
+}
+
+export interface CommitDiffResult {
+  commitId: string;
+  commitMessage: string;
+  commitAuthor: string;
+  commitTime: number;
+  fileDiffs: FileDiffWithStats[];
+  isInitialCommit: boolean;
+}
+
 export interface CommitInfo {
   id: string;
   shortId: string;

@@ -42,6 +42,27 @@ pub struct FileDiff {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct FileDiffWithStats {
+    pub path: String,
+    pub old_path: Option<String>,
+    pub status: String, // "added" | "modified" | "deleted" | "renamed"
+    pub additions: usize,
+    pub deletions: usize,
+    pub hunks: Vec<DiffHunk>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CommitDiffResult {
+    pub commit_id: String,
+    pub commit_message: String,
+    pub commit_author: String,
+    pub commit_time: i64,
+    pub file_diffs: Vec<FileDiffWithStats>,
+    pub is_initial_commit: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CommitInfo {
     pub id: String,
@@ -754,4 +775,158 @@ pub fn git_push(repo_path: String, remote: Option<String>) -> Result<(), String>
     }
 
     Ok(())
+}
+
+/// Get commit diff (diff between a commit and its parent)
+#[tauri::command]
+pub fn get_commit_diff(repo_path: String, commit_id: String) -> Result<CommitDiffResult, String> {
+    let repo = Repository::discover(&repo_path)
+        .map_err(|e| format!("Not a git repository: {}", e))?;
+
+    // Parse commit_id string to Oid
+    let oid = git2::Oid::from_str(&commit_id)
+        .map_err(|e| format!("Invalid commit id: {}", e))?;
+
+    // Find the commit
+    let commit = repo.find_commit(oid)
+        .map_err(|e| format!("Failed to find commit: {}", e))?;
+
+    // Get commit info
+    let commit_id_full = commit.id().to_string();
+    let commit_message = commit.message().unwrap_or("").to_string();
+    let commit_author = commit.author().name().unwrap_or("Unknown").to_string();
+    let commit_time = commit.time().seconds();
+
+    // Check if this is the initial commit (no parents)
+    let is_initial_commit = commit.parent_count() == 0;
+
+    // Get the diff
+    let diff = if is_initial_commit {
+        // For initial commit, diff against empty tree
+        let empty_tree_id = git2::Oid::from_str("4b825dc642cb6eb9a060e54bf8d69288fbee4904") // Empty tree hash
+            .map_err(|e| format!("Failed to create empty tree oid: {}", e))?;
+        let _empty_tree = repo.find_tree(empty_tree_id)
+            .map_err(|e| format!("Failed to find empty tree: {}", e))?;
+        let commit_tree = commit.tree().map_err(|e| format!("Failed to get commit tree: {}", e))?;
+        repo.diff_tree_to_tree(None, Some(&commit_tree), None)
+    } else {
+        // Diff with parent
+        let parent = commit.parent(0)
+            .map_err(|e| format!("Failed to get parent commit: {}", e))?;
+        let parent_tree = parent.tree().map_err(|e| format!("Failed to get parent tree: {}", e))?;
+        let commit_tree = commit.tree().map_err(|e| format!("Failed to get commit tree: {}", e))?;
+        repo.diff_tree_to_tree(Some(&parent_tree), Some(&commit_tree), None)
+    }.map_err(|e| format!("Failed to create diff: {}", e))?;
+
+    // Parse diff into FileDiffWithStats
+    let file_diffs = parse_diff_to_file_diffs(&diff)?;
+
+    Ok(CommitDiffResult {
+        commit_id: commit_id_full,
+        commit_message,
+        commit_author,
+        commit_time,
+        file_diffs,
+        is_initial_commit,
+    })
+}
+
+/// Parse git2::Diff into Vec<FileDiffWithStats>
+fn parse_diff_to_file_diffs(diff: &git2::Diff) -> Result<Vec<FileDiffWithStats>, String> {
+    let mut file_diffs = Vec::new();
+
+    for delta in diff.deltas() {
+        let old_path = delta.old_file().path().map(|p| p.to_string_lossy().to_string());
+        let new_path = delta.new_file().path().map(|p| p.to_string_lossy().to_string());
+
+        let status = match delta.status() {
+            git2::Delta::Added => "added",
+            git2::Delta::Deleted => "deleted",
+            git2::Delta::Modified => "modified",
+            git2::Delta::Renamed => "renamed",
+            git2::Delta::Copied => "copied",
+            _ => "modified",
+        }.to_string();
+
+        // Use new_path as the primary path, fallback to old_path for deleted files
+        let path = new_path.clone().unwrap_or_else(|| old_path.clone().unwrap_or_default());
+
+        // Get the diff for this specific file
+        let mut diff_opts = DiffOptions::new();
+        if let Some(new_p) = &new_path {
+            diff_opts.pathspec(new_p);
+        } else if let Some(old_p) = &old_path {
+            diff_opts.pathspec(old_p);
+        }
+
+        // Collect hunks for this file
+        let mut hunks = Vec::new();
+        let mut current_hunk: Option<DiffHunk> = None;
+        let mut current_hunk_header: Option<String> = None;
+        let mut additions = 0usize;
+        let mut deletions = 0usize;
+
+        diff.print(git2::DiffFormat::Patch, |_delta, hunk, line| {
+            if let Some(hunk_info) = hunk {
+                let header = String::from_utf8_lossy(hunk_info.header()).to_string();
+                let is_new_hunk = current_hunk_header.as_deref() != Some(header.as_str());
+
+                if is_new_hunk {
+                    if let Some(h) = current_hunk.take() {
+                        hunks.push(h);
+                    }
+
+                    current_hunk_header = Some(header.clone());
+                    current_hunk = Some(DiffHunk {
+                        header,
+                        lines: Vec::new(),
+                    });
+                }
+            }
+
+            if let Some(ref mut h) = current_hunk {
+                let origin = line.origin();
+
+                // Skip hunk header lines and file header lines
+                if origin == 'H' || origin == 'F' {
+                    return true;
+                }
+
+                let content = String::from_utf8_lossy(line.content()).to_string();
+                let origin_char = match origin {
+                    '+' => { additions += 1; '+' }
+                    '-' => { deletions += 1; '-' }
+                    ' ' => ' ',
+                    '>' => '>',
+                    '<' => '<',
+                    _ => ' ',
+                };
+
+                h.lines.push(DiffLine {
+                    origin: origin_char,
+                    content,
+                    old_lineno: line.old_lineno(),
+                    new_lineno: line.new_lineno(),
+                });
+            }
+
+            true
+        }).map_err(|e| format!("Failed to print diff: {}", e))?;
+
+        // Don't forget the last hunk
+        if let Some(h) = current_hunk {
+            hunks.push(h);
+        }
+
+        file_diffs.push(FileDiffWithStats {
+            path,
+            old_path: old_path.as_ref().filter(|_| new_path.is_some() && old_path.as_ref() != new_path.as_ref()).cloned(),
+            status,
+            additions,
+            deletions,
+            hunks,
+        });
+    }
+
+    Ok(file_diffs)
 }

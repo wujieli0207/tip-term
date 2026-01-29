@@ -1,5 +1,6 @@
 export { default as GitPanel } from "./GitPanel";
 export { default as GitDiffPanel } from "./GitDiffPanel";
+export { default as CommitDiffPanel } from "./CommitDiffPanel";
 export { default as GitPanelHeader } from "./GitPanelHeader";
 export { default as GitStatusSection } from "./GitStatusSection";
 export { default as FileStatusItem } from "./FileStatusItem";
@@ -7,3 +8,4 @@ export { default as CommitInput } from "./CommitInput";
 export { default as CommitActions } from "./CommitActions";
 export { default as RecentCommits } from "./RecentCommits";
 export { default as DiffViewer } from "./DiffViewer";
+export { default as CommitDiffViewer } from "./CommitDiffViewer";

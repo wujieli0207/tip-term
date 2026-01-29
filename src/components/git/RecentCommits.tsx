@@ -6,13 +6,14 @@ interface RecentCommitsProps {
 }
 
 export default function RecentCommits({ sessionId }: RecentCommitsProps) {
-  const { recentCommits, loadRecentCommits } = useGitStore();
+  const { recentCommits, loadRecentCommits, selectCommit } = useGitStore();
   const [isExpanded, setIsExpanded] = useState(true);
   const [displayCount, setDisplayCount] = useState(10);
 
   if (recentCommits.length === 0) return null;
 
-  const handleCopyHash = (hash: string) => {
+  const handleCopyHash = (e: React.MouseEvent, hash: string) => {
+    e.stopPropagation();
     navigator.clipboard.writeText(hash);
   };
 
@@ -57,9 +58,9 @@ export default function RecentCommits({ sessionId }: RecentCommitsProps) {
           {visibleCommits.map((commit) => (
             <div
               key={commit.id}
-              className="group px-3 py-1.5 hover:bg-[#1a1a1a] cursor-pointer"
-              onClick={() => handleCopyHash(commit.id)}
-              title="Click to copy commit hash"
+              className="group px-3 py-1.5 hover:bg-[#1a1a1a] cursor-pointer relative"
+              onClick={() => selectCommit(commit.id, sessionId)}
+              title="Click to view commit diff"
             >
               <div className="flex items-center gap-2">
                 <span
@@ -78,11 +79,21 @@ export default function RecentCommits({ sessionId }: RecentCommitsProps) {
                 <span className="text-xs text-[#666] flex-shrink-0">
                   {commit.timeRelative}
                 </span>
+                <button
+                  className="ml-auto opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-[#333] text-[#888] hover:text-[#e0e0e0] transition-all"
+                  onClick={(e) => handleCopyHash(e, commit.id)}
+                  title="Copy commit hash"
+                >
+                  <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                  </svg>
+                </button>
               </div>
-              <p className="text-sm text-[#e0e0e0] truncate mt-0.5 pl-4">
+              <p className="text-sm text-[#e0e0e0] truncate mt-0.5 pr-6">
                 {commit.message}
               </p>
-              <p className="text-xs text-[#666] mt-0.5 pl-4">{commit.author}</p>
+              <p className="text-xs text-[#666] mt-0.5">{commit.author}</p>
             </div>
           ))}
 

@@ -1,7 +1,7 @@
 import { useSessionStore } from "../../stores/sessionStore";
 import { useGitStore } from "../../stores/gitStore";
 import { useEditorStore } from "../../stores/editorStore";
-import { GitDiffPanel } from "../git";
+import { GitDiffPanel, CommitDiffPanel } from "../git";
 import EditorPanel from "../editor/EditorPanel";
 
 /**
@@ -9,13 +9,14 @@ import EditorPanel from "../editor/EditorPanel";
  *
  * This includes:
  * - GitDiffPanel: Shows file diff when a git file is selected
+ * - CommitDiffPanel: Shows commit diff when a commit is selected
  * - EditorPanel: Shows code editor for open files (future feature)
  *
  * These panels are mutually exclusive and shown based on their respective visibility states.
  */
 export default function DetailPanelsContainer() {
   const { activeSessionId, sessions } = useSessionStore();
-  const { gitDiffPanelVisible } = useGitStore();
+  const { gitDiffPanelVisible, commitDiffPanelVisible, selectedFilePath, selectedCommitId } = useGitStore();
   const { editorVisible } = useEditorStore();
 
   const activeSession = activeSessionId ? sessions.get(activeSessionId) : null;
@@ -25,10 +26,15 @@ export default function DetailPanelsContainer() {
     return null;
   }
 
+  // Commit diff panel takes priority over file diff panel
+  const showCommitDiff = commitDiffPanelVisible && selectedCommitId;
+  const showFileDiff = gitDiffPanelVisible && selectedFilePath && !showCommitDiff;
+
   return (
     <>
-      {gitDiffPanelVisible && <GitDiffPanel />}
-      {editorVisible && <EditorPanel />}
+      {showCommitDiff && <CommitDiffPanel />}
+      {showFileDiff && <GitDiffPanel />}
+      {editorVisible && !showCommitDiff && !showFileDiff && <EditorPanel />}
     </>
   );
 }

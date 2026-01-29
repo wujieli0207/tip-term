@@ -214,6 +214,7 @@ fn main() {
             git::discard_changes,
             git::get_branch_status,
             git::git_push,
+            git::get_commit_diff,
             get_platform,
             maximize_window,
             start_dragging,

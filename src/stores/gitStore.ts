@@ -8,6 +8,7 @@ import {
   SessionGitState,
   FileStatus,
   BranchStatus,
+  CommitDiffResult,
 } from "../types/git";
 
 interface GitStore {
@@ -43,6 +44,14 @@ interface GitStore {
   // Recent commits
   recentCommits: CommitInfo[];
 
+  // Commit diff panel state
+  commitDiffPanelVisible: boolean;
+  commitDiffPanelWidth: number;
+  selectedCommitId: string | null;
+  commitDiff: CommitDiffResult | null;
+  isCommitDiffLoading: boolean;
+  expandedCommitFiles: Set<string>;
+
   // Actions
   toggleGitDiffPanel: () => void;
   setGitDiffPanelWidth: (width: number) => void;
@@ -75,6 +84,15 @@ interface GitStore {
 
   loadBranchStatus: (sessionId: string) => Promise<void>;
   loadRecentCommits: (sessionId: string, count?: number) => Promise<void>;
+
+  // Commit diff actions
+  toggleCommitDiffPanel: () => void;
+  setCommitDiffPanelWidth: (width: number) => void;
+  selectCommit: (commitId: string, sessionId: string) => Promise<void>;
+  clearSelectedCommit: () => void;
+  toggleCommitFile: (filePath: string) => void;
+  expandAllCommitFiles: () => void;
+  collapseAllCommitFiles: () => void;
 }
 
 const DEFAULT_GIT_PANEL_WIDTH = 300;
@@ -98,6 +116,12 @@ export const useGitStore = create<GitStore>((set, get) => ({
   isPushing: false,
   branchStatus: null,
   recentCommits: [],
+  commitDiffPanelVisible: false,
+  commitDiffPanelWidth: DEFAULT_GIT_DIFF_PANEL_WIDTH,
+  selectedCommitId: null,
+  commitDiff: null,
+  isCommitDiffLoading: false,
+  expandedCommitFiles: new Set(),
 
   toggleGitDiffPanel: () => {
     set((state) => ({ gitDiffPanelVisible: !state.gitDiffPanelVisible }));
@@ -384,5 +408,86 @@ export const useGitStore = create<GitStore>((set, get) => ({
         error: error instanceof Error ? error.message : String(error),
       };
     }
+  },
+
+  // Commit diff actions
+  toggleCommitDiffPanel: () => {
+    set((state) => ({ commitDiffPanelVisible: !state.commitDiffPanelVisible }));
+  },
+
+  setCommitDiffPanelWidth: (width: number) => {
+    set({ commitDiffPanelWidth: Math.max(300, Math.min(800, width)) });
+  },
+
+  selectCommit: async (commitId: string, sessionId: string) => {
+    const gitState = get().sessionGitState.get(sessionId);
+    if (!gitState) return;
+
+    // Clear file diff panel and show commit diff panel
+    set({
+      selectedCommitId: commitId,
+      isCommitDiffLoading: true,
+      commitDiffPanelVisible: true,
+      gitDiffPanelVisible: false, // Hide file diff panel
+      expandedCommitFiles: new Set(), // Reset expanded files
+    });
+
+    try {
+      const diff = await invoke<CommitDiffResult>("get_commit_diff", {
+        repoPath: gitState.repoPath,
+        commitId,
+      });
+
+      // Auto-expand files if there are 5 or fewer
+      const autoExpand = diff.fileDiffs.length <= 5;
+      const expandedFiles: Set<string> = autoExpand
+        ? new Set(diff.fileDiffs.map((f) => f.path))
+        : new Set();
+
+      set({
+        commitDiff: diff,
+        isCommitDiffLoading: false,
+        expandedCommitFiles: expandedFiles,
+      });
+    } catch (error) {
+      console.error("Failed to load commit diff:", error);
+      set({
+        commitDiff: null,
+        isCommitDiffLoading: false,
+        selectedCommitId: null,
+        commitDiffPanelVisible: false,
+      });
+    }
+  },
+
+  clearSelectedCommit: () => {
+    set({
+      selectedCommitId: null,
+      commitDiff: null,
+      commitDiffPanelVisible: false,
+      expandedCommitFiles: new Set(),
+    });
+  },
+
+  toggleCommitFile: (filePath: string) => {
+    set((state) => {
+      const newSet = new Set(state.expandedCommitFiles);
+      if (newSet.has(filePath)) {
+        newSet.delete(filePath);
+      } else {
+        newSet.add(filePath);
+      }
+      return { expandedCommitFiles: newSet };
+    });
+  },
+
+  expandAllCommitFiles: () => {
+    set((state) => ({
+      expandedCommitFiles: new Set(state.commitDiff?.fileDiffs.map((f) => f.path) ?? []),
+    }));
+  },
+
+  collapseAllCommitFiles: () => {
+    set({ expandedCommitFiles: new Set() });
   },
 }));
