@@ -1,7 +1,13 @@
 import { useFileTreeStore } from "../../stores/fileTreeStore";
 import { FileEntry } from "../../types/file";
 import { useEditorStore } from "../../stores/editorStore";
-import { IconChevronDown, IconChevronRight, IconFile, IconFolderFilled, IconFolderOpen } from "@/components/ui/icons";
+import {
+  IconChevronDown,
+  IconChevronRight,
+  IconFile,
+  IconFolderFilled,
+  IconFolderOpen,
+} from "@/components/ui/icons";
 
 interface FileTreeItemProps {
   sessionId: string;
@@ -29,9 +35,12 @@ export default function FileTreeItem({ sessionId, entry, depth }: FileTreeItemPr
         return;
       }
       // Open file in editor
-      useEditorStore.getState().openFile(entry.path).catch((error) => {
-        console.error("Failed to open file:", error);
-      });
+      useEditorStore
+        .getState()
+        .openFile(entry.path)
+        .catch((error) => {
+          console.error("Failed to open file:", error);
+        });
     }
   };
 
@@ -75,7 +84,13 @@ export default function FileTreeItem({ sessionId, entry, depth }: FileTreeItemPr
         className={`flex items-center gap-1 px-2 py-0.5 cursor-pointer hover:bg-[#2a2a2a] rounded text-sm select-none ${
           isHighlighted ? "bg-blue-500/20" : ""
         }`}
-        style={{ paddingLeft: `${depth * 12 + 8}px` }}
+        style={{
+          paddingLeft: `${depth * 12 + 8}px`,
+          position: entry.is_directory ? "sticky" : undefined,
+          top: 0,
+          zIndex: entry.is_directory ? depth + 10 : "auto",
+          backgroundColor: entry.is_directory ? "rgb(15, 15, 15)" : undefined,
+        }}
         onClick={handleClick}
       >
         {entry.is_directory ? (
@@ -108,12 +123,7 @@ export default function FileTreeItem({ sessionId, entry, depth }: FileTreeItemPr
       {entry.is_directory && isExpanded && children && (
         <div>
           {children.map((child) => (
-            <FileTreeItem
-              key={child.path}
-              sessionId={sessionId}
-              entry={child}
-              depth={depth + 1}
-            />
+            <FileTreeItem key={child.path} sessionId={sessionId} entry={child} depth={depth + 1} />
           ))}
         </div>
       )}

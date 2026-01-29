@@ -1,15 +1,18 @@
-import { useEffect } from "react";
-import { useSessionStore } from "../../stores/sessionStore";
-import { useSidebarStore } from "../../stores/sidebarStore";
-import { useResizable } from "../../hooks/useResizable";
-import SidebarHeader from "./SidebarHeader";
-import SessionTabContent from "./SessionTabContent";
-import FileTreeTabContent from "./FileTreeTabContent";
-import GitTabContent from "./GitTabContent";
+import { useEffect } from 'react'
+import { useSessionStore } from '../../stores/sessionStore'
+import { useSidebarStore } from '../../stores/sidebarStore'
+import { useResizable } from '../../hooks/useResizable'
+import SidebarHeader from './SidebarHeader'
+import SessionTabContent from './SessionTabContent'
+import FileTreeTabContent from './FileTreeTabContent'
+import GitTabContent from './GitTabContent'
 
-function ResizeHandle({ onMouseDown, isResizing }: {
-  onMouseDown: (e: React.MouseEvent) => void;
-  isResizing: boolean;
+function ResizeHandle({
+  onMouseDown,
+  isResizing,
+}: {
+  onMouseDown: (e: React.MouseEvent) => void
+  isResizing: boolean
 }) {
   return (
     <div
@@ -18,36 +21,33 @@ function ResizeHandle({ onMouseDown, isResizing }: {
         ${isResizing ? 'bg-purple-500' : ''}`}
       onMouseDown={onMouseDown}
     />
-  );
+  )
 }
 
 export default function Sidebar() {
-  const { collapsed, width, activeTab, setWidth } = useSidebarStore();
-  const {
-    getTerminalSessions,
-    groups,
-  } = useSessionStore();
+  const { collapsed, width, activeTab, setWidth } = useSidebarStore()
+  const { getTerminalSessions, groups } = useSessionStore()
 
-  const terminalSessions = getTerminalSessions();
+  const terminalSessions = getTerminalSessions()
 
   const { panelRef, isResizing, handleMouseDown } = useResizable({
     onResize: (newWidth) => setWidth(newWidth),
-    direction: "right"
-  });
+    direction: 'right',
+  })
 
   useEffect(() => {
     if (isResizing) {
-      document.body.style.userSelect = "none";
+      document.body.style.userSelect = 'none'
     } else {
-      document.body.style.userSelect = "";
+      document.body.style.userSelect = ''
     }
     return () => {
-      document.body.style.userSelect = "";
-    };
-  }, [isResizing]);
+      document.body.style.userSelect = ''
+    }
+  }, [isResizing])
 
   if (collapsed) {
-    return null;
+    return null
   }
 
   return (
@@ -59,7 +59,7 @@ export default function Sidebar() {
       <SidebarHeader />
 
       {/* Tab content */}
-      <div className="flex-1 overflow-hidden">
+      <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
         {activeTab === 'session' && <SessionTabContent />}
         {activeTab === 'filetree' && <FileTreeTabContent />}
         {activeTab === 'git' && <GitTabContent />}
@@ -69,13 +69,15 @@ export default function Sidebar() {
       {activeTab === 'session' && (
         <div className="px-3 py-2 border-t border-[#2a2a2a]">
           <div className="text-xs text-gray-500">
-            {terminalSessions.length} session{terminalSessions.length !== 1 ? "s" : ""}
-            {groups.size > 0 && ` in ${groups.size} group${groups.size !== 1 ? "s" : ""}`}
+            {terminalSessions.length} session
+            {terminalSessions.length !== 1 ? 's' : ''}
+            {groups.size > 0 &&
+              ` in ${groups.size} group${groups.size !== 1 ? 's' : ''}`}
           </div>
         </div>
       )}
 
       <ResizeHandle onMouseDown={handleMouseDown} isResizing={isResizing} />
     </div>
-  );
+  )
 }
