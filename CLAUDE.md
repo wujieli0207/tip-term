@@ -30,6 +30,7 @@ pnpm tauri build  # Create distributable app
 - **Split Panes**: Multi-window layout with `react-resizable-panels` in `components/terminal/` (SplitPaneContainer, TerminalPaneWrapper, TerminalContainer)
 - **Sidebar**: Tab-based sidebar with Session/FileTree/Git tabs in `components/sidebar/` (Sidebar, SidebarHeader, SidebarTabSelector, SessionTabContent, FileTreeTabContent, GitTabContent, DetailPanelsContainer)
 - **File Tree**: Directory browser in `components/filetree/`
+  - Auto-expands parent directories and highlights opened files
 - **Git**: Git status, diff viewer, commit actions, and commit diff viewer in `components/git/`
 - **Quick Open**: File and hotkey search in `components/quickopen/` (QuickOpenModal, ResultItem, HotkeyResultItem, RecentSearches)
   - Filter tabs: All/Files/Hotkeys

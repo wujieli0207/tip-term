@@ -17,6 +17,8 @@ export default function FileTreeItem({ sessionId, entry, depth }: FileTreeItemPr
   const isExpanded = tree?.expandedPaths.has(entry.path) ?? false;
   const children = tree?.entries.get(entry.path);
   const isAnyFileLoading = loadingFilePath !== null;
+  const highlightedPath = tree?.highlightedPath ?? null;
+  const isHighlighted = entry.path === highlightedPath;
 
   const handleClick = () => {
     if (entry.is_directory) {
@@ -70,7 +72,9 @@ export default function FileTreeItem({ sessionId, entry, depth }: FileTreeItemPr
   return (
     <div>
       <div
-        className="flex items-center gap-1 px-2 py-0.5 cursor-pointer hover:bg-[#2a2a2a] rounded text-sm select-none"
+        className={`flex items-center gap-1 px-2 py-0.5 cursor-pointer hover:bg-[#2a2a2a] rounded text-sm select-none ${
+          isHighlighted ? "bg-blue-500/20" : ""
+        }`}
         style={{ paddingLeft: `${depth * 12 + 8}px` }}
         onClick={handleClick}
       >
@@ -86,7 +90,13 @@ export default function FileTreeItem({ sessionId, entry, depth }: FileTreeItemPr
           </>
         )}
         <span
-          className={`truncate ${entry.is_symlink ? "italic text-cyan-400" : "text-gray-300"}`}
+          className={`truncate ${
+            entry.is_symlink
+              ? "italic text-cyan-400"
+              : isHighlighted
+                ? "text-blue-300"
+                : "text-gray-300"
+          }`}
           title={entry.path}
         >
           {entry.name}

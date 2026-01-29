@@ -1,5 +1,7 @@
 import { create } from "zustand";
 import { invoke } from "@tauri-apps/api/core";
+import { useFileTreeStore } from "./fileTreeStore";
+import { useSessionStore } from "./sessionStore";
 
 export interface EditorFile {
   path: string;
@@ -128,6 +130,12 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
     // If file is already open, just make it active
     if (state.openFiles.has(path)) {
       set({ activeFilePath: path, editorVisible: true, loadingFilePath: null });
+
+      // Update highlight for the opened file
+      const { activeSessionId } = useSessionStore.getState();
+      if (activeSessionId) {
+        useFileTreeStore.getState().setHighlightedPath(activeSessionId, path);
+      }
       return;
     }
 
@@ -173,6 +181,13 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
           loadingFilePath: null,
         };
       });
+
+      // Expand file tree and highlight the opened file
+      const { activeSessionId } = useSessionStore.getState();
+      if (activeSessionId) {
+        useFileTreeStore.getState().expandPath(activeSessionId, path);
+        useFileTreeStore.getState().setHighlightedPath(activeSessionId, path);
+      }
     } catch (error) {
       // Only handle error if request wasn't cancelled
       if (currentRequestId === requestId) {

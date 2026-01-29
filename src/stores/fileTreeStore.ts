@@ -8,6 +8,7 @@ export interface DirectoryTree {
   expandedPaths: Set<string>;
   isLoading: boolean;
   error: string | null;
+  highlightedPath: string | null;
 }
 
 interface FileTreeStore {
@@ -23,6 +24,8 @@ interface FileTreeStore {
   clearSessionTree: (sessionId: string) => void;
   refreshDirectory: (sessionId: string, path: string) => Promise<void>;
   refreshRoot: (sessionId: string, newRootPath: string) => Promise<void>;
+  expandPath: (sessionId: string, filePath: string) => Promise<void>;
+  setHighlightedPath: (sessionId: string, path: string | null) => void;
 }
 
 const DEFAULT_FILE_TREE_WIDTH = 250;
@@ -52,6 +55,7 @@ export const useFileTreeStore = create<FileTreeStore>((set, get) => ({
         expandedPaths: new Set([rootPath]),
         isLoading: false,
         error: null,
+        highlightedPath: null,
       });
 
       // Schedule loading the new root directory
@@ -174,10 +178,79 @@ export const useFileTreeStore = create<FileTreeStore>((set, get) => ({
         expandedPaths: new Set([newRootPath]),
         isLoading: true,
         error: null,
+        highlightedPath: null,
       });
       return { sessionTrees: newTrees };
     });
 
     await get().loadDirectory(sessionId, newRootPath);
+  },
+
+  expandPath: async (sessionId: string, filePath: string) => {
+    const state = get();
+    const tree = state.sessionTrees.get(sessionId);
+    if (!tree) return;
+
+    // Parse the file path to extract all parent directories
+    const pathParts = filePath.split("/").filter(Boolean);
+    const parentPaths: string[] = [];
+
+    // Build all parent directory paths
+    let currentPath = "";
+    for (let i = 0; i < pathParts.length - 1; i++) {
+      if (i === 0) {
+        // Handle absolute path root or relative path
+        currentPath = filePath.startsWith("/")
+          ? "/" + pathParts[i]
+          : pathParts[i];
+      } else {
+        currentPath += "/" + pathParts[i];
+      }
+      parentPaths.push(currentPath);
+    }
+
+    // Also handle the case where path starts without "/"
+    if (!filePath.startsWith("/")) {
+      parentPaths.length = 0;
+      currentPath = "";
+      for (let i = 0; i < pathParts.length - 1; i++) {
+        currentPath = currentPath ? currentPath + "/" + pathParts[i] : pathParts[i];
+        parentPaths.push(currentPath);
+      }
+    }
+
+    // Add all parent paths to expandedPaths
+    set((state) => {
+      const newTrees = new Map(state.sessionTrees);
+      const currentTree = newTrees.get(sessionId);
+      if (currentTree) {
+        const newExpandedPaths = new Set(currentTree.expandedPaths);
+        parentPaths.forEach((path) => newExpandedPaths.add(path));
+        newTrees.set(sessionId, {
+          ...currentTree,
+          expandedPaths: newExpandedPaths,
+        });
+      }
+      return { sessionTrees: newTrees };
+    });
+
+    // Load each parent directory if not yet loaded
+    for (const path of parentPaths) {
+      await get().loadDirectory(sessionId, path);
+    }
+  },
+
+  setHighlightedPath: (sessionId: string, path: string | null) => {
+    set((state) => {
+      const newTrees = new Map(state.sessionTrees);
+      const currentTree = newTrees.get(sessionId);
+      if (currentTree) {
+        newTrees.set(sessionId, {
+          ...currentTree,
+          highlightedPath: path,
+        });
+      }
+      return { sessionTrees: newTrees };
+    });
   },
 }));
