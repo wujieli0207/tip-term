@@ -1,16 +1,33 @@
 import { useEffect, useRef, useCallback, useMemo, Fragment } from "react";
 import { useQuickOpenStore } from "../../stores/quickOpenStore";
+import type { RecentItem } from "../../stores/quickOpenStore";
 import { SearchFileEntry } from "../../types/file";
 import { useSessionStore } from "../../stores/sessionStore";
 import { useEditorStore } from "../../stores/editorStore";
+import { useSettingsStore } from "../../stores/settingsStore";
+import { useSidebarStore } from "../../stores/sidebarStore";
+import { useSplitPaneStore } from "../../stores/splitPaneStore";
 import { invoke } from "@tauri-apps/api/core";
 import { ResultItem } from "./ResultItem";
+import { HotkeyResultItem } from "./HotkeyResultItem";
+import { RecentSearches } from "./RecentSearches";
 import { SectionHeader } from "./SectionHeader";
+import { getEffectiveHotkeys } from "../../utils/hotkeyUtils";
+import type { HotkeyDefinition } from "../../types/hotkey";
+
+type FilterType = "all" | "files" | "hotkeys";
+
+const FILTER_TABS: { id: FilterType; label: string }[] = [
+  { id: "all", label: "All" },
+  { id: "files", label: "Files" },
+  { id: "hotkeys", label: "Hotkeys" },
+];
 
 export default function QuickOpenModal() {
   const inputRef = useRef<HTMLInputElement>(null);
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastSearchedQueryRef = useRef<string>("");
+  const resultsListRef = useRef<HTMLDivElement>(null);
 
   const {
     isOpen,
@@ -18,10 +35,18 @@ export default function QuickOpenModal() {
     results,
     selectedIndex,
     isLoading,
+    filterType,
+    recentSearches,
+    hotkeyResults,
+    hotkeySelectedIndex,
     close,
     setQuery,
+    setFilterType,
     moveSelection,
     getSelectedFile,
+    getSelectedHotkey,
+    addRecentFile,
+    addRecentHotkey,
   } = useQuickOpenStore();
 
   const activeSessionId = useSessionStore((state) => state.activeSessionId);
@@ -50,9 +75,9 @@ export default function QuickOpenModal() {
     }
   }, [isOpen]);
 
-  // Debounced search - only triggers when query actually changes
+  // Debounced search for files and hotkeys
   useEffect(() => {
-    if (!isOpen || !rootPath) return;
+    if (!isOpen) return;
 
     const trimmedQuery = query.trim();
 
@@ -66,7 +91,7 @@ export default function QuickOpenModal() {
     }
 
     if (!trimmedQuery) {
-      useQuickOpenStore.setState({ results: [], isLoading: false, selectedIndex: 0 });
+      useQuickOpenStore.setState({ results: [], hotkeyResults: [], isLoading: false, selectedIndex: 0, hotkeySelectedIndex: 0 });
       lastSearchedQueryRef.current = "";
       return;
     }
@@ -77,26 +102,55 @@ export default function QuickOpenModal() {
 
       useQuickOpenStore.setState({ isLoading: true });
 
-      try {
-        const searchResults = await invoke<SearchFileEntry[]>("search_files", {
-          rootPath,
-          query: searchQuery,
-          maxResults: 50,
+      // Search files
+      if (filterType === "all" || filterType === "files") {
+        if (rootPath) {
+          try {
+            const fileResults = await invoke<SearchFileEntry[]>("search_files", {
+              rootPath,
+              query: searchQuery,
+              maxResults: 50,
+            });
+
+            if (lastSearchedQueryRef.current === searchQuery) {
+              useQuickOpenStore.setState({ results: fileResults });
+            }
+          } catch (error) {
+            console.error("Search failed:", error);
+            if (lastSearchedQueryRef.current === searchQuery) {
+              useQuickOpenStore.setState({ results: [] });
+            }
+          }
+        } else {
+          useQuickOpenStore.setState({ results: [] });
+        }
+      } else {
+        useQuickOpenStore.setState({ results: [] });
+      }
+
+      // Search hotkeys
+      if (filterType === "all" || filterType === "hotkeys") {
+        const { hotkeys } = useSettingsStore.getState();
+        const effectiveHotkeys = getEffectiveHotkeys(hotkeys.customizations);
+        const filtered = effectiveHotkeys.filter((h) => {
+          if (!h.currentBinding) return false;
+          const lowerQuery = searchQuery.toLowerCase();
+          return (
+            h.label.toLowerCase().includes(lowerQuery) ||
+            h.description.toLowerCase().includes(lowerQuery) ||
+            h.category.toLowerCase().includes(lowerQuery)
+          );
         });
 
-        // Only update if this is still the current query
         if (lastSearchedQueryRef.current === searchQuery) {
-          useQuickOpenStore.setState({
-            results: searchResults,
-            isLoading: false,
-            selectedIndex: 0
-          });
+          useQuickOpenStore.setState({ hotkeyResults: filtered });
         }
-      } catch (error) {
-        console.error("Search failed:", error);
-        if (lastSearchedQueryRef.current === searchQuery) {
-          useQuickOpenStore.setState({ results: [], isLoading: false });
-        }
+      } else {
+        useQuickOpenStore.setState({ hotkeyResults: [] });
+      }
+
+      if (lastSearchedQueryRef.current === searchQuery) {
+        useQuickOpenStore.setState({ isLoading: false, selectedIndex: 0, hotkeySelectedIndex: 0 });
       }
     }, 150);
 
@@ -105,17 +159,156 @@ export default function QuickOpenModal() {
         clearTimeout(searchTimeoutRef.current);
       }
     };
-  }, [query, isOpen, rootPath]);
+  }, [query, isOpen, rootPath, filterType]);
 
   // Handle file selection
   const handleSelectFile = useCallback(
     (file: SearchFileEntry) => {
       if (!file.is_directory) {
+        addRecentFile(file.path, file.name);
         openFile(file.path);
         close();
       }
     },
-    [openFile, close]
+    [openFile, close, addRecentFile]
+  );
+
+  // Handle hotkey execution
+  const handleExecuteHotkey = useCallback(
+    (hotkey: HotkeyDefinition) => {
+      addRecentHotkey(hotkey);
+      executeHotkeyAction(hotkey.action);
+      close();
+    },
+    [close, addRecentHotkey]
+  );
+
+  // Execute hotkey action
+  const executeHotkeyAction = useCallback((action: string) => {
+    const sessionStore = useSessionStore.getState();
+    const sidebarStore = useSidebarStore.getState();
+    const editorStore = useEditorStore.getState();
+    const splitPaneStore = useSplitPaneStore.getState();
+    const gitStore = useGitStore.getState();
+
+    const handlers: Record<string, () => void> = {
+      openSettings: () => sessionStore.openSettings(),
+      quickOpen: () => { /* Already in quick open */ },
+      newSession: () => sessionStore.createSession().catch(console.error),
+      closeSession: () => {
+        const isEditorFocused = document.activeElement?.closest(".cm-editor") !== null;
+        if (editorStore.editorVisible && editorStore.activeFilePath && isEditorFocused) {
+          editorStore.closeActiveFile();
+        } else if (sessionStore.activeSessionId && !sessionStore.isSettingsSession(sessionStore.activeSessionId)) {
+          const rootSessionId = sessionStore.activeSessionId;
+          const layout = splitPaneStore.getLayout(rootSessionId);
+          if (layout) {
+            const paneSessionId = splitPaneStore.closePane(rootSessionId, layout.focusedPaneId);
+            if (paneSessionId) {
+              invoke("close_session", { id: paneSessionId }).catch(console.error);
+            }
+            if (!splitPaneStore.hasLayout(rootSessionId)) {
+              sessionStore.closeSession(rootSessionId).catch(console.error);
+            }
+          } else {
+            sessionStore.closeSession(rootSessionId).catch(console.error);
+          }
+        }
+      },
+      toggleSidebar: () => sidebarStore.toggle(),
+      toggleFileTree: () => sidebarStore.setActiveTab("filetree"),
+      toggleEditor: () => editorStore.toggleEditorVisible(),
+      toggleGitPanel: () => {
+        sidebarStore.setActiveTab("git");
+        if (sessionStore.activeSessionId) {
+          const session = sessionStore.sessions.get(sessionStore.activeSessionId);
+          if (session?.cwd) {
+            gitStore.loadGitStatus(sessionStore.activeSessionId, session.cwd);
+          }
+        }
+      },
+      saveFile: () => {
+        if (editorStore.editorVisible && editorStore.activeFilePath) {
+          editorStore.saveActiveFile().catch(console.error);
+        }
+      },
+      switchToSessionTab: () => sidebarStore.setActiveTab("session"),
+      switchToFileTreeTab: () => sidebarStore.setActiveTab("filetree"),
+      switchToGitTab: () => sidebarStore.setActiveTab("git"),
+      splitVertical: () => {
+        if (!sessionStore.activeSessionId || sessionStore.isSettingsSession(sessionStore.activeSessionId)) return;
+        const rootSessionId = sessionStore.activeSessionId;
+        invoke<string>("create_session", { shell: "/bin/zsh" })
+          .then((newSessionId) => {
+            const layout = splitPaneStore.getLayout(rootSessionId);
+            if (!layout) {
+              splitPaneStore.initLayout(rootSessionId, rootSessionId);
+              const newLayout = splitPaneStore.getLayout(rootSessionId);
+              if (newLayout) {
+                splitPaneStore.splitPane(rootSessionId, newLayout.focusedPaneId, "horizontal", newSessionId);
+              }
+            } else {
+              splitPaneStore.splitPane(rootSessionId, layout.focusedPaneId, "horizontal", newSessionId);
+            }
+          })
+          .catch(console.error);
+      },
+      splitHorizontal: () => {
+        if (!sessionStore.activeSessionId || sessionStore.isSettingsSession(sessionStore.activeSessionId)) return;
+        const rootSessionId = sessionStore.activeSessionId;
+        invoke<string>("create_session", { shell: "/bin/zsh" })
+          .then((newSessionId) => {
+            const layout = splitPaneStore.getLayout(rootSessionId);
+            if (!layout) {
+              splitPaneStore.initLayout(rootSessionId, rootSessionId);
+              const newLayout = splitPaneStore.getLayout(rootSessionId);
+              if (newLayout) {
+                splitPaneStore.splitPane(rootSessionId, newLayout.focusedPaneId, "vertical", newSessionId);
+              }
+            } else {
+              splitPaneStore.splitPane(rootSessionId, layout.focusedPaneId, "vertical", newSessionId);
+            }
+          })
+          .catch(console.error);
+      },
+      navigatePaneUp: () => {
+        if (sessionStore.activeSessionId) splitPaneStore.navigateFocus(sessionStore.activeSessionId, "up");
+      },
+      navigatePaneDown: () => {
+        if (sessionStore.activeSessionId) splitPaneStore.navigateFocus(sessionStore.activeSessionId, "down");
+      },
+      navigatePaneLeft: () => {
+        if (sessionStore.activeSessionId) splitPaneStore.navigateFocus(sessionStore.activeSessionId, "left");
+      },
+      navigatePaneRight: () => {
+        if (sessionStore.activeSessionId) splitPaneStore.navigateFocus(sessionStore.activeSessionId, "right");
+      },
+    };
+
+    const handler = handlers[action];
+    if (handler) handler();
+  }, []);
+
+  // Handle recent search selection
+  const handleSelectRecent = useCallback(
+    (item: RecentItem) => {
+      if (item.type === "file" && item.filePath) {
+        // For files, open them directly
+        openFile(item.filePath);
+        close();
+      } else if (item.type === "hotkey" && item.hotkeyId) {
+        // For hotkeys, execute them directly
+        const { hotkeys } = useSettingsStore.getState();
+        const effectiveHotkeys = getEffectiveHotkeys(hotkeys.customizations);
+        const hotkey = effectiveHotkeys.find((h) => h.id === item.hotkeyId);
+        if (hotkey) {
+          addRecentHotkey(hotkey);
+          executeHotkeyAction(hotkey.action);
+          close();
+        }
+      }
+    },
+    [openFile, close, addRecentHotkey]
   );
 
   // Keyboard navigation
@@ -132,9 +325,14 @@ export default function QuickOpenModal() {
           break;
         case "Enter":
           e.preventDefault();
-          const selected = getSelectedFile();
-          if (selected) {
-            handleSelectFile(selected);
+          if (query.trim()) {
+            const selectedFile = getSelectedFile();
+            const selectedHotkey = getSelectedHotkey();
+            if (selectedFile) {
+              handleSelectFile(selectedFile);
+            } else if (selectedHotkey) {
+              handleExecuteHotkey(selectedHotkey);
+            }
           }
           break;
         case "Escape":
@@ -143,7 +341,7 @@ export default function QuickOpenModal() {
           break;
       }
     },
-    [moveSelection, getSelectedFile, handleSelectFile, close]
+    [moveSelection, getSelectedFile, getSelectedHotkey, handleSelectFile, handleExecuteHotkey, close, query]
   );
 
   // Handle click outside to close
@@ -155,6 +353,12 @@ export default function QuickOpenModal() {
     },
     [close]
   );
+
+  // Calculate item counts for display
+  const fileCount = filterType === "hotkeys" ? 0 : results.length;
+  const hotkeyCount = filterType === "files" ? 0 : hotkeyResults.length;
+  const recentCount = recentSearches.length;
+  const hasQuery = query.trim().length > 0;
 
   if (!isOpen) return null;
 
@@ -172,67 +376,127 @@ export default function QuickOpenModal() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={rootPath ? "Search files by name..." : "No active session"}
+            placeholder={rootPath ? "Search files or hotkeys..." : "No active session"}
             disabled={!rootPath}
             className="w-full bg-[#252525] text-white text-sm px-3 py-2 rounded border border-[#444] focus:border-blue-500 focus:outline-none placeholder-gray-500 disabled:opacity-50"
           />
         </div>
 
+        {/* Filter Tabs */}
+        <div className="flex border-b border-[#333]">
+          {FILTER_TABS.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setFilterType(tab.id)}
+              className={`flex-1 px-3 py-2 text-sm font-medium transition-colors ${
+                filterType === tab.id
+                  ? "text-white bg-[#2a2a2a] border-b-2 border-blue-500"
+                  : "text-gray-400 hover:text-white hover:bg-[#222]"
+              }`}
+            >
+              {tab.label}
+              {((tab.id === "all" && fileCount + hotkeyCount > 0) ||
+                (tab.id === "files" && fileCount > 0) ||
+                (tab.id === "hotkeys" && hotkeyCount > 0)) && (
+                <span className="ml-1 text-xs text-gray-500">
+                  {tab.id === "all"
+                    ? fileCount + hotkeyCount
+                    : tab.id === "files"
+                    ? fileCount
+                    : hotkeyCount}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+
         {/* Results List */}
-        <div className="max-h-80 overflow-y-auto">
+        <div ref={resultsListRef} className="max-h-80 overflow-y-auto">
           {isLoading ? (
             <div className="px-4 py-8 text-center text-gray-500 text-sm">
               Searching...
             </div>
-          ) : results.length > 0 ? (
+          ) : !hasQuery && recentCount > 0 ? (
+            <RecentSearches recentSearches={recentSearches} onSelect={handleSelectRecent} />
+          ) : hasQuery && (fileCount > 0 || hotkeyCount > 0) ? (
             <>
-              {prefixResults.length > 0 && (
+              {/* File Results */}
+              {fileCount > 0 && (
                 <Fragment>
-                  <SectionHeader title="file results" />
-                  {prefixResults.map((file, index) => (
-                    <ResultItem
-                      key={file.path}
-                      file={file}
-                      isSelected={index === selectedIndex}
+                  {prefixResults.length > 0 && (
+                    <Fragment>
+                      <SectionHeader title="files" />
+                      {prefixResults.map((file, index) => (
+                        <ResultItem
+                          key={file.path}
+                          file={file}
+                          isSelected={index === selectedIndex}
+                          query={query}
+                          onClick={() => handleSelectFile(file)}
+                          onMouseEnter={() =>
+                            useQuickOpenStore.setState({ selectedIndex: index, hotkeySelectedIndex: 0 })
+                          }
+                        />
+                      ))}
+                    </Fragment>
+                  )}
+                  {containsResults.length > 0 && (
+                    <Fragment>
+                      <SectionHeader title="other" />
+                      {containsResults.map((file, index) => {
+                        const globalIndex = prefixResults.length + index;
+                        return (
+                          <ResultItem
+                            key={file.path}
+                            file={file}
+                            isSelected={globalIndex === selectedIndex}
+                            query={query}
+                            onClick={() => handleSelectFile(file)}
+                            onMouseEnter={() =>
+                              useQuickOpenStore.setState({
+                                selectedIndex: globalIndex,
+                                hotkeySelectedIndex: 0,
+                              })
+                            }
+                          />
+                        );
+                      })}
+                    </Fragment>
+                  )}
+                </Fragment>
+              )}
+
+              {/* Hotkey Results */}
+              {hotkeyCount > 0 && (
+                <Fragment>
+                  <SectionHeader title="hotkeys" />
+                  {hotkeyResults.map((hotkey, index) => (
+                    <HotkeyResultItem
+                      key={hotkey.id}
+                      hotkey={hotkey}
+                      isSelected={index === hotkeySelectedIndex}
                       query={query}
-                      onClick={() => handleSelectFile(file)}
+                      onClick={() => handleExecuteHotkey(hotkey)}
                       onMouseEnter={() =>
-                        useQuickOpenStore.setState({ selectedIndex: index })
+                        useQuickOpenStore.setState({
+                          hotkeySelectedIndex: index,
+                          selectedIndex: 0,
+                        })
                       }
                     />
                   ))}
                 </Fragment>
               )}
-              {containsResults.length > 0 && (
-                <Fragment>
-                  <SectionHeader title="other results" />
-                  {containsResults.map((file, index) => {
-                    const globalIndex = prefixResults.length + index;
-                    return (
-                      <ResultItem
-                        key={file.path}
-                        file={file}
-                        isSelected={globalIndex === selectedIndex}
-                        query={query}
-                        onClick={() => handleSelectFile(file)}
-                        onMouseEnter={() =>
-                          useQuickOpenStore.setState({ selectedIndex: globalIndex })
-                        }
-                      />
-                    );
-                  })}
-                </Fragment>
-              )}
             </>
-          ) : query.trim() ? (
+          ) : hasQuery ? (
             <div className="px-4 py-8 text-center text-gray-500 text-sm">
-              No files found
+              No results found
             </div>
-          ) : (
+          ) : recentCount === 0 ? (
             <div className="px-4 py-8 text-center text-gray-500 text-sm">
-              Type to search files
+              Type to search files or hotkeys
             </div>
-          )}
+          ) : null}
         </div>
 
         {/* Footer hint */}
@@ -254,3 +518,6 @@ export default function QuickOpenModal() {
     </div>
   );
 }
+
+// Import useGitStore at the bottom to avoid circular dependency
+import { useGitStore } from "../../stores/gitStore";

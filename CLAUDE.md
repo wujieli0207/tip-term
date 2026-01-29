@@ -31,7 +31,10 @@ pnpm tauri build  # Create distributable app
 - **Sidebar**: Tab-based sidebar with Session/FileTree/Git tabs in `components/sidebar/` (Sidebar, SidebarHeader, SidebarTabSelector, SessionTabContent, FileTreeTabContent, GitTabContent, DetailPanelsContainer)
 - **File Tree**: Directory browser in `components/filetree/`
 - **Git**: Git status, diff viewer, commit actions, and commit diff viewer in `components/git/`
-- **Quick Open**: File search in `components/quickopen/` (QuickOpenModal, ResultItem, HighlightMatch)
+- **Quick Open**: File and hotkey search in `components/quickopen/` (QuickOpenModal, ResultItem, HotkeyResultItem, RecentSearches)
+  - Filter tabs: All/Files/Hotkeys
+  - Recent searches with file path or hotkey binding display
+  - Execute hotkeys directly from search results
 - **Editor**: Code editor in `components/editor/`
 - **Settings**: Settings panel in `components/settings/`
 - **UI Components**: Reusable components in `components/ui/` (Tooltip, icons, button, dialog, etc.)
