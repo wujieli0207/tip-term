@@ -1,4 +1,6 @@
 import { useGitStore } from "../../stores/gitStore";
+import { useSessionStore } from "../../stores/sessionStore";
+import { IconExternalLink } from "@/components/ui/icons";
 
 interface DiffFileProps {
   fileDiff: {
@@ -11,12 +13,20 @@ interface DiffFileProps {
   };
   isExpanded: boolean;
   onToggle: () => void;
+  onOpenFile?: (path: string) => void;
 }
 
-function DiffFile({ fileDiff, isExpanded, onToggle }: DiffFileProps) {
+function DiffFile({ fileDiff, isExpanded, onToggle, onOpenFile }: DiffFileProps) {
   const displayName = fileDiff.oldPath && fileDiff.oldPath !== fileDiff.path
     ? `${fileDiff.oldPath} → ${fileDiff.path}`
     : fileDiff.path;
+
+  const handleOpenFile = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onOpenFile) {
+      onOpenFile(fileDiff.path);
+    }
+  };
 
   const statusColor = {
     added: "text-green-400",
@@ -54,6 +64,15 @@ function DiffFile({ fileDiff, isExpanded, onToggle }: DiffFileProps) {
                 <span className="text-xs text-red-400">-{fileDiff.deletions}</span>
               )}
             </>
+          )}
+          {onOpenFile && (
+            <button
+              onClick={handleOpenFile}
+              className="p-0.5 rounded hover:bg-[#333] text-[#888] hover:text-blue-400 transition-colors"
+              title="Open in editor"
+            >
+              <IconExternalLink className="w-3.5 h-3.5" stroke={2} />
+            </button>
           )}
         </div>
       </div>
@@ -126,6 +145,7 @@ function DiffFile({ fileDiff, isExpanded, onToggle }: DiffFileProps) {
 }
 
 export default function CommitDiffViewer() {
+  const { activeSessionId } = useSessionStore();
   const {
     commitDiff,
     isCommitDiffLoading,
@@ -133,7 +153,14 @@ export default function CommitDiffViewer() {
     toggleCommitFile,
     expandAllCommitFiles,
     collapseAllCommitFiles,
+    openCommitFileInEditor,
   } = useGitStore();
+
+  const handleOpenFile = (filePath: string) => {
+    if (activeSessionId) {
+      openCommitFileInEditor(filePath, activeSessionId);
+    }
+  };
 
   if (isCommitDiffLoading) {
     return (
@@ -214,6 +241,7 @@ export default function CommitDiffViewer() {
               fileDiff={fileDiff}
               isExpanded={expandedCommitFiles.has(fileDiff.path)}
               onToggle={() => toggleCommitFile(fileDiff.path)}
+              onOpenFile={handleOpenFile}
             />
           ))
         )}
