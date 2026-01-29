@@ -1,6 +1,7 @@
 import { useSessionStore } from "../../stores/sessionStore";
 import { useGitStore } from "../../stores/gitStore";
 import { useResizable } from "../../hooks/useResizable";
+import { IconExternalLink } from "@/components/ui/icons";
 import DiffViewer from "./DiffViewer";
 
 export default function GitDiffPanel() {
@@ -10,6 +11,7 @@ export default function GitDiffPanel() {
     setGitDiffPanelWidth,
     selectedFilePath,
     clearSelectedFile,
+    openFileInEditor,
   } = useGitStore();
 
   const activeSession = activeSessionId ? sessions.get(activeSessionId) : null;
@@ -19,6 +21,11 @@ export default function GitDiffPanel() {
     onResize: setGitDiffPanelWidth,
     direction: "right",
   });
+
+  const handleJumpToEditor = () => {
+    if (!selectedFilePath || !activeSessionId) return;
+    openFileInEditor(selectedFilePath, activeSessionId);
+  };
 
   // Don't show if no active terminal session or no selected file
   if (!activeSessionId || activeSession?.type !== "terminal" || !selectedFilePath) {
@@ -40,15 +47,24 @@ export default function GitDiffPanel() {
             {fileName}
           </span>
         </div>
-        <button
-          onClick={clearSelectedFile}
-          className="p-1 rounded hover:bg-[#333] text-[#888] hover:text-[#e0e0e0] transition-colors"
-        >
-          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M18 6L6 18" />
-            <path d="M6 6l12 12" />
-          </svg>
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={handleJumpToEditor}
+            className="p-1 rounded hover:bg-[#333] text-[#888] hover:text-blue-400 transition-colors"
+            title="Open in editor"
+          >
+            <IconExternalLink className="w-4 h-4" stroke={2} />
+          </button>
+          <button
+            onClick={clearSelectedFile}
+            className="p-1 rounded hover:bg-[#333] text-[#888] hover:text-[#e0e0e0] transition-colors"
+          >
+            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M18 6L6 18" />
+              <path d="M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
       </div>
 
       {/* Diff content */}

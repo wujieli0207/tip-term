@@ -1,6 +1,6 @@
 import { useGitStore } from "../../stores/gitStore";
 import { FileStatus } from "../../types/git";
-import { IconMinus, IconPlus, IconX } from "@/components/ui/icons";
+import { IconExternalLink, IconMinus, IconPlus, IconX } from "@/components/ui/icons";
 
 interface FileStatusItemProps {
   file: FileStatus;
@@ -37,6 +37,7 @@ export default function FileStatusItem({
     discardChanges,
     selectFile,
     selectedFilePath,
+    openFileInEditor,
   } = useGitStore();
 
   const handleStage = (e: React.MouseEvent) => {
@@ -54,6 +55,11 @@ export default function FileStatusItem({
     if (window.confirm(`Discard changes to ${file.path}?`)) {
       discardChanges(sessionId, file.path);
     }
+  };
+
+  const handleJump = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    openFileInEditor(file.path, sessionId);
   };
 
   const handleClick = () => {
@@ -90,6 +96,14 @@ export default function FileStatusItem({
       </div>
 
       <div className="hidden group-hover:flex items-center gap-1">
+        <button
+          onClick={handleJump}
+          className="p-0.5 rounded hover:bg-[#333] text-[#888] hover:text-blue-400"
+          title="Open in editor"
+        >
+          <IconExternalLink className="w-3.5 h-3.5" stroke={2} />
+        </button>
+        
         {staged ? (
           <button
             onClick={handleUnstage}

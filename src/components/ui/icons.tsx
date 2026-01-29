@@ -25,4 +25,5 @@ export {
   IconPalette,
   IconKeyboard,
   IconFolderFilled,
+  IconExternalLink,
 } from "@tabler/icons-react";

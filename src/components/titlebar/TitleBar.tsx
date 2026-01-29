@@ -1,14 +1,15 @@
 import { useState, useEffect } from 'react'
 import { invoke } from '@tauri-apps/api/core'
-import SearchBox from './SearchBox'
-import { IconMenu2, IconSettings } from '@/components/ui/icons'
+import { IconMenu2, IconSettings, IconSearch } from '@/components/ui/icons'
 import { useSidebarStore } from '@/stores/sidebarStore'
 import { useSessionStore, SETTINGS_SESSION_ID } from '@/stores/sessionStore'
+import { useQuickOpenStore } from '@/stores/quickOpenStore'
 
 export default function TitleBar() {
   const [osPlatform, setOsPlatform] = useState<string>('unknown')
   const { toggle: toggleSidebar } = useSidebarStore()
   const { openSettings, closeSettings, activeSessionId } = useSessionStore()
+  const { open: openQuickOpen } = useQuickOpenStore()
 
   // Detect platform on mount
   useEffect(() => {
@@ -63,12 +64,21 @@ export default function TitleBar() {
         </div>
       </div>
 
-      {/* Center: Search box */}
-      <div data-tauri-drag-region className="flex-1 flex justify-center px-4">
-        <SearchBox />
-      </div>
+      {/* Center: Draggable area */}
+      <div data-tauri-drag-region className="flex-1" />
 
-      {/* Right side: Settings button */}
+      {/* Right side: Search and Settings buttons */}
+      <button
+        onClick={openQuickOpen}
+        data-tauri-drag-region="false"
+        className="p-1.5 rounded hover:bg-[#2a2a2a] transition-colors"
+        title="Quick Open (Cmd+P)"
+      >
+        <IconSearch
+          className="w-4 h-4 text-gray-400 hover:text-gray-200"
+          stroke={2}
+        />
+      </button>
       <button
         onClick={handleSettingsClick}
         data-tauri-drag-region="false"

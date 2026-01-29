@@ -93,6 +93,9 @@ interface GitStore {
   toggleCommitFile: (filePath: string) => void;
   expandAllCommitFiles: () => void;
   collapseAllCommitFiles: () => void;
+
+  // Open file in editor
+  openFileInEditor: (filePath: string, sessionId: string) => Promise<void>;
 }
 
 const DEFAULT_GIT_PANEL_WIDTH = 300;
@@ -489,5 +492,24 @@ export const useGitStore = create<GitStore>((set, get) => ({
 
   collapseAllCommitFiles: () => {
     set({ expandedCommitFiles: new Set() });
+  },
+
+  openFileInEditor: async (filePath: string, sessionId: string) => {
+    const gitState = get().sessionGitState.get(sessionId);
+    if (!gitState) return;
+
+    // Build full path to the file
+    const { resolve } = await import("@tauri-apps/api/path");
+    const fullPath = await resolve(gitState.repoPath, filePath);
+
+    // Import editorStore dynamically to avoid circular dependency
+    const { useEditorStore } = await import("./editorStore");
+    const editorStore = useEditorStore.getState();
+
+    // Open file in editor
+    await editorStore.openFile(fullPath);
+
+    // Close the diff panel
+    get().clearSelectedFile();
   },
 }));
