@@ -30,7 +30,7 @@ pnpm tauri build  # Create distributable app
 - **Split Panes**: Multi-window layout with `react-resizable-panels` in `components/terminal/` (SplitPaneContainer, TerminalPaneWrapper, TerminalContainer)
 - **Sidebar**: Tab-based sidebar with Session/FileTree/Git tabs in `components/sidebar/` (Sidebar, SidebarHeader, SidebarTabSelector, SessionTabContent, FileTreeTabContent, GitTabContent, DetailPanelsContainer)
 - **File Tree**: Directory browser in `components/filetree/`
-- **Git**: Git status, diff viewer, and commit actions in `components/git/`
+- **Git**: Git status, diff viewer, commit actions, and commit diff viewer in `components/git/`
 - **Quick Open**: File search in `components/quickopen/` (QuickOpenModal, ResultItem, HighlightMatch)
 - **Editor**: Code editor in `components/editor/`
 - **Settings**: Settings panel in `components/settings/`
@@ -44,6 +44,7 @@ pnpm tauri build  # Create distributable app
 - **main.rs**: Tauri commands and app setup
 - **terminal/vte_parser.rs**: PTY session management
 - **filesystem.rs**: File system operations (read_directory, search_files)
+- **git.rs**: Git operations (status, diff, commit, push, recent commits, commit diff)
 
 ### Communication
 
@@ -69,7 +70,7 @@ pnpm tauri build  # Create distributable app
 ```
 
 - **Sidebar**: Tab-based panel with Session/FileTree/Git tabs (icon buttons with tooltips)
-- **DetailPanelsContainer**: GitDiffPanel and EditorPanel (right of sidebar, triggered by file selection)
+- **DetailPanelsContainer**: GitDiffPanel, CommitDiffPanel, and EditorPanel (right of sidebar, triggered by file/commit selection)
 - **TerminalContainer**: Terminal instances and split panes (main content area)
 
 ## Key Dependencies
