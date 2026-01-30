@@ -1,10 +1,14 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { HotkeyBinding, HotkeyCustomization } from "../types/hotkey";
+import type { ThemeMode } from "../types/theme";
 
 export interface AppearanceSettings {
   cursorStyle: "block" | "underline" | "bar";
   cursorBlink: boolean;
+  themeMode: ThemeMode;
+  darkColorScheme: string;
+  lightColorScheme: string;
 }
 
 export interface HotkeySettings {
@@ -16,6 +20,9 @@ interface SettingsState {
   hotkeys: HotkeySettings;
   setCursorStyle: (style: "block" | "underline" | "bar") => void;
   setCursorBlink: (enabled: boolean) => void;
+  setThemeMode: (mode: ThemeMode) => void;
+  setDarkColorScheme: (schemeId: string) => void;
+  setLightColorScheme: (schemeId: string) => void;
   setHotkeyBinding: (id: string, binding: HotkeyBinding | null) => void;
   clearHotkeyBinding: (id: string) => void;
   resetHotkey: (id: string) => void;
@@ -26,6 +33,9 @@ interface SettingsState {
 const defaultAppearance: AppearanceSettings = {
   cursorStyle: "block",
   cursorBlink: true,
+  themeMode: "dark",
+  darkColorScheme: "tabby-dark",
+  lightColorScheme: "tabby-light",
 };
 
 const defaultHotkeys: HotkeySettings = {
@@ -46,6 +56,21 @@ export const useSettingsStore = create<SettingsState>()(
       setCursorBlink: (enabled) =>
         set((state) => ({
           appearance: { ...state.appearance, cursorBlink: enabled },
+        })),
+
+      setThemeMode: (mode) =>
+        set((state) => ({
+          appearance: { ...state.appearance, themeMode: mode },
+        })),
+
+      setDarkColorScheme: (schemeId) =>
+        set((state) => ({
+          appearance: { ...state.appearance, darkColorScheme: schemeId },
+        })),
+
+      setLightColorScheme: (schemeId) =>
+        set((state) => ({
+          appearance: { ...state.appearance, lightColorScheme: schemeId },
         })),
 
       setHotkeyBinding: (id, binding) =>

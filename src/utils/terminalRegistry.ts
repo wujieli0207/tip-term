@@ -6,6 +6,7 @@ import { listen } from "@tauri-apps/api/event";
 import { useSessionStore } from "../stores/sessionStore";
 import { useSettingsStore } from "../stores/settingsStore";
 import { sendNotification } from "./notifications";
+import { getTerminalTheme } from "../services/themeService";
 
 const ACTIVITY_NOTIFICATION_COOLDOWN = 5000;
 
@@ -29,29 +30,7 @@ function createEntry(sessionId: string): TerminalEntry {
   const terminal = new Terminal({
     fontFamily: '"JetBrains Mono", Monaco, monospace',
     fontSize: 14,
-    theme: {
-      background: "#0a0a0a",
-      foreground: "#e5e5e5",
-      cursor: "#e5e5e5",
-      cursorAccent: "#0a0a0a",
-      selectionBackground: "#444444",
-      black: "#000000",
-      red: "#cd3131",
-      green: "#0dbc79",
-      yellow: "#e5e510",
-      blue: "#2472c8",
-      magenta: "#bc3fbc",
-      cyan: "#11a8cd",
-      white: "#e5e5e5",
-      brightBlack: "#666666",
-      brightRed: "#f14c4c",
-      brightGreen: "#23d18b",
-      brightYellow: "#f5f543",
-      brightBlue: "#3b8eea",
-      brightMagenta: "#d670d6",
-      brightCyan: "#29b8db",
-      brightWhite: "#ffffff",
-    },
+    theme: getTerminalTheme(),
     cursorBlink: useSettingsStore.getState().appearance.cursorBlink,
     cursorStyle: useSettingsStore.getState().appearance.cursorStyle,
     allowProposedApi: true,
@@ -191,6 +170,31 @@ export function cleanupTerminals(activeSessionIds: Set<string>): void {
   for (const sessionId of registry.keys()) {
     if (!activeSessionIds.has(sessionId)) {
       disposeTerminal(sessionId);
+    }
+  }
+}
+
+/**
+ * Update the theme for all active terminals
+ */
+export function updateTerminalThemes(): void {
+  const newTheme = getTerminalTheme();
+  for (const entry of registry.values()) {
+    if (!entry.isDisposed) {
+      entry.terminal.options.theme = newTheme;
+    }
+  }
+}
+
+/**
+ * Update cursor settings for all active terminals
+ */
+export function updateTerminalCursorSettings(): void {
+  const settings = useSettingsStore.getState().appearance;
+  for (const entry of registry.values()) {
+    if (!entry.isDisposed) {
+      entry.terminal.options.cursorBlink = settings.cursorBlink;
+      entry.terminal.options.cursorStyle = settings.cursorStyle;
     }
   }
 }

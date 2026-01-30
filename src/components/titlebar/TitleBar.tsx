@@ -35,7 +35,7 @@ export default function TitleBar() {
   }
 
   return (
-    <div className="flex items-center h-8 bg-[#1a1a1a] border-b border-[#2a2a2a] select-none shrink-0">
+    <div className="flex items-center h-8 bg-[var(--bg-card)] border-b border-[var(--border)] select-none shrink-0">
       {/* macOS: Reserve space for native traffic lights */}
       {isMac && <div className="w-[88px] shrink-0" />}
 
@@ -45,11 +45,11 @@ export default function TitleBar() {
         <button
           onClick={toggleSidebar}
           data-tauri-drag-region="false"
-          className="p-1 rounded hover:bg-[#2a2a2a] transition-colors"
+          className="p-1 rounded hover:bg-[var(--bg-hover)] transition-colors"
           title="Toggle Sidebar (Cmd+\)"
         >
           <IconMenu2
-            className="w-4 h-4 text-gray-400 hover:text-gray-200"
+            className="w-4 h-4 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
             stroke={2}
           />
         </button>
@@ -58,7 +58,7 @@ export default function TitleBar() {
         <div
           data-tauri-drag-region
           onDoubleClick={handleDoubleClick}
-          className="text-sm font-medium text-gray-300 cursor-default px-2 py-0.5 rounded hover:bg-[#2a2a2a] transition-colors"
+          className="text-sm font-medium text-[var(--text-secondary)] cursor-default px-2 py-0.5 rounded hover:bg-[var(--bg-hover)] transition-colors"
         >
           TipTerm
         </div>
@@ -71,22 +71,22 @@ export default function TitleBar() {
       <button
         onClick={openQuickOpen}
         data-tauri-drag-region="false"
-        className="p-1.5 rounded hover:bg-[#2a2a2a] transition-colors"
+        className="p-1.5 rounded hover:bg-[var(--bg-hover)] transition-colors"
         title="Quick Open (Cmd+P)"
       >
         <IconSearch
-          className="w-4 h-4 text-gray-400 hover:text-gray-200"
+          className="w-4 h-4 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
           stroke={2}
         />
       </button>
       <button
         onClick={handleSettingsClick}
         data-tauri-drag-region="false"
-        className="p-1.5 rounded hover:bg-[#2a2a2a] transition-colors"
+        className="p-1.5 rounded hover:bg-[var(--bg-hover)] transition-colors"
         title="Settings (Cmd+,)"
       >
         <IconSettings
-          className="w-4 h-4 text-gray-400 hover:text-gray-200"
+          className="w-4 h-4 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
           stroke={2}
         />
       </button>

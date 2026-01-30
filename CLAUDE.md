@@ -24,7 +24,7 @@ pnpm tauri build  # Create distributable app
 
 - **Tech**: React + TypeScript + Vite + Tailwind CSS
 - **State**: Zustand stores in `stores/` (sessionStore, sidebarStore, settingsStore, fileTreeStore, gitStore, quickOpenStore, editorStore, splitPaneStore)
-- **Types**: Shared types in `types/` (session.ts, file.ts, hotkey.ts, splitPane.ts, git.ts)
+- **Types**: Shared types in `types/` (session.ts, file.ts, hotkey.ts, splitPane.ts, git.ts, theme.ts)
 - **Hooks**: Reusable hooks in `hooks/` (useResizable, useHotkeyHandler, useProcessPolling)
 - **Terminal**: xterm.js rendering in `components/XTerminal.tsx`
 - **Split Panes**: Multi-window layout with `react-resizable-panels` in `components/terminal/` (SplitPaneContainer, TerminalPaneWrapper, TerminalContainer)
@@ -37,11 +37,22 @@ pnpm tauri build  # Create distributable app
   - Recent searches with file path or hotkey binding display
   - Execute hotkeys directly from search results
 - **Editor**: Code editor in `components/editor/`
-- **Settings**: Settings panel in `components/settings/`
+- **Settings**: Settings panel in `components/settings/` with theme support
+- **Theme**: Color scheme system in `config/defaultColorSchemes.ts` and `services/themeService.ts`
+  - Theme modes: Dark / Light / Auto (follow system)
+  - 12 predefined color schemes (Tabby, Dracula, Tokyo Night, Nord, etc.)
 - **UI Components**: Reusable components in `components/ui/` (Tooltip, icons, button, dialog, etc.)
 - **Hotkeys**: Configurable shortcuts in `config/defaultHotkeys.ts`
   - Sidebar tabs: `⌃⌘1/2/3` for Session/Files/Git
   - Split pane: `Cmd+D`, `Cmd+Shift+D`, `Cmd+Alt+Arrow`
+
+## Theme System
+
+- **Type definitions**: `src/types/theme.ts` - `TerminalColorScheme`, `ThemeMode`
+- **Color schemes**: `src/config/defaultColorSchemes.ts` - 12 predefined themes
+- **Theme service**: `src/services/themeService.ts` - Theme switching via `window.matchMedia`
+- **CSS variables**: `src/styles.css` - Light/dark theme variables via `data-theme` attribute
+- **Settings**: Theme mode and color scheme selection in Appearance settings
 
 ### Backend (`src-tauri/src/`)
 

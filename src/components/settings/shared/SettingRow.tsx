@@ -2,11 +2,12 @@ interface SettingRowProps {
   title: string;
   description?: string;
   children: React.ReactNode;
+  className?: string;
 }
 
-export default function SettingRow({ title, description, children }: SettingRowProps) {
+export default function SettingRow({ title, description, children, className = "" }: SettingRowProps) {
   return (
-    <div className="flex items-center justify-between py-4 border-b border-[#2a2a2a]">
+    <div className={`flex items-center justify-between py-4 border-b border-[#2a2a2a] ${className}`}>
       <div className="flex-1">
         <div className="text-sm text-gray-300">{title}</div>
         {description && (
