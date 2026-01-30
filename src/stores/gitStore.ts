@@ -9,6 +9,7 @@ import {
   FileStatus,
   BranchStatus,
   CommitDiffResult,
+  BranchInfo,
 } from "../types/git";
 
 interface GitStore {
@@ -51,6 +52,14 @@ interface GitStore {
   commitDiff: CommitDiffResult | null;
   isCommitDiffLoading: boolean;
   expandedCommitFiles: Set<string>;
+
+  // Branch state
+  branches: BranchInfo[];
+  isBranchesLoading: boolean;
+  branchSwitcherOpen: boolean;
+  createBranchModalOpen: boolean;
+  isSwitchingBranch: boolean;
+  isCreatingBranch: boolean;
 
   // Actions
   toggleGitDiffPanel: () => void;
@@ -97,6 +106,13 @@ interface GitStore {
   // Open file in editor
   openFileInEditor: (filePath: string, sessionId: string) => Promise<void>;
   openCommitFileInEditor: (filePath: string, sessionId: string) => Promise<void>;
+
+  // Branch actions
+  loadBranches: (sessionId: string) => Promise<void>;
+  switchBranch: (sessionId: string, branchName: string, isRemote: boolean) => Promise<void>;
+  createBranch: (sessionId: string, branchName: string, baseBranch: string) => Promise<void>;
+  setBranchSwitcherOpen: (open: boolean) => void;
+  setCreateBranchModalOpen: (open: boolean) => void;
 }
 
 const DEFAULT_GIT_PANEL_WIDTH = 300;
@@ -126,6 +142,12 @@ export const useGitStore = create<GitStore>((set, get) => ({
   commitDiff: null,
   isCommitDiffLoading: false,
   expandedCommitFiles: new Set(),
+  branches: [],
+  isBranchesLoading: false,
+  branchSwitcherOpen: false,
+  createBranchModalOpen: false,
+  isSwitchingBranch: false,
+  isCreatingBranch: false,
 
   toggleGitDiffPanel: () => {
     set((state) => ({ gitDiffPanelVisible: !state.gitDiffPanelVisible }));
@@ -531,5 +553,77 @@ export const useGitStore = create<GitStore>((set, get) => ({
 
     // Close the commit diff panel
     get().clearSelectedCommit();
+  },
+
+  // Branch actions
+  loadBranches: async (sessionId: string) => {
+    const gitState = get().sessionGitState.get(sessionId);
+    if (!gitState) return;
+
+    set({ isBranchesLoading: true });
+
+    try {
+      const branches = await invoke<BranchInfo[]>("get_branches", {
+        repoPath: gitState.repoPath,
+      });
+      set({ branches, isBranchesLoading: false });
+    } catch (error) {
+      console.error("Failed to load branches:", error);
+      set({ branches: [], isBranchesLoading: false });
+    }
+  },
+
+  switchBranch: async (sessionId: string, branchName: string, isRemote: boolean) => {
+    const gitState = get().sessionGitState.get(sessionId);
+    if (!gitState) return;
+
+    set({ isSwitchingBranch: true });
+
+    try {
+      await invoke("switch_branch", {
+        repoPath: gitState.repoPath,
+        branchName,
+        isRemote,
+      });
+
+      // Close the branch switcher and reload git status
+      set({ isSwitchingBranch: false, branchSwitcherOpen: false });
+      await get().loadGitStatus(sessionId, gitState.repoPath);
+    } catch (error) {
+      console.error("Failed to switch branch:", error);
+      set({ isSwitchingBranch: false });
+      throw error;
+    }
+  },
+
+  createBranch: async (sessionId: string, branchName: string, baseBranch: string) => {
+    const gitState = get().sessionGitState.get(sessionId);
+    if (!gitState) return;
+
+    set({ isCreatingBranch: true });
+
+    try {
+      await invoke("create_branch", {
+        repoPath: gitState.repoPath,
+        branchName,
+        baseBranch,
+      });
+
+      // Close the modals and reload git status
+      set({ isCreatingBranch: false, createBranchModalOpen: false, branchSwitcherOpen: false });
+      await get().loadGitStatus(sessionId, gitState.repoPath);
+    } catch (error) {
+      console.error("Failed to create branch:", error);
+      set({ isCreatingBranch: false });
+      throw error;
+    }
+  },
+
+  setBranchSwitcherOpen: (open: boolean) => {
+    set({ branchSwitcherOpen: open });
+  },
+
+  setCreateBranchModalOpen: (open: boolean) => {
+    set({ createBranchModalOpen: open });
   },
 }));

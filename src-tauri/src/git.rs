@@ -90,6 +90,15 @@ pub struct CommitResult {
     pub error: Option<String>,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BranchInfo {
+    pub name: String,
+    pub is_current: bool,
+    pub is_remote: bool,
+    pub remote_name: Option<String>,
+}
+
 fn relative_time(timestamp: i64) -> String {
     let now = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
@@ -929,4 +938,123 @@ fn parse_diff_to_file_diffs(diff: &git2::Diff) -> Result<Vec<FileDiffWithStats>,
     }
 
     Ok(file_diffs)
+}
+
+/// Get all branches (local and remote)
+#[tauri::command]
+pub fn get_branches(repo_path: String) -> Result<Vec<BranchInfo>, String> {
+    let repo = Repository::discover(&repo_path)
+        .map_err(|e| format!("Not a git repository: {}", e))?;
+
+    let mut branches = Vec::new();
+
+    // Get current branch name
+    let current_branch = repo.head().ok().and_then(|h| {
+        if h.is_branch() {
+            h.shorthand().map(|s| s.to_string())
+        } else {
+            None
+        }
+    });
+
+    // Get local branches
+    let local_branches = repo.branches(Some(git2::BranchType::Local))
+        .map_err(|e| format!("Failed to get local branches: {}", e))?;
+
+    for branch_result in local_branches {
+        let (branch, _) = branch_result.map_err(|e| format!("Failed to iterate branches: {}", e))?;
+        if let Some(name) = branch.name().ok().flatten() {
+            let is_current = current_branch.as_deref() == Some(name);
+            branches.push(BranchInfo {
+                name: name.to_string(),
+                is_current,
+                is_remote: false,
+                remote_name: None,
+            });
+        }
+    }
+
+    // Get remote branches
+    let remote_branches = repo.branches(Some(git2::BranchType::Remote))
+        .map_err(|e| format!("Failed to get remote branches: {}", e))?;
+
+    for branch_result in remote_branches {
+        let (branch, _) = branch_result.map_err(|e| format!("Failed to iterate branches: {}", e))?;
+        if let Some(name) = branch.name().ok().flatten() {
+            // Skip HEAD references like origin/HEAD
+            if name.ends_with("/HEAD") {
+                continue;
+            }
+
+            // Extract remote name (e.g., "origin" from "origin/main")
+            let parts: Vec<&str> = name.splitn(2, '/').collect();
+            let remote_name = if parts.len() == 2 {
+                Some(parts[0].to_string())
+            } else {
+                None
+            };
+
+            branches.push(BranchInfo {
+                name: name.to_string(),
+                is_current: false,
+                is_remote: true,
+                remote_name,
+            });
+        }
+    }
+
+    Ok(branches)
+}
+
+/// Switch to a different branch
+#[tauri::command]
+pub fn switch_branch(repo_path: String, branch_name: String, is_remote: bool) -> Result<(), String> {
+    // Use shell git checkout for better compatibility and credential handling
+    let checkout_target = if is_remote {
+        // For remote branches, create a local tracking branch
+        // Extract the branch name without remote prefix (e.g., "origin/feature" -> "feature")
+        let parts: Vec<&str> = branch_name.splitn(2, '/').collect();
+        if parts.len() == 2 {
+            parts[1].to_string()
+        } else {
+            branch_name.clone()
+        }
+    } else {
+        branch_name.clone()
+    };
+
+    let output = std::process::Command::new("git")
+        .arg("checkout")
+        .arg(&checkout_target)
+        .current_dir(&repo_path)
+        .output()
+        .map_err(|e| format!("Failed to execute git checkout: {}", e))?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(format!("Failed to switch branch: {}", stderr));
+    }
+
+    Ok(())
+}
+
+/// Create a new branch and optionally switch to it
+#[tauri::command]
+pub fn create_branch(repo_path: String, branch_name: String, base_branch: String) -> Result<(), String> {
+    // Use shell git commands for better compatibility
+    let output = std::process::Command::new("git")
+        .arg("checkout")
+        .arg("-b")
+        .arg(&branch_name)
+        .arg(&base_branch)
+        .current_dir(&repo_path)
+        .output()
+        .map_err(|e| format!("Failed to execute git checkout -b: {}", e))?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(format!("Failed to create branch: {}", stderr));
+    }
+
+    Ok(())
 }

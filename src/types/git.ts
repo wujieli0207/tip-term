@@ -63,6 +63,13 @@ export interface BranchStatus {
   remoteBranch: string | null;
 }
 
+export interface BranchInfo {
+  name: string;
+  isCurrent: boolean;
+  isRemote: boolean;
+  remoteName?: string;
+}
+
 export interface CommitResult {
   success: boolean;
   commitId?: string;

@@ -29,10 +29,11 @@ import {
 interface SessionItemProps {
   session: SessionInfo;
   index: number;
+  inGroup?: boolean;
   isDropTarget?: boolean;
 }
 
-export default function SessionItem({ session, index, isDropTarget = false }: SessionItemProps) {
+export default function SessionItem({ session, index, inGroup: _inGroup = false, isDropTarget = false }: SessionItemProps) {
   const {
     activeSessionId,
     setActiveSession,
