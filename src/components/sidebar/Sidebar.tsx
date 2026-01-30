@@ -53,7 +53,7 @@ export default function Sidebar() {
   return (
     <div
       ref={panelRef}
-      className="flex flex-col h-full bg-[#1a1a1a] border-r border-[#2a2a2a] overflow-visible relative"
+      className="flex flex-col h-full bg-bg-sidebar border-r border-border overflow-visible relative"
       style={{ width }}
     >
       <SidebarHeader />
@@ -67,8 +67,8 @@ export default function Sidebar() {
 
       {/* Session count footer - only show on session tab */}
       {activeTab === 'session' && (
-        <div className="px-3 py-2 border-t border-[#2a2a2a]">
-          <div className="text-xs text-gray-500">
+        <div className="px-3 py-2 border-t border-border">
+          <div className="text-xs text-text-muted">
             {terminalSessions.length} session
             {terminalSessions.length !== 1 ? 's' : ''}
             {groups.size > 0 &&

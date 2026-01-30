@@ -16,7 +16,7 @@ export default function SidebarHeader() {
   };
 
   return (
-    <div className="flex items-center justify-between px-2 py-2 border-b border-[#2a2a2a] overflow-visible">
+    <div className="flex items-center justify-between px-2 py-2 border-b border-border overflow-visible">
       {/* Left side: Tab selector */}
       <div className="flex items-center gap-1 overflow-visible">
         <SidebarTabSelector />
@@ -26,10 +26,10 @@ export default function SidebarHeader() {
       {activeTab === 'session' && (
         <button
           onClick={handleNewSession}
-          className="p-1.5 rounded hover:bg-[#2a2a2a] transition-colors"
+          className="p-1.5 rounded hover:bg-bg-hover transition-colors"
           title="New Session (Cmd+T)"
         >
-          <IconPlus className="w-4 h-4 text-gray-400 hover:text-gray-200" stroke={2} />
+          <IconPlus className="w-4 h-4 text-text-muted hover:text-text-secondary" stroke={2} />
         </button>
       )}
     </div>

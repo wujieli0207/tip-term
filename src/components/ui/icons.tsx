@@ -26,4 +26,9 @@ export {
   IconKeyboard,
   IconFolderFilled,
   IconExternalLink,
+  IconTrash,
+  IconFolderPlus,
+  IconFolderMinus,
+  IconBellRinging,
+  IconBellCheck,
 } from "@tabler/icons-react";

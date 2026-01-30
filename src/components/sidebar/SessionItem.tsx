@@ -2,7 +2,16 @@ import { useState, useRef, useEffect } from 'react';
 import { SessionInfo, useSessionStore, GROUP_COLORS } from "../../stores/sessionStore";
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { IconTerminal2, IconDotsVertical, IconX, IconPlus, IconFolder } from "@/components/ui/icons";
+import {
+  IconTerminal2,
+  IconDotsVertical,
+  IconX,
+  IconPlus,
+  IconFolderPlus,
+  IconFolderMinus,
+  IconBellRinging,
+  IconBellCheck,
+} from "@/components/ui/icons";
 import { requestNotificationPermission } from "../../utils/notifications";
 import {
   DropdownMenu,
@@ -20,11 +29,10 @@ import {
 interface SessionItemProps {
   session: SessionInfo;
   index: number;
-  inGroup?: boolean;
   isDropTarget?: boolean;
 }
 
-export default function SessionItem({ session, index, inGroup = false, isDropTarget = false }: SessionItemProps) {
+export default function SessionItem({ session, index, isDropTarget = false }: SessionItemProps) {
   const {
     activeSessionId,
     setActiveSession,
@@ -171,25 +179,20 @@ export default function SessionItem({ session, index, inGroup = false, isDropTar
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       className={`
-        group flex items-center justify-between gap-2
-        py-1.5 px-2 rounded-lg
+        group flex items-center justify-between gap-2.5
+        h-9 px-2.5 rounded-md
         transition-all duration-150 relative
-        ${inGroup ? 'mx-0.5' : 'mx-1'}
         ${isDragging ? 'z-50 shadow-lg opacity-50' : ''}
         ${isDropTarget ? 'ring-2 ring-purple-500 ring-inset scale-[1.02]' : ''}
-        ${isActive
-          ? inGroup
-            ? "bg-[#ffffff15]"
-            : "bg-[#333333] border-l-2 border-purple-500"
-          : inGroup
-            ? "hover:bg-[#ffffff10] border-l-0"
-            : "hover:bg-[#2a2a2a] border-l-2 border-transparent"
-        }
+        ${isActive ? "bg-bg-active" : "hover:bg-bg-hover"}
       `}
     >
       <div className="flex items-center flex-1 min-w-0 gap-2">
         <div className="relative flex-shrink-0">
-          <IconTerminal2 className="w-4 h-4 text-gray-400" stroke={2} />
+          <IconTerminal2
+            className={`w-4 h-4 ${isActive ? 'text-accent-cyan' : 'text-text-muted'}`}
+            stroke={2}
+          />
           {/* Notification indicator */}
           {(session.notifyWhenDone || session.notifyOnActivity) && (
             <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-purple-500 rounded-full" />
@@ -203,12 +206,12 @@ export default function SessionItem({ session, index, inGroup = false, isDropTar
             onChange={(e) => setEditValue(e.target.value)}
             onBlur={handleSave}
             onKeyDown={handleKeyDown}
-            className="w-full text-sm text-gray-200 bg-transparent border-b border-blue-500 outline-none"
+            className="w-full text-[13px] text-text-primary bg-transparent border-b border-accent-primary outline-none"
             onClick={(e) => e.stopPropagation()}
           />
         ) : (
           <span
-            className="text-sm text-gray-300 truncate"
+            className={`text-[13px] truncate ${isActive ? 'text-text-primary font-medium' : 'text-text-secondary'}`}
             onDoubleClick={handleDoubleClick}
           >
             {displayName}
@@ -218,7 +221,7 @@ export default function SessionItem({ session, index, inGroup = false, isDropTar
 
       <div className="flex items-center flex-shrink-0 gap-1">
         {showShortcut && !isHovered && !menuOpen && (
-          <span className="font-mono text-xs text-gray-500">
+          <span className="font-mono text-[11px] text-text-muted">
             ⌘{shortcutNumber}
           </span>
         )}
@@ -227,33 +230,41 @@ export default function SessionItem({ session, index, inGroup = false, isDropTar
             <DropdownMenuTrigger asChild>
               <button
                 onClick={(e) => e.stopPropagation()}
-                className="p-0.5 rounded hover:bg-[#444444] transition-opacity duration-150"
+                className="p-0.5 rounded hover:bg-bg-hover transition-opacity duration-150"
                 title="Session options"
               >
-                <IconDotsVertical className="w-3.5 h-3.5 text-gray-400 hover:text-gray-200" stroke={2} />
+                <IconDotsVertical className="w-3.5 h-3.5 text-text-muted hover:text-text-secondary" stroke={2} />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-[200px]" onClick={(e) => e.stopPropagation()}>
+            <DropdownMenuContent
+              align="end"
+              className="w-[220px] rounded-xl border-border bg-bg-card p-1.5"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <DropdownMenuLabel className="flex items-center gap-2 px-2 py-1.5 text-[13px] font-medium text-text-primary">
+                <IconTerminal2 className="w-4 h-4 text-accent-cyan" stroke={2} />
+                {displayName}
+              </DropdownMenuLabel>
               {/* Process info */}
               {session.processName && (
                 <>
-                  <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">
+                  <DropdownMenuLabel className="text-xs text-text-muted font-normal">
                     Current process: {session.processName}
                   </DropdownMenuLabel>
-                  <DropdownMenuSeparator />
+                  <DropdownMenuSeparator className="bg-border-subtle" />
                 </>
               )}
 
               {/* Group options */}
               {session.groupId ? (
                 <DropdownMenuItem onClick={handleRemoveFromGroup}>
-                  <IconFolder className="w-4 h-4" stroke={2} />
+                  <IconFolderMinus className="w-4 h-4" stroke={2} />
                   Remove from group
                 </DropdownMenuItem>
               ) : (
                 <DropdownMenuSub>
                   <DropdownMenuSubTrigger>
-                    <IconFolder className="w-4 h-4" stroke={2} />
+                    <IconFolderPlus className="w-4 h-4" stroke={2} />
                     Add to group
                   </DropdownMenuSubTrigger>
                   <DropdownMenuSubContent>
@@ -263,7 +274,7 @@ export default function SessionItem({ session, index, inGroup = false, isDropTar
                     </DropdownMenuItem>
                     {availableGroups.length > 0 && (
                       <>
-                        <DropdownMenuSeparator />
+                        <DropdownMenuSeparator className="bg-border-subtle" />
                         {availableGroups.map((group) => {
                           const colors = GROUP_COLORS[group.color];
                           return (
@@ -282,30 +293,32 @@ export default function SessionItem({ session, index, inGroup = false, isDropTar
                 </DropdownMenuSub>
               )}
 
-              <DropdownMenuSeparator />
+              <DropdownMenuSeparator className="bg-border-subtle" />
 
               {/* Notification options */}
               <DropdownMenuCheckboxItem
                 checked={session.notifyWhenDone || false}
                 onCheckedChange={handleNotifyWhenDoneChange}
               >
-                Notify when done
+                <IconBellCheck className="w-4 h-4" stroke={2} />
+                <span className="whitespace-nowrap">Notify when done</span>
               </DropdownMenuCheckboxItem>
               <DropdownMenuCheckboxItem
                 checked={session.notifyOnActivity || false}
                 onCheckedChange={handleNotifyOnActivityChange}
               >
-                Notify on activity
+                <IconBellRinging className="w-4 h-4" stroke={2} />
+                <span className="whitespace-nowrap">Notify on activity</span>
               </DropdownMenuCheckboxItem>
             </DropdownMenuContent>
           </DropdownMenu>
         )}
         <button
           onClick={handleClose}
-          className="p-0.5 rounded opacity-0 group-hover:opacity-100 hover:bg-[#444444] transition-opacity duration-150"
+          className="p-0.5 rounded opacity-0 group-hover:opacity-100 hover:bg-bg-hover transition-opacity duration-150"
           title="Close session"
         >
-          <IconX className="w-3.5 h-3.5 text-gray-400 hover:text-gray-200" stroke={2} />
+          <IconX className="w-3.5 h-3.5 text-text-muted hover:text-text-secondary" stroke={2} />
         </button>
       </div>
     </div>

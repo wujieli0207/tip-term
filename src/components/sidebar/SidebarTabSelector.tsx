@@ -21,8 +21,8 @@ function TabButton({ icon: Icon, label, isActive, onClick, hotkey }: TabButtonPr
         onClick={onClick}
         className={`p-2 rounded transition-colors ${
           isActive
-            ? "bg-[#2a2a2a] text-white"
-            : "text-gray-400 hover:text-gray-200 hover:bg-[#222]"
+            ? "bg-bg-active text-text-primary"
+            : "text-text-muted hover:text-text-secondary hover:bg-bg-hover"
         }`}
       >
         <Icon className="w-4 h-4" stroke={2} />

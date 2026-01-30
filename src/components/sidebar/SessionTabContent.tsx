@@ -186,10 +186,10 @@ export default function SessionTabContent() {
 
   if (terminalSessions.length === 0 && !settingsSession) {
     return (
-      <div className="px-3 py-4 text-sm text-center text-gray-500">
+      <div className="px-3 py-4 text-sm text-center text-text-muted">
         No sessions yet.
         <br />
-        Press <kbd className="px-1 py-0.5 bg-[#2a2a2a] rounded text-xs">Cmd+T</kbd> to create one.
+        Press <kbd className="px-1 py-0.5 bg-bg-hover rounded text-xs">Cmd+T</kbd> to create one.
       </div>
     );
   }
@@ -212,7 +212,7 @@ export default function SessionTabContent() {
         <>
           <SettingsItem />
           {terminalSessions.length > 0 && (
-            <div className="mx-3 my-2 border-t border-[#3a3a3a]" />
+            <div className="mx-3 my-2 border-t border-border" />
           )}
         </>
       )}
@@ -231,7 +231,7 @@ export default function SessionTabContent() {
             items={sortableIds}
             strategy={verticalListSortingStrategy}
           >
-            <div className="space-y-0.5">
+            <div className="p-2 space-y-0.5">
               {sidebarItems.map((item) => {
               if (item.type === 'group') {
                 return (
