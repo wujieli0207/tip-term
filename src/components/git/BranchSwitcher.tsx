@@ -83,22 +83,22 @@ export default function BranchSwitcher({ sessionId }: BranchSwitcherProps) {
   return (
     <DropdownMenu open={branchSwitcherOpen} onOpenChange={setBranchSwitcherOpen}>
       <DropdownMenuTrigger asChild>
-        <button className="flex items-center gap-1 px-2 py-1 rounded hover:bg-[#333] text-[#e0e0e0] transition-colors">
-          <IconGitBranch className="w-4 h-4 text-purple-400" stroke={2} />
-          <span className="text-sm font-medium">
+        <button className="flex items-center gap-1.5 px-1 py-1 rounded hover:bg-bg-active text-text-primary transition-colors">
+          <IconGitBranch className="w-4 h-4 text-accent-green" stroke={2} />
+          <span className="text-[13px] font-medium">
             {status?.isDetached ? (
-              <span className="text-orange-400">{status.branchName}</span>
+              <span className="text-accent-orange">{status.branchName}</span>
             ) : (
               status?.branchName || "Git"
             )}
           </span>
-          <IconChevronDown className="w-3 h-3 text-[#888]" stroke={2} />
+          <IconChevronDown className="w-3 h-3 text-text-muted" stroke={2} />
         </button>
       </DropdownMenuTrigger>
 
       <DropdownMenuContent
         align="start"
-        className="w-64 bg-[#1e1e1e] border-[#333]"
+        className="w-60 bg-bg-card border-border"
         onCloseAutoFocus={(e) => e.preventDefault()}
       >
         {/* Search input */}
@@ -108,24 +108,24 @@ export default function BranchSwitcher({ sessionId }: BranchSwitcherProps) {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyDown={(e) => e.stopPropagation()}
-            className="h-8 bg-[#252525] border-[#333] text-sm text-[#e0e0e0] placeholder:text-[#666]"
+            className="h-8 bg-bg-card border-border text-[13px] text-text-primary placeholder:text-text-muted"
             autoFocus
           />
         </div>
 
-        <DropdownMenuSeparator className="bg-[#333]" />
+        <DropdownMenuSeparator className="bg-border" />
 
         {isBranchesLoading ? (
-          <div className="flex items-center justify-center py-4 text-[#888]">
+          <div className="flex items-center justify-center py-4 text-text-muted">
             <IconLoader2 className="w-4 h-4 animate-spin mr-2" />
-            <span className="text-sm">Loading branches...</span>
+            <span className="text-[13px]">Loading branches...</span>
           </div>
         ) : (
           <div className="max-h-64 overflow-y-auto">
             {/* Local branches */}
             {localBranches.length > 0 && (
               <>
-                <DropdownMenuLabel className="text-xs text-[#666] uppercase tracking-wider px-2 py-1">
+                <DropdownMenuLabel className="text-[10px] text-text-muted uppercase tracking-[1px] px-2 py-1">
                   Local Branches
                 </DropdownMenuLabel>
                 {localBranches.map((branch) => (
@@ -133,12 +133,12 @@ export default function BranchSwitcher({ sessionId }: BranchSwitcherProps) {
                     key={branch.name}
                     onClick={() => handleSwitchBranch(branch.name, false)}
                     disabled={branch.isCurrent || isSwitchingBranch}
-                    className="flex items-center gap-2 px-2 py-1.5 text-sm text-[#e0e0e0] hover:bg-[#333] cursor-pointer"
+                    className="flex items-center gap-2 px-2 py-1.5 text-[13px] text-text-primary hover:bg-bg-active cursor-pointer"
                   >
-                    <IconGitBranch className="w-4 h-4 text-[#888]" stroke={2} />
+                    <IconGitBranch className="w-4 h-4 text-text-muted" stroke={2} />
                     <span className="flex-1 truncate">{branch.name}</span>
                     {branch.isCurrent && (
-                      <IconCheck className="w-4 h-4 text-green-400" stroke={2} />
+                      <IconCheck className="w-4 h-4 text-accent-green" stroke={2} />
                     )}
                   </DropdownMenuItem>
                 ))}
@@ -148,8 +148,8 @@ export default function BranchSwitcher({ sessionId }: BranchSwitcherProps) {
             {/* Remote branches */}
             {remoteBranches.length > 0 && (
               <>
-                <DropdownMenuSeparator className="bg-[#333]" />
-                <DropdownMenuLabel className="text-xs text-[#666] uppercase tracking-wider px-2 py-1">
+                <DropdownMenuSeparator className="bg-border" />
+                <DropdownMenuLabel className="text-[10px] text-text-muted uppercase tracking-[1px] px-2 py-1">
                   Remote Branches
                 </DropdownMenuLabel>
                 {remoteBranches.map((branch) => (
@@ -157,10 +157,10 @@ export default function BranchSwitcher({ sessionId }: BranchSwitcherProps) {
                     key={branch.name}
                     onClick={() => handleSwitchBranch(branch.name, true)}
                     disabled={isSwitchingBranch}
-                    className="flex items-center gap-2 px-2 py-1.5 text-sm text-[#e0e0e0] hover:bg-[#333] cursor-pointer"
+                    className="flex items-center gap-2 px-2 py-1.5 text-[13px] text-text-secondary hover:bg-bg-active cursor-pointer"
                   >
-                    <IconGitBranch className="w-4 h-4 text-[#666]" stroke={2} />
-                    <span className="flex-1 truncate text-[#999]">{branch.name}</span>
+                    <IconGitBranch className="w-4 h-4 text-text-muted" stroke={2} />
+                    <span className="flex-1 truncate">{branch.name}</span>
                   </DropdownMenuItem>
                 ))}
               </>
@@ -168,21 +168,21 @@ export default function BranchSwitcher({ sessionId }: BranchSwitcherProps) {
 
             {/* No results */}
             {localBranches.length === 0 && remoteBranches.length === 0 && (
-              <div className="py-4 text-center text-sm text-[#666]">
+              <div className="py-4 text-center text-[13px] text-text-muted">
                 No branches found
               </div>
             )}
           </div>
         )}
 
-        <DropdownMenuSeparator className="bg-[#333]" />
+        <DropdownMenuSeparator className="bg-border" />
 
         {/* Create new branch option */}
         <DropdownMenuItem
           onClick={handleCreateBranch}
-          className="flex items-center gap-2 px-2 py-1.5 text-sm text-[#e0e0e0] hover:bg-[#333] cursor-pointer"
+          className="flex items-center gap-2 px-2 py-1.5 text-[13px] text-text-primary hover:bg-bg-active cursor-pointer"
         >
-          <IconPlus className="w-4 h-4 text-[#888]" stroke={2} />
+          <IconPlus className="w-4 h-4 text-text-muted" stroke={2} />
           <span>Create new branch</span>
         </DropdownMenuItem>
       </DropdownMenuContent>

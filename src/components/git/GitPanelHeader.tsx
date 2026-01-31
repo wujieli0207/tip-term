@@ -23,18 +23,16 @@ export default function GitPanelHeader({ sessionId }: GitPanelHeaderProps) {
 
   return (
     <>
-      <div className="flex items-center justify-between px-3 py-2 border-b border-[#2a2a2a] bg-[#1a1a1a]">
+      <div className="flex items-center justify-between px-2 py-1">
         <BranchSwitcher sessionId={sessionId} />
 
-        <div className="flex items-center gap-1">
-          <button
-            onClick={handleRefresh}
-            className="p-1 rounded hover:bg-[#333] text-[#888] hover:text-[#e0e0e0] transition-colors"
-            title="Refresh"
-          >
-            <IconRefresh className="w-4 h-4" stroke={2} />
-          </button>
-        </div>
+        <button
+          onClick={handleRefresh}
+          className="p-1 rounded hover:bg-bg-active text-text-muted hover:text-text-primary transition-colors"
+          title="Refresh"
+        >
+          <IconRefresh className="w-4 h-4" stroke={2} />
+        </button>
       </div>
 
       {/* Create Branch Modal */}

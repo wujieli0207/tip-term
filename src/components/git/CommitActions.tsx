@@ -47,14 +47,14 @@ export default function CommitActions({ sessionId }: CommitActionsProps) {
   };
 
   return (
-    <div className="flex gap-2 px-3 pb-3">
+    <div className="flex gap-2 px-2 pb-2">
       <button
         onClick={handleCommit}
         disabled={!canCommit}
-        className={`flex-1 px-3 py-1.5 text-sm font-medium rounded transition-colors ${
+        className={`flex-1 h-9 px-3 text-[13px] font-medium rounded-md transition-colors ${
           canCommit
-            ? "bg-purple-600 hover:bg-purple-700 text-white"
-            : "bg-[#2a2a2a] text-[#666] cursor-not-allowed"
+            ? "bg-accent-primary hover:opacity-90 text-white"
+            : "bg-bg-active text-text-muted cursor-not-allowed"
         }`}
       >
         {isCommitting ? (
@@ -70,10 +70,10 @@ export default function CommitActions({ sessionId }: CommitActionsProps) {
       <button
         onClick={handleCommitAndPush}
         disabled={!canCommit}
-        className={`px-3 py-1.5 text-sm font-medium rounded transition-colors ${
+        className={`w-11 h-9 flex items-center justify-center rounded-md border transition-colors ${
           canCommit
-            ? "bg-[#2a2a2a] hover:bg-[#333] text-[#e0e0e0]"
-            : "bg-[#1a1a1a] text-[#666] cursor-not-allowed"
+            ? "bg-bg-active border-border hover:bg-bg-hover text-text-primary"
+            : "bg-bg-card border-border text-text-muted cursor-not-allowed"
         }`}
         title="Commit and Push"
       >
@@ -84,12 +84,12 @@ export default function CommitActions({ sessionId }: CommitActionsProps) {
         <button
           onClick={handlePush}
           disabled={isPushing}
-          className={`px-3 py-1.5 text-sm font-medium rounded transition-colors flex items-center gap-1 ${
+          className={`h-9 px-3 text-[13px] font-medium rounded-md transition-colors flex items-center gap-1 ${
             isPushing
-              ? "bg-yellow-600/50 text-white/70 cursor-wait"
+              ? "bg-accent-orange/50 text-white/70 cursor-wait"
               : canPush
-                ? "bg-yellow-600 hover:bg-yellow-700 text-white"
-                : "bg-[#1a1a1a] text-[#666] cursor-not-allowed"
+                ? "bg-accent-orange hover:opacity-90 text-white"
+                : "bg-bg-card text-text-muted cursor-not-allowed"
           }`}
           title={isPushing ? "Pushing..." : `Push ${aheadCount} commit${aheadCount !== 1 ? "s" : ""} to remote`}
         >

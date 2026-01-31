@@ -28,7 +28,7 @@ export default function GitTabContent() {
   // Don't show if no active terminal session or no cwd
   if (!activeSessionId || activeSession?.type !== "terminal" || !cwd) {
     return (
-      <div className="px-3 py-4 text-sm text-center text-gray-500">
+      <div className="px-3 py-4 text-[13px] text-center text-text-muted">
         No active session or working directory.
       </div>
     );
@@ -38,17 +38,17 @@ export default function GitTabContent() {
     <div className="flex-1 overflow-y-auto overflow-x-hidden flex flex-col">
       <GitPanelHeader sessionId={activeSessionId} />
 
-      <div className="flex-1 overflow-y-auto overflow-x-hidden">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden px-2">
         {gitState?.error ? (
-          <div className="p-4 text-[#666]">
-            <p className="text-sm">{gitState.error}</p>
+          <div className="p-4 text-text-muted">
+            <p className="text-[13px]">{gitState.error}</p>
           </div>
         ) : gitState?.isLoading ? (
-          <div className="p-4 text-[#666]">
-            <p className="text-sm">Loading...</p>
+          <div className="p-4 text-text-muted">
+            <p className="text-[13px]">Loading...</p>
           </div>
         ) : gitState?.status ? (
-          <>
+          <div className="flex flex-col gap-3">
             <GitStatusSection
               title="Staged"
               files={gitState.status.stagedFiles}
@@ -69,16 +69,16 @@ export default function GitTabContent() {
               isUntracked={true}
             />
 
-            <div className="border-t border-[#2a2a2a] mt-2">
+            <div className="mt-1">
               <CommitInput />
               <CommitActions sessionId={activeSessionId} />
             </div>
 
             <RecentCommits sessionId={activeSessionId} />
-          </>
+          </div>
         ) : (
-          <div className="p-4 text-[#666]">
-            <p className="text-sm">Not a git repository</p>
+          <div className="p-4 text-text-muted">
+            <p className="text-[13px]">Not a git repository</p>
           </div>
         )}
       </div>

@@ -59,7 +59,7 @@ export default function CommitInput() {
     : COMMIT_PREFIXES;
 
   return (
-    <div className="relative px-3 py-2">
+    <div className="relative px-2 py-2">
       <textarea
         ref={textareaRef}
         value={commitMessage}
@@ -72,22 +72,22 @@ export default function CommitInput() {
         }}
         onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
         placeholder="Commit message..."
-        className="w-full bg-[#1a1a1a] text-[#e0e0e0] text-sm px-3 py-2 rounded border border-[#2a2a2a] focus:border-purple-500 focus:outline-none resize-none placeholder-[#666]"
+        className="w-full h-9 bg-bg-card text-text-primary text-[13px] px-3 py-2 rounded-md border border-border focus:border-border-subtle focus:ring-1 focus:ring-border focus:outline-none resize-none placeholder-text-muted"
         rows={1}
       />
 
       {showSuggestions && filteredPrefixes.length > 0 && (
-        <div className="absolute left-3 right-3 mt-1 bg-[#1a1a1a] border border-[#2a2a2a] rounded shadow-lg z-10 max-h-48 overflow-y-auto">
+        <div className="absolute left-2 right-2 mt-1 bg-bg-card border border-border rounded-md shadow-lg z-10 max-h-48 overflow-y-auto">
           {filteredPrefixes.map((item) => (
             <button
               key={item.prefix}
               onClick={() => handleSelectPrefix(item.prefix)}
-              className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-[#2a2a2a] transition-colors"
+              className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-bg-active transition-colors"
             >
-              <span className="text-sm font-mono text-purple-400">
+              <span className="text-[13px] font-mono text-accent-primary">
                 {item.prefix}
               </span>
-              <span className="text-xs text-[#666]">{item.description}</span>
+              <span className="text-xs text-text-muted">{item.description}</span>
             </button>
           ))}
         </div>

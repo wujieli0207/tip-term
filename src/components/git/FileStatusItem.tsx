@@ -10,11 +10,11 @@ interface FileStatusItemProps {
 }
 
 const STATUS_COLORS: Record<string, string> = {
-  added: "text-green-400",
-  modified: "text-yellow-400",
-  deleted: "text-red-400",
-  renamed: "text-blue-400",
-  untracked: "text-green-400",
+  added: "text-accent-green",
+  modified: "text-accent-orange",
+  deleted: "text-accent-red",
+  renamed: "text-accent-cyan",
+  untracked: "text-accent-green",
 };
 
 const STATUS_LETTERS: Record<string, string> = {
@@ -74,40 +74,40 @@ export default function FileStatusItem({
 
   return (
     <div
-      className={`group flex items-center justify-between px-3 py-1 cursor-pointer hover:bg-[#1a1a1a] ${
-        isSelected ? "bg-[#1a1a1a]" : ""
+      className={`group flex items-center justify-between px-1 h-7 cursor-pointer hover:bg-bg-hover rounded ${
+        isSelected ? "bg-bg-active" : ""
       }`}
       onClick={handleClick}
     >
       <div className="flex items-center gap-2 min-w-0">
         <span
-          className={`text-xs font-mono w-4 ${STATUS_COLORS[file.status]}`}
+          className={`text-xs font-semibold w-4 text-center ${STATUS_COLORS[file.status]}`}
         >
           {STATUS_LETTERS[file.status]}
         </span>
         <div className="flex items-center min-w-0">
-          <span className="text-sm text-[#e0e0e0] truncate">{fileName}</span>
+          <span className="text-[13px] text-text-primary truncate">{fileName}</span>
           {dirPath && (
-            <span className="text-xs text-[#666] ml-1 truncate">
+            <span className="text-xs text-text-muted ml-1 truncate">
               {dirPath}
             </span>
           )}
         </div>
       </div>
 
-      <div className="hidden group-hover:flex items-center gap-1">
+      <div className="hidden group-hover:flex items-center gap-0.5">
         <button
           onClick={handleJump}
-          className="p-0.5 rounded hover:bg-[#333] text-[#888] hover:text-blue-400"
+          className="p-0.5 rounded hover:bg-bg-active text-text-muted hover:text-accent-cyan"
           title="Open in editor"
         >
           <IconExternalLink className="w-3.5 h-3.5" stroke={2} />
         </button>
-        
+
         {staged ? (
           <button
             onClick={handleUnstage}
-            className="p-0.5 rounded hover:bg-[#333] text-[#888] hover:text-red-400"
+            className="p-0.5 rounded hover:bg-bg-active text-text-muted hover:text-accent-red"
             title="Unstage"
           >
             <IconMinus className="w-3.5 h-3.5" stroke={2} />
@@ -116,7 +116,7 @@ export default function FileStatusItem({
           <>
             <button
               onClick={handleStage}
-              className="p-0.5 rounded hover:bg-[#333] text-[#888] hover:text-green-400"
+              className="p-0.5 rounded hover:bg-bg-active text-text-muted hover:text-accent-green"
               title="Stage"
             >
               <IconPlus className="w-3.5 h-3.5" stroke={2} />
@@ -124,7 +124,7 @@ export default function FileStatusItem({
             {!isUntracked && (
               <button
                 onClick={handleDiscard}
-                className="p-0.5 rounded hover:bg-[#333] text-[#888] hover:text-red-400"
+                className="p-0.5 rounded hover:bg-bg-active text-text-muted hover:text-accent-red"
                 title="Discard changes"
               >
                 <IconX className="w-3.5 h-3.5" stroke={2} />
