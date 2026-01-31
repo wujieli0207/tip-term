@@ -1,4 +1,3 @@
-import { Check } from "lucide-react";
 import type { TerminalColorScheme } from "../../../types/theme";
 import { cn } from "@/lib/utils";
 
@@ -9,12 +8,9 @@ interface ThemeCardProps {
 }
 
 export default function ThemeCard({ scheme, selected, onSelect }: ThemeCardProps) {
-  // Extract key colors for the preview and dots
+  // Extract key colors for the preview
   const blue = scheme.colors[4]; // blue
-  const magenta = scheme.colors[5]; // magenta
   const green = scheme.colors[2]; // green
-  const yellow = scheme.colors[3]; // yellow
-  const red = scheme.colors[1]; // red
 
   return (
     <button

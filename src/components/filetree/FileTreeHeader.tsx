@@ -22,23 +22,21 @@ export default function FileTreeHeader({ sessionId }: FileTreeHeaderProps) {
   };
 
   return (
-    <div className="flex items-center justify-between px-3 py-2 border-b border-[#2a2a2a] bg-[#1a1a1a]">
-      <div className="flex items-center gap-2 min-w-0">
-        <IconFolderFilled className="w-4 h-4 text-yellow-500 flex-shrink-0" />
-        <span className="text-sm text-gray-200 truncate" title={cwd}>
+    <div className="flex items-center justify-between px-3 h-9 border-b border-[hsl(var(--border))] bg-[hsl(var(--bg-sidebar))]">
+      <div className="flex items-center gap-1.5 min-w-0">
+        <IconFolderFilled className="w-3.5 h-3.5 text-[hsl(var(--accent-orange))] flex-shrink-0" />
+        <span className="text-[13px] font-normal text-[hsl(var(--text-primary))] truncate" title={cwd}>
           {dirName}
         </span>
       </div>
 
-      <div className="flex items-center gap-1">
-        <button
-          onClick={handleRefresh}
-          className="p-1 hover:bg-[#2a2a2a] rounded text-gray-400 hover:text-gray-200 transition-colors"
-          title="Refresh"
-        >
-          <IconRefresh className="w-4 h-4" stroke={2} />
-        </button>
-      </div>
+      <button
+        onClick={handleRefresh}
+        className="p-1.5 hover:bg-[hsl(var(--bg-hover))] rounded text-[hsl(var(--text-muted))] hover:text-[hsl(var(--text-secondary))] transition-colors"
+        title="Refresh"
+      >
+        <IconRefresh className="w-3.5 h-3.5" stroke={2} />
+      </button>
     </div>
   );
 }

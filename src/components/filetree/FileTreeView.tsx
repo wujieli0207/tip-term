@@ -56,7 +56,7 @@ export default function FileTreeView({ sessionId }: FileTreeViewProps) {
   }
 
   return (
-    <div className="py-1">
+    <div className="p-2 flex flex-col gap-0.5">
       {rootEntries.map((entry) => (
         <FileTreeItem
           key={entry.path}
