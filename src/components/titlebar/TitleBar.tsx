@@ -35,7 +35,7 @@ export default function TitleBar() {
   }
 
   return (
-    <div className="flex items-center h-[52px] bg-[var(--bg-card)] border-b border-[var(--border)] select-none shrink-0">
+    <div className="flex items-center h-[32px] bg-[var(--bg-card)] border-b border-[var(--border)] select-none shrink-0">
       {/* macOS: Reserve space for native traffic lights */}
       {isMac && <div className="w-20 shrink-0" />}
 
@@ -53,15 +53,6 @@ export default function TitleBar() {
             stroke={2}
           />
         </button>
-
-        {/* Draggable title - uses native data-tauri-drag-region for dragging */}
-        <div
-          data-tauri-drag-region
-          onDoubleClick={handleDoubleClick}
-          className="text-sm font-semibold text-[var(--text-primary)] cursor-default px-2 rounded hover:bg-[var(--bg-hover)] transition-colors"
-        >
-          TipTerm
-        </div>
       </div>
 
       {/* Center: Draggable area */}
