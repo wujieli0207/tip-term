@@ -1,5 +1,5 @@
 import { useGitStore } from "../../stores/gitStore";
-import { IconLoader2, IconArrowRight, IconArrowUp } from "@/components/ui/icons";
+import { IconLoader2, IconCheck, IconRefresh } from "@/components/ui/icons";
 
 interface CommitActionsProps {
   sessionId: string;
@@ -13,7 +13,6 @@ export default function CommitActions({ sessionId }: CommitActionsProps) {
     branchStatus,
     sessionGitState,
     commit,
-    commitAndPush,
     push,
   } = useGitStore();
 
@@ -22,20 +21,14 @@ export default function CommitActions({ sessionId }: CommitActionsProps) {
   const aheadCount = branchStatus?.ahead || 0;
   const hasRemote = branchStatus?.remoteBranch !== null;
 
-  const canCommit = commitMessage.trim().length > 0 && stagedCount > 0 && !isCommitting && !isPushing;
-  const canPush = aheadCount > 0 && hasRemote && !isCommitting && !isPushing;
+  const isLoading = isCommitting || isPushing;
+  const canCommit = commitMessage.trim().length > 0 && stagedCount > 0 && !isLoading;
+  const canPush = aheadCount > 0 && hasRemote && !isLoading && stagedCount === 0;
 
   const handleCommit = async () => {
     const result = await commit(sessionId);
     if (!result.success && result.error) {
       console.error("Commit failed:", result.error);
-    }
-  };
-
-  const handleCommitAndPush = async () => {
-    const result = await commitAndPush(sessionId);
-    if (!result.success && result.error) {
-      console.error("Commit and push failed:", result.error);
     }
   };
 
@@ -46,66 +39,51 @@ export default function CommitActions({ sessionId }: CommitActionsProps) {
     }
   };
 
+  const handleClick = () => {
+    if (canCommit) {
+      handleCommit();
+    } else if (canPush) {
+      handlePush();
+    }
+  };
+
+  const isEnabled = canCommit || canPush;
+
   return (
-    <div className="flex gap-2 px-2 pb-2">
+    <div className="px-2 pb-2">
       <button
-        onClick={handleCommit}
-        disabled={!canCommit}
-        className={`flex-1 h-9 px-3 text-[13px] font-medium rounded-md transition-colors ${
-          canCommit
-            ? "bg-accent-primary hover:opacity-90 text-white"
+        onClick={handleClick}
+        disabled={!isEnabled}
+        className={`w-full h-9 px-3 text-[13px] font-medium rounded-md transition-colors flex items-center justify-center gap-2 ${
+          isEnabled
+            ? "bg-accent-green hover:opacity-90 text-white"
             : "bg-bg-active text-text-muted cursor-not-allowed"
         }`}
       >
         {isCommitting ? (
-          <span className="flex items-center justify-center gap-2">
+          <>
             <IconLoader2 className="w-4 h-4 animate-spin" stroke={2} />
             Committing...
-          </span>
+          </>
+        ) : isPushing ? (
+          <>
+            <IconLoader2 className="w-4 h-4 animate-spin" stroke={2} />
+            Syncing...
+          </>
+        ) : canCommit ? (
+          <>
+            <IconCheck className="w-4 h-4" stroke={2} />
+            Commit
+          </>
+        ) : canPush ? (
+          <>
+            <IconRefresh className="w-4 h-4" stroke={2} />
+            Sync Changes {aheadCount}↑
+          </>
         ) : (
-          `Commit (${stagedCount})`
+          "Commit"
         )}
       </button>
-
-      <button
-        onClick={handleCommitAndPush}
-        disabled={!canCommit}
-        className={`w-11 h-9 flex items-center justify-center rounded-md border transition-colors ${
-          canCommit
-            ? "bg-bg-active border-border hover:bg-bg-hover text-text-primary"
-            : "bg-bg-card border-border text-text-muted cursor-not-allowed"
-        }`}
-        title="Commit and Push"
-      >
-        <IconArrowRight className="w-4 h-4" stroke={2} />
-      </button>
-
-      {(canPush || isPushing) && (
-        <button
-          onClick={handlePush}
-          disabled={isPushing}
-          className={`h-9 px-3 text-[13px] font-medium rounded-md transition-colors flex items-center gap-1 ${
-            isPushing
-              ? "bg-accent-orange/50 text-white/70 cursor-wait"
-              : canPush
-                ? "bg-accent-orange hover:opacity-90 text-white"
-                : "bg-bg-card text-text-muted cursor-not-allowed"
-          }`}
-          title={isPushing ? "Pushing..." : `Push ${aheadCount} commit${aheadCount !== 1 ? "s" : ""} to remote`}
-        >
-          {isPushing ? (
-            <>
-              <IconLoader2 className="w-4 h-4 animate-spin" stroke={2} />
-              <span className="text-xs">Pushing</span>
-            </>
-          ) : (
-            <>
-              <IconArrowUp className="w-4 h-4" stroke={2} />
-              <span>{aheadCount}</span>
-            </>
-          )}
-        </button>
-      )}
     </div>
   );
 }
