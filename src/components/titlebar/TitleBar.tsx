@@ -18,14 +18,6 @@ export default function TitleBar() {
 
   const isMac = osPlatform === 'macos'
 
-  const handleDoubleClick = async () => {
-    try {
-      await invoke('maximize_window')
-    } catch (error) {
-      console.error('Failed to maximize window:', error)
-    }
-  }
-
   const handleSettingsClick = () => {
     if (activeSessionId === SETTINGS_SESSION_ID) {
       closeSettings()
@@ -35,7 +27,8 @@ export default function TitleBar() {
   }
 
   return (
-    <div className="flex items-center h-[32px] bg-[var(--bg-card)] border-b border-[var(--border)] select-none shrink-0">
+    <div className="flex items-center h-[32px] bg-[var(--bg-card)] border-b border-[var(--border)] select-none shrink-0"
+     data-tauri-drag-region>
       {/* macOS: Reserve space for native traffic lights */}
       {isMac && <div className="w-20 shrink-0" />}
 
