@@ -65,6 +65,7 @@ function App() {
     const unsubscribe = useSettingsStore.subscribe(
       (state) => {
         const currentAppearance = state.appearance;
+
         // Check if cursor settings changed
         if (
           currentAppearance.cursorStyle !== previousAppearance.cursorStyle ||
@@ -72,6 +73,15 @@ function App() {
         ) {
           updateTerminalCursorSettings();
         }
+
+        // Check if color scheme changed
+        if (
+          currentAppearance.darkColorScheme !== previousAppearance.darkColorScheme ||
+          currentAppearance.lightColorScheme !== previousAppearance.lightColorScheme
+        ) {
+          updateTerminalThemes();
+        }
+
         previousAppearance = currentAppearance;
       }
     );

@@ -9,6 +9,9 @@ export interface AppearanceSettings {
   themeMode: ThemeMode;
   darkColorScheme: string;
   lightColorScheme: string;
+  fontSize: number;
+  fontFamily: string;
+  lineHeight: number;
 }
 
 export interface HotkeySettings {
@@ -23,6 +26,9 @@ interface SettingsState {
   setThemeMode: (mode: ThemeMode) => void;
   setDarkColorScheme: (schemeId: string) => void;
   setLightColorScheme: (schemeId: string) => void;
+  setFontSize: (size: number) => void;
+  setFontFamily: (family: string) => void;
+  setLineHeight: (height: number) => void;
   setHotkeyBinding: (id: string, binding: HotkeyBinding | null) => void;
   clearHotkeyBinding: (id: string) => void;
   resetHotkey: (id: string) => void;
@@ -36,6 +42,9 @@ const defaultAppearance: AppearanceSettings = {
   themeMode: "dark",
   darkColorScheme: "tabby-dark",
   lightColorScheme: "tabby-light",
+  fontSize: 14,
+  fontFamily: "JetBrains Mono",
+  lineHeight: 1.4,
 };
 
 const defaultHotkeys: HotkeySettings = {
@@ -71,6 +80,21 @@ export const useSettingsStore = create<SettingsState>()(
       setLightColorScheme: (schemeId) =>
         set((state) => ({
           appearance: { ...state.appearance, lightColorScheme: schemeId },
+        })),
+
+      setFontSize: (size) =>
+        set((state) => ({
+          appearance: { ...state.appearance, fontSize: size },
+        })),
+
+      setFontFamily: (family) =>
+        set((state) => ({
+          appearance: { ...state.appearance, fontFamily: family },
+        })),
+
+      setLineHeight: (height) =>
+        set((state) => ({
+          appearance: { ...state.appearance, lineHeight: height },
         })),
 
       setHotkeyBinding: (id, binding) =>
@@ -122,6 +146,21 @@ export const useSettingsStore = create<SettingsState>()(
     }),
     {
       name: "tipterm-settings",
+      merge: (persistedState, currentState) => {
+        const persisted = persistedState as Partial<SettingsState> | undefined;
+        return {
+          ...currentState,
+          ...persisted,
+          appearance: {
+            ...currentState.appearance,
+            ...persisted?.appearance,
+          },
+          hotkeys: {
+            ...currentState.hotkeys,
+            ...persisted?.hotkeys,
+          },
+        };
+      },
     }
   )
 );

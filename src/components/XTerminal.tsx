@@ -26,6 +26,9 @@ export default function XTerminal({
 
   const cursorStyle = useSettingsStore((state) => state.appearance.cursorStyle)
   const cursorBlink = useSettingsStore((state) => state.appearance.cursorBlink)
+  const fontSize = useSettingsStore((state) => state.appearance.fontSize ?? 14)
+  const fontFamily = useSettingsStore((state) => state.appearance.fontFamily ?? "JetBrains Mono")
+  const lineHeight = useSettingsStore((state) => state.appearance.lineHeight ?? 1.4)
 
   const setContainerRef = useCallback((node: HTMLDivElement | null) => {
     setContainerEl(node)
@@ -185,6 +188,39 @@ export default function XTerminal({
       terminalRef.current.options.cursorBlink = shouldBlink
     }
   }, [cursorBlink, isRootActive, isFocusedPane])
+
+  // Apply font settings changes with debounce
+  useEffect(() => {
+    if (!terminalRef.current || !fitAddonRef.current || !containerEl) return
+
+    const terminal = terminalRef.current
+    const fitAddon = fitAddonRef.current
+
+    // Apply font settings
+    terminal.options.fontSize = fontSize
+    terminal.options.fontFamily = `"${fontFamily}", Monaco, monospace`
+    terminal.options.lineHeight = lineHeight
+
+    // Debounce the fit and resize to avoid rapid calls during slider dragging
+    const timeoutId = setTimeout(() => {
+      if (!terminal || !fitAddon) return
+
+      const rect = containerEl.getBoundingClientRect()
+      if (rect.width < 10 || rect.height < 10) return
+
+      try {
+        fitAddon.fit()
+        const { cols, rows } = terminal
+        if (cols > 0 && rows > 0) {
+          invoke('resize_terminal', { id: sessionId, cols, rows }).catch(console.error)
+        }
+      } catch (e) {
+        // Ignore fit errors
+      }
+    }, 150)
+
+    return () => clearTimeout(timeoutId)
+  }, [fontSize, fontFamily, lineHeight, sessionId, containerEl])
 
   const handleClick = () => {
     terminalRef.current?.focus()

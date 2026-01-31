@@ -27,12 +27,17 @@ export interface TerminalEntry {
 const registry = new Map<string, TerminalEntry>();
 
 function createEntry(sessionId: string): TerminalEntry {
+  const settings = useSettingsStore.getState().appearance;
+  const fontFamily = settings.fontFamily ?? "JetBrains Mono";
+  const fontSize = settings.fontSize ?? 14;
+  const lineHeight = settings.lineHeight ?? 1.4;
   const terminal = new Terminal({
-    fontFamily: '"JetBrains Mono", Monaco, monospace',
-    fontSize: 14,
+    fontFamily: `"${fontFamily}", Monaco, monospace`,
+    fontSize: fontSize,
+    lineHeight: lineHeight,
     theme: getTerminalTheme(),
-    cursorBlink: useSettingsStore.getState().appearance.cursorBlink,
-    cursorStyle: useSettingsStore.getState().appearance.cursorStyle,
+    cursorBlink: settings.cursorBlink,
+    cursorStyle: settings.cursorStyle,
     allowProposedApi: true,
   });
 
@@ -195,6 +200,29 @@ export function updateTerminalCursorSettings(): void {
     if (!entry.isDisposed) {
       entry.terminal.options.cursorBlink = settings.cursorBlink;
       entry.terminal.options.cursorStyle = settings.cursorStyle;
+    }
+  }
+}
+
+/**
+ * Update font settings for all active terminals
+ */
+export function updateTerminalFontSettings(): void {
+  const settings = useSettingsStore.getState().appearance;
+  const fontFamily = settings.fontFamily ?? "JetBrains Mono";
+  const fontSize = settings.fontSize ?? 14;
+  const lineHeight = settings.lineHeight ?? 1.4;
+  for (const entry of registry.values()) {
+    if (!entry.isDisposed) {
+      entry.terminal.options.fontSize = fontSize;
+      entry.terminal.options.fontFamily = `"${fontFamily}", Monaco, monospace`;
+      entry.terminal.options.lineHeight = lineHeight;
+      // Trigger a fit to recalculate dimensions with new font size
+      try {
+        entry.fitAddon.fit();
+      } catch (e) {
+        // Ignore fit errors
+      }
     }
   }
 }
