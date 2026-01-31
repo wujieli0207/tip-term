@@ -36,7 +36,12 @@ impl TerminalSession {
             pixel_height: 0,
         };
 
-        let cmd = CommandBuilder::new(shell);
+        let mut cmd = CommandBuilder::new(shell);
+        // Set TERM environment variable to ensure proper terminal behavior
+        // This is critical for packaged apps which don't inherit terminal environment
+        cmd.env("TERM", "xterm-256color");
+        cmd.env("COLORTERM", "truecolor");
+        cmd.env("LANG", "en_US.UTF-8");
         let pty_pair = pty_system
             .openpty(pty_size)
             .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
