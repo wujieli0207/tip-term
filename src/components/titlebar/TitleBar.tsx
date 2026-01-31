@@ -35,21 +35,21 @@ export default function TitleBar() {
   }
 
   return (
-    <div className="flex items-center h-8 bg-[var(--bg-card)] border-b border-[var(--border)] select-none shrink-0">
+    <div className="flex items-center h-[52px] bg-[var(--bg-card)] border-b border-[var(--border)] select-none shrink-0">
       {/* macOS: Reserve space for native traffic lights */}
-      {isMac && <div className="w-[88px] shrink-0" />}
+      {isMac && <div className="w-20 shrink-0" />}
 
       {/* Left side: Toggle button and draggable title */}
-      <div data-tauri-drag-region className="flex items-center gap-2">
+      <div data-tauri-drag-region className="flex items-center gap-3 pl-3">
         {/* Toggle button - visible on all platforms */}
         <button
           onClick={toggleSidebar}
           data-tauri-drag-region="false"
-          className="p-1 rounded hover:bg-[var(--bg-hover)] transition-colors"
+          className="p-2 rounded-md hover:bg-[var(--bg-hover)] transition-colors"
           title="Toggle Sidebar (Cmd+\)"
         >
           <IconMenu2
-            className="w-4 h-4 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+            className="w-5 h-5 text-[var(--text-secondary)]"
             stroke={2}
           />
         </button>
@@ -58,7 +58,7 @@ export default function TitleBar() {
         <div
           data-tauri-drag-region
           onDoubleClick={handleDoubleClick}
-          className="text-sm font-medium text-[var(--text-secondary)] cursor-default px-2 py-0.5 rounded hover:bg-[var(--bg-hover)] transition-colors"
+          className="text-sm font-semibold text-[var(--text-primary)] cursor-default px-2 rounded hover:bg-[var(--bg-hover)] transition-colors"
         >
           TipTerm
         </div>
@@ -68,31 +68,33 @@ export default function TitleBar() {
       <div data-tauri-drag-region className="flex-1" />
 
       {/* Right side: Search and Settings buttons */}
-      <button
-        onClick={openQuickOpen}
-        data-tauri-drag-region="false"
-        className="p-1.5 rounded hover:bg-[var(--bg-hover)] transition-colors"
-        title="Quick Open (Cmd+P)"
-      >
-        <IconSearch
-          className="w-4 h-4 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-          stroke={2}
-        />
-      </button>
-      <button
-        onClick={handleSettingsClick}
-        data-tauri-drag-region="false"
-        className="p-1.5 rounded hover:bg-[var(--bg-hover)] transition-colors"
-        title="Settings (Cmd+,)"
-      >
-        <IconSettings
-          className="w-4 h-4 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-          stroke={2}
-        />
-      </button>
+      <div className="flex items-center gap-2 pr-4">
+        <button
+          onClick={openQuickOpen}
+          data-tauri-drag-region="false"
+          className="p-2 rounded-md hover:bg-[var(--bg-hover)] transition-colors"
+          title="Quick Open (Cmd+P)"
+        >
+          <IconSearch
+            className="w-5 h-5 text-[var(--text-secondary)]"
+            stroke={2}
+          />
+        </button>
+        <button
+          onClick={handleSettingsClick}
+          data-tauri-drag-region="false"
+          className="p-2 rounded-md hover:bg-[var(--bg-hover)] transition-colors"
+          title="Settings (Cmd+,)"
+        >
+          <IconSettings
+            className="w-5 h-5 text-[var(--text-secondary)]"
+            stroke={2}
+          />
+        </button>
+      </div>
 
       {/* Windows/Linux: Reserve space for native controls */}
-      {!isMac && <div className="w-[88px] shrink-0" />}
+      {!isMac && <div className="w-20 shrink-0" />}
     </div>
   )
 }

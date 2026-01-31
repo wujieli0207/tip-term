@@ -32,6 +32,7 @@ export {
   IconFolderMinus,
   IconBellRinging,
   IconBellCheck,
+  IconUser,
   // File type icons
   IconFileTypeTs,
   IconFileTypeTsx,

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useCallback, useMemo, Fragment } from "react";
+import { Search, File, Keyboard } from "lucide-react";
 import { useQuickOpenStore } from "../../stores/quickOpenStore";
 import type { RecentItem } from "../../stores/quickOpenStore";
 import { SearchFileEntry } from "../../types/file";
@@ -364,155 +365,163 @@ export default function QuickOpenModal() {
 
   return (
     <div
-      className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center pt-[15vh]"
+      className="fixed inset-0 bg-black/60 z-50 flex items-start justify-center pt-[15vh]"
       onClick={handleOverlayClick}
     >
-      <div className="w-full max-w-xl bg-[#1a1a1a] rounded-lg shadow-2xl border border-[#333] overflow-hidden">
-        {/* Search Input */}
-        <div className="p-3 border-b border-[#333]">
-          <input
-            ref={inputRef}
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={rootPath ? "Search files or hotkeys..." : "No active session"}
-            disabled={!rootPath}
-            className="w-full bg-[#252525] text-white text-sm px-3 py-2 rounded border border-[#444] focus:border-blue-500 focus:outline-none placeholder-gray-500 disabled:opacity-50"
-          />
+      <div className="flex flex-col items-start font-sans bg-bg-page/95 backdrop-blur-sm rounded-2xl p-4 shadow-2xl">
+        {/* Title */}
+        <div className="text-text-primary text-sm font-medium mb-2 opacity-60 px-1">
+          Quick Launcher
         </div>
 
-        {/* Filter Tabs */}
-        <div className="flex border-b border-[#333]">
-          {FILTER_TABS.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setFilterType(tab.id)}
-              className={`flex-1 px-3 py-2 text-sm font-medium transition-colors ${
-                filterType === tab.id
-                  ? "text-white bg-[#2a2a2a] border-b-2 border-blue-500"
-                  : "text-gray-400 hover:text-white hover:bg-[#222]"
-              }`}
-            >
-              {tab.label}
-              {((tab.id === "all" && fileCount + hotkeyCount > 0) ||
-                (tab.id === "files" && fileCount > 0) ||
-                (tab.id === "hotkeys" && hotkeyCount > 0)) && (
-                <span className="ml-1 text-xs text-gray-500">
-                  {tab.id === "all"
-                    ? fileCount + hotkeyCount
-                    : tab.id === "files"
-                    ? fileCount
-                    : hotkeyCount}
-                </span>
-              )}
-            </button>
-          ))}
-        </div>
+        {/* Modal */}
+        <div className="w-[560px] bg-sidebar rounded-xl shadow-lg border border-border overflow-hidden">
+          {/* Search Header */}
+          <div className="h-[52px] px-4 border-b border-border flex items-center gap-3">
+            <Search className="w-[18px] h-[18px] text-text-secondary flex-shrink-0" />
+            <input
+              ref={inputRef}
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Search projects..."
+              className="flex-1 bg-transparent text-primary text-[15px] font-sans placeholder:text-text-secondary placeholder:opacity-50 focus:outline-none focus:ring-0 border-0 p-0"
+            />
+          </div>
 
-        {/* Results List */}
-        <div ref={resultsListRef} className="max-h-80 overflow-y-auto">
-          {isLoading ? (
-            <div className="px-4 py-8 text-center text-gray-500 text-sm">
-              Searching...
-            </div>
-          ) : !hasQuery && recentCount > 0 ? (
-            <RecentSearches recentSearches={recentSearches} onSelect={handleSelectRecent} />
-          ) : hasQuery && (fileCount > 0 || hotkeyCount > 0) ? (
-            <>
-              {/* File Results */}
-              {fileCount > 0 && (
-                <Fragment>
-                  {prefixResults.length > 0 && (
-                    <Fragment>
-                      <SectionHeader title="files" />
-                      {prefixResults.map((file, index) => (
-                        <ResultItem
-                          key={file.path}
-                          file={file}
-                          isSelected={index === selectedIndex}
-                          query={query}
-                          onClick={() => handleSelectFile(file)}
-                          onMouseEnter={() =>
-                            useQuickOpenStore.setState({ selectedIndex: index, hotkeySelectedIndex: 0 })
-                          }
-                        />
-                      ))}
-                    </Fragment>
-                  )}
-                  {containsResults.length > 0 && (
-                    <Fragment>
-                      <SectionHeader title="other" />
-                      {containsResults.map((file, index) => {
-                        const globalIndex = prefixResults.length + index;
-                        return (
+          {/* Filter Tabs */}
+          <div className="h-[44px] px-4 border-b border-border flex items-center gap-2">
+            {FILTER_TABS.map((tab) => {
+              const isActive = filterType === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setFilterType(tab.id)}
+                  className={`
+                    rounded-full py-1.5 px-3.5 text-[13px] font-sans transition-colors
+                    flex items-center gap-1.5 border
+                    ${isActive
+                      ? "border-accent-primary text-accent-primary font-medium"
+                      : "border-border text-text-secondary hover:bg-hover"
+                    }
+                  `}
+                >
+                  {tab.id === "files" && <File className="w-3.5 h-3.5" />}
+                  {tab.id === "hotkeys" && <Keyboard className="w-3.5 h-3.5" />}
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Results List */}
+          <div ref={resultsListRef} className="p-2 max-h-80 overflow-y-auto">
+            {isLoading ? (
+              <div className="px-4 py-8 text-center text-text-secondary text-sm">
+                Searching...
+              </div>
+            ) : !hasQuery && recentCount > 0 ? (
+              <RecentSearches recentSearches={recentSearches} onSelect={handleSelectRecent} />
+            ) : hasQuery && (fileCount > 0 || hotkeyCount > 0) ? (
+              <div className="space-y-0.5">
+                {/* File Results */}
+                {fileCount > 0 && (
+                  <Fragment>
+                    {prefixResults.length > 0 && (
+                      <Fragment>
+                        <SectionHeader title="files" />
+                        {prefixResults.map((file, index) => (
                           <ResultItem
                             key={file.path}
                             file={file}
-                            isSelected={globalIndex === selectedIndex}
+                            isSelected={index === selectedIndex}
                             query={query}
                             onClick={() => handleSelectFile(file)}
                             onMouseEnter={() =>
-                              useQuickOpenStore.setState({
-                                selectedIndex: globalIndex,
-                                hotkeySelectedIndex: 0,
-                              })
+                              useQuickOpenStore.setState({ selectedIndex: index, hotkeySelectedIndex: 0 })
                             }
                           />
-                        );
-                      })}
-                    </Fragment>
-                  )}
-                </Fragment>
-              )}
+                        ))}
+                      </Fragment>
+                    )}
+                    {containsResults.length > 0 && (
+                      <Fragment>
+                        <SectionHeader title="other" />
+                        {containsResults.map((file, index) => {
+                          const globalIndex = prefixResults.length + index;
+                          return (
+                            <ResultItem
+                              key={file.path}
+                              file={file}
+                              isSelected={globalIndex === selectedIndex}
+                              query={query}
+                              onClick={() => handleSelectFile(file)}
+                              onMouseEnter={() =>
+                                useQuickOpenStore.setState({
+                                  selectedIndex: globalIndex,
+                                  hotkeySelectedIndex: 0,
+                                })
+                              }
+                            />
+                          );
+                        })}
+                      </Fragment>
+                    )}
+                  </Fragment>
+                )}
 
-              {/* Hotkey Results */}
-              {hotkeyCount > 0 && (
-                <Fragment>
-                  <SectionHeader title="hotkeys" />
-                  {hotkeyResults.map((hotkey, index) => (
-                    <HotkeyResultItem
-                      key={hotkey.id}
-                      hotkey={hotkey}
-                      isSelected={index === hotkeySelectedIndex}
-                      query={query}
-                      onClick={() => handleExecuteHotkey(hotkey)}
-                      onMouseEnter={() =>
-                        useQuickOpenStore.setState({
-                          hotkeySelectedIndex: index,
-                          selectedIndex: 0,
-                        })
-                      }
-                    />
-                  ))}
-                </Fragment>
-              )}
-            </>
-          ) : hasQuery ? (
-            <div className="px-4 py-8 text-center text-gray-500 text-sm">
-              No results found
-            </div>
-          ) : recentCount === 0 ? (
-            <div className="px-4 py-8 text-center text-gray-500 text-sm">
-              Type to search files or hotkeys
-            </div>
-          ) : null}
-        </div>
+                {/* Hotkey Results */}
+                {hotkeyCount > 0 && (
+                  <Fragment>
+                    <SectionHeader title="hotkeys" />
+                    {hotkeyResults.map((hotkey, index) => (
+                      <HotkeyResultItem
+                        key={hotkey.id}
+                        hotkey={hotkey}
+                        isSelected={index === hotkeySelectedIndex}
+                        query={query}
+                        onClick={() => handleExecuteHotkey(hotkey)}
+                        onMouseEnter={() =>
+                          useQuickOpenStore.setState({
+                            hotkeySelectedIndex: index,
+                            selectedIndex: 0,
+                          })
+                        }
+                      />
+                    ))}
+                  </Fragment>
+                )}
+              </div>
+            ) : hasQuery ? (
+              <div className="px-4 py-8 text-center text-text-secondary text-sm">
+                No results found
+              </div>
+            ) : recentCount === 0 ? (
+              <div className="px-4 py-8 text-center text-text-secondary text-sm">
+                Type to search files or hotkeys
+              </div>
+            ) : null}
+          </div>
 
-        {/* Footer hint */}
-        <div className="px-3 py-2 border-t border-[#333] text-xs text-gray-500 flex gap-4">
-          <span>
-            <kbd className="px-1 py-0.5 bg-[#333] rounded text-gray-400">↑↓</kbd>{" "}
-            Navigate
-          </span>
-          <span>
-            <kbd className="px-1 py-0.5 bg-[#333] rounded text-gray-400">Enter</kbd>{" "}
-            Open
-          </span>
-          <span>
-            <kbd className="px-1 py-0.5 bg-[#333] rounded text-gray-400">Esc</kbd>{" "}
-            Close
-          </span>
+          {/* Footer */}
+          <div className="h-[44px] px-4 border-t border-border flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-1.5">
+                <kbd className="w-5 h-5 rounded flex items-center justify-center bg-active border border-border text-text-secondary text-[11px]">↑</kbd>
+                <kbd className="w-5 h-5 rounded flex items-center justify-center bg-active border border-border text-text-secondary text-[11px]">↓</kbd>
+                <span className="text-[11px] text-text-secondary font-sans">Navigate</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <kbd className="w-7 h-5 rounded flex items-center justify-center bg-active border border-border text-text-secondary text-[11px]">↵</kbd>
+                <span className="text-[11px] text-text-secondary font-sans">Open</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <kbd className="h-5 px-1.5 rounded flex items-center justify-center bg-active border border-border text-text-secondary text-[10px] font-mono">esc</kbd>
+              <span className="text-[11px] text-text-secondary font-sans">Close</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>

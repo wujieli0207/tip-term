@@ -1,3 +1,4 @@
+import { Keyboard } from "lucide-react";
 import { HotkeyDefinition } from "../../types/hotkey";
 import { formatBinding } from "../../utils/hotkeyUtils";
 
@@ -19,22 +20,37 @@ export function HotkeyResultItem({
 
   return (
     <div
-      className={`flex items-center gap-3 px-3 py-2 cursor-pointer ${
-        isSelected ? "bg-[#2a2a2a]" : "hover:bg-[#222]"
-      }`}
+      className={`
+        h-[52px] rounded-lg px-3 cursor-pointer flex items-center gap-3
+        ${isSelected ? "bg-accent-primary" : ""}
+      `}
       onClick={onClick}
       onMouseEnter={onMouseEnter}
     >
-      <kbd className="px-2 py-0.5 bg-[#333] rounded text-xs text-gray-300 font-mono flex-shrink-0 min-w-[3rem] text-center">
-        {bindingStr}
-      </kbd>
-      <div className="flex-1 min-w-0">
-        <div className="text-sm text-white truncate">{hotkey.label}</div>
-        <div className="text-xs text-gray-500 truncate">{hotkey.description}</div>
+      {/* Icon Container */}
+      <div
+        className={`
+          w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0
+          ${isSelected ? "bg-white/20" : "bg-hover"}
+        `}
+      >
+        <Keyboard className={`w-[18px] h-[18px] ${isSelected ? "text-white" : "text-accent-cyan"}`} />
       </div>
-      <div className="text-xs text-gray-500 px-2 py-0.5 bg-[#222] rounded flex-shrink-0">
-        {hotkey.category}
+
+      {/* Text Info */}
+      <div className="flex-1 min-w-0 flex flex-col gap-0.5">
+        <div className={`text-[14px] font-sans font-medium truncate ${isSelected ? "text-white" : "text-primary"}`}>
+          {hotkey.label}
+        </div>
+        <div className={`text-xs font-mono truncate ${isSelected ? "text-white/60" : "text-text-secondary"}`}>
+          {bindingStr}
+        </div>
       </div>
+
+      {/* Enter Symbol */}
+      {isSelected && (
+        <div className="text-white/50 text-sm flex-shrink-0">↵</div>
+      )}
     </div>
   );
 }
