@@ -1,8 +1,10 @@
 import { Terminal, type IDisposable } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import { WebglAddon } from "@xterm/addon-webgl";
+import { WebLinksAddon } from "@xterm/addon-web-links";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import { open } from "@tauri-apps/plugin-shell";
 import { useSessionStore } from "../stores/sessionStore";
 import { useSettingsStore } from "../stores/settingsStore";
 import { sendNotification } from "./notifications";
@@ -14,6 +16,7 @@ export interface TerminalEntry {
   terminal: Terminal;
   fitAddon: FitAddon;
   webglAddon?: WebglAddon;
+  webLinksAddon?: WebLinksAddon;
   isOpened: boolean;
   container?: HTMLElement;
   dataDisposable?: IDisposable;
@@ -44,6 +47,14 @@ function createEntry(sessionId: string): TerminalEntry {
   const fitAddon = new FitAddon();
   terminal.loadAddon(fitAddon);
 
+  // Add web links addon for clickable URLs
+  const webLinksAddon = new WebLinksAddon((_event, uri) => {
+    open(uri).catch((err) => {
+      console.error("[terminalRegistry] Failed to open URL:", err);
+    });
+  });
+  terminal.loadAddon(webLinksAddon);
+
   let webglAddon: WebglAddon | undefined;
   try {
     webglAddon = new WebglAddon();
@@ -61,6 +72,7 @@ function createEntry(sessionId: string): TerminalEntry {
     terminal,
     fitAddon,
     webglAddon,
+    webLinksAddon,
     isOpened: false,
     lastActivityNotificationAt: 0,
     isDisposed: false,
@@ -162,6 +174,7 @@ export function disposeTerminal(sessionId: string): void {
   entry.dataDisposable?.dispose();
   entry.titleDisposable?.dispose();
   entry.webglAddon?.dispose();
+  entry.webLinksAddon?.dispose();
   if (entry.unlisten) {
     entry.unlisten();
   } else if (entry.unlistenPromise) {
