@@ -21,9 +21,9 @@ export default function CommitActions({ sessionId }: CommitActionsProps) {
   const aheadCount = branchStatus?.ahead || 0;
   const hasRemote = branchStatus?.remoteBranch !== null;
 
-  const isLoading = isCommitting || isPushing;
-  const canCommit = commitMessage.trim().length > 0 && stagedCount > 0 && !isLoading;
-  const canPush = aheadCount > 0 && hasRemote && !isLoading && stagedCount === 0;
+  // Push doesn't block commit - they can run in parallel
+  const canCommit = commitMessage.trim().length > 0 && stagedCount > 0 && !isCommitting;
+  const canPush = aheadCount > 0 && hasRemote && !isPushing && stagedCount === 0;
 
   const handleCommit = async () => {
     const result = await commit(sessionId);
@@ -50,7 +50,7 @@ export default function CommitActions({ sessionId }: CommitActionsProps) {
   const isEnabled = canCommit || canPush;
 
   return (
-    <div className="px-2 pb-2">
+    <div className="px-2 pb-2 flex flex-col gap-2">
       <button
         onClick={handleClick}
         disabled={!isEnabled}
@@ -64,11 +64,6 @@ export default function CommitActions({ sessionId }: CommitActionsProps) {
           <>
             <IconLoader2 className="w-4 h-4 animate-spin" stroke={2} />
             Committing...
-          </>
-        ) : isPushing ? (
-          <>
-            <IconLoader2 className="w-4 h-4 animate-spin" stroke={2} />
-            Syncing...
           </>
         ) : canCommit ? (
           <>
@@ -84,6 +79,14 @@ export default function CommitActions({ sessionId }: CommitActionsProps) {
           "Commit"
         )}
       </button>
+
+      {/* Background push indicator - non-blocking */}
+      {isPushing && (
+        <div className="flex items-center justify-center gap-2 text-[12px] text-text-muted">
+          <IconLoader2 className="w-3 h-3 animate-spin" stroke={2} />
+          <span>Syncing in background...</span>
+        </div>
+      )}
     </div>
   );
 }
