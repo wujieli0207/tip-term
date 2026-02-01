@@ -31,6 +31,7 @@ interface GitStore {
   // Diff viewer state
   selectedFilePath: string | null;
   selectedFileStaged: boolean;
+  selectedFileStatus: FileStatus["status"] | null;
   fileDiff: FileDiff | null;
   isDiffLoading: boolean;
 
@@ -129,6 +130,7 @@ export const useGitStore = create<GitStore>((set, get) => ({
   untrackedExpanded: true,
   selectedFilePath: null,
   selectedFileStaged: false,
+  selectedFileStatus: null,
   fileDiff: null,
   isDiffLoading: false,
   commitMessage: "",
@@ -154,7 +156,7 @@ export const useGitStore = create<GitStore>((set, get) => ({
   },
 
   setGitDiffPanelWidth: (width: number) => {
-    set({ gitDiffPanelWidth: Math.max(300, Math.min(600, width)) });
+    set({ gitDiffPanelWidth: Math.max(300, Math.min(1400, width)) });
   },
 
   toggleStaged: () => set((state) => ({ stagedExpanded: !state.stagedExpanded })),
@@ -285,6 +287,7 @@ export const useGitStore = create<GitStore>((set, get) => ({
     set({
       selectedFilePath: filePath,
       selectedFileStaged: staged,
+      selectedFileStatus: fileStatus,
       isDiffLoading: true,
       gitDiffPanelVisible: true, // Auto-show diff panel
     });
@@ -304,7 +307,7 @@ export const useGitStore = create<GitStore>((set, get) => ({
   },
 
   clearSelectedFile: () => {
-    set({ selectedFilePath: null, fileDiff: null, gitDiffPanelVisible: false });
+    set({ selectedFilePath: null, selectedFileStatus: null, fileDiff: null, gitDiffPanelVisible: false });
   },
 
   setCommitMessage: (message: string) => {

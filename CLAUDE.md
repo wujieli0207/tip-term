@@ -32,6 +32,9 @@ pnpm tauri build  # Create distributable app
 - **File Tree**: Directory browser in `components/filetree/`
   - Auto-expands parent directories and highlights opened files
 - **Git**: Git status, diff viewer, commit actions, and commit diff viewer in `components/git/`
+  - Diff viewing powered by `@pierre/diffs` with Shiki syntax highlighting
+  - Unified/Split view toggle, theme-aware rendering
+  - Adapter utilities in `utils/diffAdapter.ts` for FileDiff → unified patch conversion
 - **Quick Open**: File and hotkey search in `components/quickopen/` (QuickOpenModal, ResultItem, HotkeyResultItem, RecentSearches)
   - Filter tabs: All/Files/Hotkeys
   - Recent searches with file path or hotkey binding display
@@ -104,3 +107,4 @@ pnpm tauri build  # Create distributable app
 - `@xterm/addon-webgl`: GPU-accelerated rendering
 - `zustand`: State management
 - `react-resizable-panels`: Resizable panel dividers for split panes
+- `@pierre/diffs`: Diff viewer with Shiki syntax highlighting (unified/split modes)

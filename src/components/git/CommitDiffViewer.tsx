@@ -1,16 +1,11 @@
 import { useGitStore } from "../../stores/gitStore";
 import { useSessionStore } from "../../stores/sessionStore";
 import { IconExternalLink } from "@/components/ui/icons";
+import type { FileDiffWithStats } from "../../types/git";
+import PierreDiffViewer from "./PierreDiffViewer";
 
 interface DiffFileProps {
-  fileDiff: {
-    path: string;
-    oldPath?: string;
-    status: string;
-    additions: number;
-    deletions: number;
-    hunks: Array<{ header: string; lines: Array<{ origin: string; content: string; oldLineno?: number; newLineno?: number }> }>;
-  };
+  fileDiff: FileDiffWithStats;
   isExpanded: boolean;
   onToggle: () => void;
   onOpenFile?: (path: string) => void;
@@ -77,61 +72,16 @@ function DiffFile({ fileDiff, isExpanded, onToggle, onOpenFile }: DiffFileProps)
         </div>
       </div>
 
-      {/* Diff hunks */}
+      {/* Diff content using PierreDiffViewer */}
       {isExpanded && fileDiff.hunks.length > 0 && (
         <div className="border-t border-[#2a2a2a]">
-          {fileDiff.hunks.map((hunk, hunkIndex) => (
-            <div key={hunkIndex} className="mb-0">
-              {/* Hunk header */}
-              <div className="text-[#888] bg-[#1a1a2e] px-3 py-1 text-xs">
-                {hunk.header.trim()}
-              </div>
-
-              {/* Lines */}
-              <div className="font-mono text-xs">
-                {hunk.lines.map((line, lineIndex) => {
-                  const bgColor =
-                    line.origin === "+"
-                      ? "bg-green-900/30"
-                      : line.origin === "-"
-                      ? "bg-red-900/30"
-                      : "bg-transparent";
-
-                  const textColor =
-                    line.origin === "+"
-                      ? "text-green-400"
-                      : line.origin === "-"
-                      ? "text-red-400"
-                      : "text-[#e0e0e0]";
-
-                  return (
-                    <div
-                      key={lineIndex}
-                      className={`flex ${bgColor}`}
-                    >
-                      {/* Line numbers */}
-                      <div className="flex-shrink-0 w-10 text-right text-[#666] px-1 select-none border-r border-[#2a2a2a]">
-                        {line.oldLineno ?? ""}
-                      </div>
-                      <div className="flex-shrink-0 w-10 text-right text-[#666] px-1 select-none border-r border-[#2a2a2a]">
-                        {line.newLineno ?? ""}
-                      </div>
-
-                      {/* Origin */}
-                      <div className={`flex-shrink-0 w-4 text-center ${textColor} select-none`}>
-                        {line.origin !== " " ? line.origin : ""}
-                      </div>
-
-                      {/* Content */}
-                      <pre className={`flex-1 px-2 ${textColor} whitespace-pre-wrap break-all`}>
-                        {line.content}
-                      </pre>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
+          <PierreDiffViewer
+            fileDiff={fileDiff}
+            showViewToggle={false}
+            defaultViewMode="stacked"
+            fileStatus={fileDiff.status}
+            oldPath={fileDiff.oldPath}
+          />
         </div>
       )}
 
