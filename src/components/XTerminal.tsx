@@ -3,9 +3,11 @@ import { Terminal } from '@xterm/xterm'
 import '@xterm/xterm/css/xterm.css'
 import { useSidebarStore } from '../stores/sidebarStore'
 import { useSettingsStore } from '../stores/settingsStore'
+import { useTerminalSuggestStore } from '../stores/terminalSuggestStore'
 import { invoke } from '@tauri-apps/api/core'
 import { attachTerminal, detachTerminal } from '../utils/terminalRegistry'
 import type { TerminalEntry } from '../utils/terminalRegistry'
+import CommandSuggest from './terminal/command-suggest'
 
 interface XTerminalProps {
   sessionId: string
@@ -19,6 +21,8 @@ export default function XTerminal({
   isRootActive = true,
 }: XTerminalProps) {
   const [containerEl, setContainerEl] = useState<HTMLDivElement | null>(null)
+  const [wrapperEl, setWrapperEl] = useState<HTMLDivElement | null>(null)
+  const [terminalInstance, setTerminalInstance] = useState<Terminal | null>(null)
   const terminalRef = useRef<Terminal | null>(null)
   const fitAddonRef = useRef<TerminalEntry['fitAddon'] | null>(null)
 
@@ -30,8 +34,18 @@ export default function XTerminal({
   const fontFamily = useSettingsStore((state) => state.appearance.fontFamily ?? "JetBrains Mono")
   const lineHeight = useSettingsStore((state) => state.appearance.lineHeight ?? 1.4)
 
+  const suggestEntry = useTerminalSuggestStore((state) => state.entries.get(sessionId))
+  const suggestInput = suggestEntry?.input ?? ""
+  const suggestList = suggestEntry?.suggestions ?? []
+  const suggestPopupOpen = suggestEntry?.popupOpen ?? false
+  const suggestSelectedIndex = suggestEntry?.selectedIndex ?? 0
+
   const setContainerRef = useCallback((node: HTMLDivElement | null) => {
     setContainerEl(node)
+  }, [])
+
+  const setWrapperRef = useCallback((node: HTMLDivElement | null) => {
+    setWrapperEl(node)
   }, [])
 
   // Initialize terminal
@@ -42,6 +56,7 @@ export default function XTerminal({
     const entry = attachTerminal(sessionId, container)
     terminalRef.current = entry.terminal
     fitAddonRef.current = entry.fitAddon
+    setTerminalInstance(entry.terminal)
     if (isRootActive && isFocusedPane) {
       requestAnimationFrame(() => {
         entry.terminal.focus()
@@ -94,6 +109,7 @@ export default function XTerminal({
       if (rafId2 !== null) cancelAnimationFrame(rafId2)
       if (timeoutId !== null) clearTimeout(timeoutId)
       detachTerminal(sessionId, container)
+      setTerminalInstance(null)
     }
   }, [sessionId, containerEl])
 
@@ -227,10 +243,21 @@ export default function XTerminal({
   }
 
   return (
-    <div
-      ref={setContainerRef}
-      className="w-full h-full"
-      onClick={handleClick}
-    />
+    <div ref={setWrapperRef} className="relative w-full h-full">
+      <div
+        ref={setContainerRef}
+        className="w-full h-full"
+        onClick={handleClick}
+      />
+      <CommandSuggest
+        terminal={terminalInstance}
+        container={containerEl}
+        wrapper={wrapperEl}
+        input={suggestInput}
+        suggestions={suggestList}
+        popupOpen={suggestPopupOpen}
+        selectedIndex={suggestSelectedIndex}
+      />
+    </div>
   )
 }

@@ -160,6 +160,16 @@ async fn get_session_info(
     Ok(info)
 }
 
+/// Get shell history suggestions (zsh)
+#[tauri::command]
+async fn get_shell_history(
+    prefix: Option<String>,
+    limit: Option<usize>,
+) -> Result<Vec<String>, String> {
+    let prefix = prefix.as_deref().unwrap_or("");
+    tip_term::terminal::history::get_shell_history(Some(prefix), limit)
+}
+
 /// Get the current platform (darwin, linux, windows)
 #[tauri::command]
 fn get_platform() -> String {
@@ -221,6 +231,7 @@ fn main() {
             get_platform,
             maximize_window,
             start_dragging,
+            get_shell_history,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

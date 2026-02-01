@@ -7,10 +7,13 @@ import { listen } from "@tauri-apps/api/event";
 import { open } from "@tauri-apps/plugin-shell";
 import { useSessionStore } from "../stores/sessionStore";
 import { useSettingsStore } from "../stores/settingsStore";
+import { useTerminalSuggestStore } from "../stores/terminalSuggestStore";
 import { sendNotification } from "./notifications";
 import { getTerminalTheme } from "../services/themeService";
 
 const ACTIVITY_NOTIFICATION_COOLDOWN = 5000;
+const SUGGEST_DEBOUNCE_MS = 150;
+const SUGGEST_LIMIT = 40;
 
 export interface TerminalEntry {
   terminal: Terminal;
@@ -25,6 +28,9 @@ export interface TerminalEntry {
   unlistenPromise?: Promise<() => void>;
   lastActivityNotificationAt: number;
   isDisposed: boolean;
+  inputBuffer: string;
+  suggestLastPrefix: string;
+  suggestFetchTimeout?: number | null;
 }
 
 const registry = new Map<string, TerminalEntry>();
@@ -76,10 +82,152 @@ function createEntry(sessionId: string): TerminalEntry {
     isOpened: false,
     lastActivityNotificationAt: 0,
     isDisposed: false,
+    inputBuffer: "",
+    suggestLastPrefix: "",
+    suggestFetchTimeout: null,
   };
+
+  useTerminalSuggestStore.getState().ensureSession(sessionId);
+
+  const clearSuggestState = () => {
+    const suggestStore = useTerminalSuggestStore.getState();
+    suggestStore.setSuggestions(sessionId, []);
+    suggestStore.closePopup(sessionId);
+    entry.suggestLastPrefix = "";
+  };
+
+  const scheduleSuggestFetch = (prefix: string, forcePopup: boolean) => {
+    const suggestStore = useTerminalSuggestStore.getState();
+    if (forcePopup) {
+      suggestStore.openPopup(sessionId);
+    }
+
+    if (entry.suggestFetchTimeout) {
+      clearTimeout(entry.suggestFetchTimeout);
+    }
+
+    entry.suggestFetchTimeout = setTimeout(() => {
+      entry.suggestFetchTimeout = null;
+      if (!forcePopup && prefix === entry.suggestLastPrefix) return;
+      entry.suggestLastPrefix = prefix;
+
+      invoke<string[]>("get_shell_history", { prefix, limit: SUGGEST_LIMIT })
+        .then((suggestions) => {
+          suggestStore.setSuggestions(sessionId, suggestions);
+        })
+        .catch(() => {
+          suggestStore.setSuggestions(sessionId, []);
+        });
+    }, SUGGEST_DEBOUNCE_MS) as unknown as number;
+  };
+
+  const updateInputBuffer = (data: string) => {
+    const suggestStore = useTerminalSuggestStore.getState();
+    for (const char of data) {
+      if (char === "\r" || char === "\n") {
+        entry.inputBuffer = "";
+        clearSuggestState();
+        continue;
+      }
+      if (char === "\u007f") {
+        entry.inputBuffer = entry.inputBuffer.slice(0, -1);
+        continue;
+      }
+      if (char === "\u0015") {
+        entry.inputBuffer = "";
+        continue;
+      }
+      if (char === "\u0017") {
+        entry.inputBuffer = entry.inputBuffer.replace(/\s+\S*$/, "");
+        continue;
+      }
+      if (char >= " " && char !== "\u007f") {
+        entry.inputBuffer += char;
+      }
+    }
+
+    suggestStore.setInput(sessionId, entry.inputBuffer);
+
+    const popupOpen = suggestStore.entries.get(sessionId)?.popupOpen ?? false;
+    const prefix = entry.inputBuffer;
+    if (prefix.length === 0 && !popupOpen) {
+      clearSuggestState();
+      return;
+    }
+
+    scheduleSuggestFetch(prefix, false);
+  };
+
+  const acceptSuggestion = (selected?: string) => {
+    const suggestStore = useTerminalSuggestStore.getState();
+    const entryState = suggestStore.entries.get(sessionId);
+    if (!entryState || entryState.suggestions.length === 0) return;
+
+    const suggestion =
+      selected ?? entryState.suggestions[entryState.selectedIndex] ?? entryState.suggestions[0];
+    if (!suggestion) return;
+
+    if (suggestion === entry.inputBuffer) return;
+    if (!suggestion.startsWith(entry.inputBuffer)) return;
+
+    const remainder = suggestion.slice(entry.inputBuffer.length);
+    if (!remainder) return;
+
+    entry.inputBuffer = suggestion;
+    suggestStore.setInput(sessionId, entry.inputBuffer);
+    suggestStore.closePopup(sessionId);
+    invoke("write_to_session", { id: sessionId, data: remainder }).catch(console.error);
+  };
+
+  terminal.attachCustomKeyEventHandler((event) => {
+    if (event.type !== "keydown") return true;
+
+    const suggestStore = useTerminalSuggestStore.getState();
+    const entryState = suggestStore.entries.get(sessionId);
+    const popupOpen = entryState?.popupOpen ?? false;
+    const suggestions = entryState?.suggestions ?? [];
+
+    if (event.key === "Tab" && suggestions.length > 0) {
+      event.preventDefault();
+      event.stopPropagation();
+      acceptSuggestion();
+      return false;
+    }
+
+    if (event.key === "ArrowUp" && popupOpen) {
+      event.preventDefault();
+      event.stopPropagation();
+      suggestStore.moveSelection(sessionId, "up");
+      return false;
+    }
+
+    if (event.key === "ArrowDown" && popupOpen) {
+      event.preventDefault();
+      event.stopPropagation();
+      suggestStore.moveSelection(sessionId, "down");
+      return false;
+    }
+
+    if (event.key === "Enter" && popupOpen && suggestions.length > 0) {
+      event.preventDefault();
+      event.stopPropagation();
+      acceptSuggestion();
+      return false;
+    }
+
+    if (event.key === "Escape" && popupOpen) {
+      event.preventDefault();
+      event.stopPropagation();
+      suggestStore.closePopup(sessionId);
+      return false;
+    }
+
+    return true;
+  });
 
   entry.dataDisposable = terminal.onData((data) => {
     invoke("write_to_session", { id: sessionId, data }).catch(console.error);
+    updateInputBuffer(data);
   });
 
   entry.titleDisposable = terminal.onTitleChange((title) => {
@@ -170,6 +318,12 @@ export function disposeTerminal(sessionId: string): void {
   const entry = registry.get(sessionId);
   if (!entry) return;
   entry.isDisposed = true;
+
+  if (entry.suggestFetchTimeout) {
+    clearTimeout(entry.suggestFetchTimeout);
+    entry.suggestFetchTimeout = null;
+  }
+  useTerminalSuggestStore.getState().resetSession(sessionId);
 
   entry.dataDisposable?.dispose();
   entry.titleDisposable?.dispose();
