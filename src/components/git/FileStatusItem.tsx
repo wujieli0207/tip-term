@@ -52,9 +52,7 @@ export default function FileStatusItem({
 
   const handleDiscard = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (window.confirm(`Discard changes to ${file.path}?`)) {
-      discardChanges(sessionId, file.path);
-    }
+    discardChanges(sessionId, file.path);
   };
 
   const handleJump = (e: React.MouseEvent) => {
@@ -79,7 +77,7 @@ export default function FileStatusItem({
       }`}
       onClick={handleClick}
     >
-      <div className="flex items-center gap-2 min-w-0">
+      <div className="flex items-center min-w-0 gap-2">
         <span
           className={`text-xs font-semibold w-4 text-center ${STATUS_COLORS[file.status]}`}
         >
@@ -88,7 +86,7 @@ export default function FileStatusItem({
         <div className="flex items-center min-w-0">
           <span className="text-[13px] text-text-primary truncate">{fileName}</span>
           {dirPath && (
-            <span className="text-xs text-text-muted ml-1 truncate">
+            <span className="ml-1 text-xs truncate text-text-muted">
               {dirPath}
             </span>
           )}
