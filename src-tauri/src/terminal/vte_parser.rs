@@ -36,12 +36,56 @@ impl TerminalSession {
             pixel_height: 0,
         };
 
-        let mut cmd = CommandBuilder::new(shell);
+        // Detect if this is a Unix shell that supports login mode
+        let is_unix_shell = shell.ends_with("zsh")
+            || shell.ends_with("bash")
+            || shell.ends_with("sh")
+            || shell == "zsh"
+            || shell == "bash"
+            || shell == "sh";
+
+        let mut cmd = CommandBuilder::new(&shell);
+
+        // Use login shell (-l) to load .zprofile/.bash_profile
+        // This is critical for packaged apps to get proper PATH with Homebrew, asdf, nvm, etc.
+        // Set explicit environment variables as fallback for edge cases
+        #[cfg(any(target_os = "macos", target_os = "linux"))]
+        if is_unix_shell {
+            cmd.arg("-l");
+        }
+
+        // Set explicit environment variables for critical session info
+        if let Ok(home) = std::env::var("HOME") {
+            cmd.env("HOME", home);
+        }
+
+        if let Ok(user) = std::env::var("USER") {
+            cmd.env("USER", user.clone());
+            cmd.env("LOGNAME", user);
+        }
+
+        cmd.env("SHELL", &shell);
+
         // Set TERM environment variable to ensure proper terminal behavior
-        // This is critical for packaged apps which don't inherit terminal environment
         cmd.env("TERM", "xterm-256color");
         cmd.env("COLORTERM", "truecolor");
         cmd.env("LANG", "en_US.UTF-8");
+
+        // Augment PATH with common tool installation directories
+        // This serves as a safety net if login shell doesn't properly load PATH
+        #[cfg(target_os = "macos")]
+        if let Ok(existing_path) = std::env::var("PATH") {
+            let homebrew_paths = "/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin";
+            let augmented_path = format!("{}:{}", homebrew_paths, existing_path);
+            cmd.env("PATH", augmented_path);
+        }
+
+        #[cfg(target_os = "linux")]
+        if let Ok(existing_path) = std::env::var("PATH") {
+            let common_paths = "/usr/local/bin:/usr/bin:/bin";
+            let augmented_path = format!("{}:{}", common_paths, existing_path);
+            cmd.env("PATH", augmented_path);
+        }
         let pty_pair = pty_system
             .openpty(pty_size)
             .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
