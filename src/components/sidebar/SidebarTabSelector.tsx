@@ -16,7 +16,7 @@ function TabButton({ icon: Icon, label, isActive, onClick, hotkey }: TabButtonPr
   const tooltip = hotkey ? `${label} (${hotkey})` : label;
 
   return (
-    <Tooltip content={tooltip}>
+    <Tooltip content={tooltip} placement="bottom">
       <button
         onClick={onClick}
         className={`p-2 rounded transition-colors ${
