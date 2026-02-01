@@ -7,6 +7,7 @@ import { useQuickOpenStore } from "../stores/quickOpenStore";
 import { useSettingsStore } from "../stores/settingsStore";
 import { useSplitPaneStore } from "../stores/splitPaneStore";
 import { useGitStore } from "../stores/gitStore";
+import { useTerminalSearchStore } from "../stores/terminalSearchStore";
 import { getEffectiveHotkeys, bindingsMatch, eventToBinding } from "../utils/hotkeyUtils";
 
 // Map of action names to their handler functions
@@ -37,6 +38,7 @@ export function useHotkeyHandler() {
       const quickOpenStore = useQuickOpenStore.getState();
       const splitPaneStore = useSplitPaneStore.getState();
       const gitStore = useGitStore.getState();
+      const terminalSearchStore = useTerminalSearchStore.getState();
 
       // Define action handlers
       const handlers: ActionHandlers = {
@@ -117,6 +119,28 @@ export function useHotkeyHandler() {
         },
         switchToGitTab: () => {
           sidebarStore.setActiveTab('git');
+        },
+        terminalSearch: () => {
+          // Get the active terminal session (considering split panes)
+          if (!sessionStore.activeSessionId) return;
+          if (sessionStore.isSettingsSession(sessionStore.activeSessionId)) return;
+
+          const rootSessionId = sessionStore.activeSessionId;
+          const layout = splitPaneStore.getLayout(rootSessionId);
+
+          // Determine which session to search in
+          let targetSessionId = rootSessionId;
+          if (layout) {
+            // Use the focused pane's session ID
+            targetSessionId = layout.focusedPaneId;
+          }
+
+          // Toggle search: if already open for this session, close it
+          if (terminalSearchStore.isOpen && terminalSearchStore.activeSessionId === targetSessionId) {
+            terminalSearchStore.close();
+          } else {
+            terminalSearchStore.open(targetSessionId);
+          }
         },
         switchSession: () => {
           const index = getSwitchSessionIndex(matchedHotkey.id);

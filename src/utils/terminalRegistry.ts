@@ -2,14 +2,27 @@ import { Terminal, type IDisposable } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import { WebglAddon } from "@xterm/addon-webgl";
 import { WebLinksAddon } from "@xterm/addon-web-links";
+import { SearchAddon } from "@xterm/addon-search";
+import { Unicode11Addon } from "@xterm/addon-unicode11";
+import { SerializeAddon } from "@xterm/addon-serialize";
+// ImageAddon and LigaturesAddon are loaded dynamically (bundle-conditional)
+import type { ImageAddon } from "@xterm/addon-image";
+import type { LigaturesAddon } from "@xterm/addon-ligatures";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { open } from "@tauri-apps/plugin-shell";
-import { useSessionStore } from "../stores/sessionStore";
+// Core stores needed synchronously
 import { useSettingsStore } from "../stores/settingsStore";
 import { useTerminalSuggestStore } from "../stores/terminalSuggestStore";
+// Stores loaded dynamically in callbacks (bundle-barrel-imports)
+// import { useSessionStore } from "../stores/sessionStore";
+// import { useEditorStore } from "../stores/editorStore";
 import { sendNotification } from "./notifications";
 import { getTerminalTheme } from "../services/themeService";
+
+// Lazy store getters to avoid barrel imports at module load time
+const getSessionStore = () => import("../stores/sessionStore").then(m => m.useSessionStore.getState());
+const getEditorStore = () => import("../stores/editorStore").then(m => m.useEditorStore.getState());
 
 const ACTIVITY_NOTIFICATION_COOLDOWN = 5000;
 const SUGGEST_DEBOUNCE_MS = 150;
@@ -20,6 +33,11 @@ export interface TerminalEntry {
   fitAddon: FitAddon;
   webglAddon?: WebglAddon;
   webLinksAddon?: WebLinksAddon;
+  searchAddon: SearchAddon;
+  unicode11Addon?: Unicode11Addon;
+  serializeAddon?: SerializeAddon;
+  imageAddon?: ImageAddon;
+  ligaturesAddon?: LigaturesAddon;
   isOpened: boolean;
   container?: HTMLElement;
   dataDisposable?: IDisposable;
@@ -53,13 +71,124 @@ function createEntry(sessionId: string): TerminalEntry {
   const fitAddon = new FitAddon();
   terminal.loadAddon(fitAddon);
 
+  // Add SearchAddon for terminal search (Cmd+F)
+  const searchAddon = new SearchAddon();
+  terminal.loadAddon(searchAddon);
+
+  // Add Unicode11Addon for proper emoji and CJK character rendering
+  let unicode11Addon: Unicode11Addon | undefined;
+  try {
+    unicode11Addon = new Unicode11Addon();
+    terminal.loadAddon(unicode11Addon);
+    terminal.unicode.activeVersion = "11";
+  } catch (e) {
+    console.warn("[terminalRegistry] Unicode11Addon failed to load:", e);
+  }
+
+  // Add SerializeAddon for session persistence
+  let serializeAddon: SerializeAddon | undefined;
+  try {
+    serializeAddon = new SerializeAddon();
+    terminal.loadAddon(serializeAddon);
+  } catch (e) {
+    console.warn("[terminalRegistry] SerializeAddon failed to load:", e);
+  }
+
+  // ImageAddon is loaded lazily after terminal is opened (bundle-conditional)
+  let imageAddon: ImageAddon | undefined;
+
   // Add web links addon for clickable URLs
   const webLinksAddon = new WebLinksAddon((_event, uri) => {
+    // Open URL in browser
     open(uri).catch((err) => {
       console.error("[terminalRegistry] Failed to open URL:", err);
     });
   });
   terminal.loadAddon(webLinksAddon);
+
+  // Register custom link provider for file paths
+  // This detects file paths like /path/to/file.ts, ./file.js, src/file.tsx:10:5
+  // Also supports CJK characters (Chinese, Japanese, Korean) in file paths
+  const filePathRegex = /(?:^|\s)((?:\.{0,2}\/)?(?:[\w\u4e00-\u9fff\u3040-\u309f\u30a0-\u30ff\uac00-\ud7af\-]+\/)*[\w\u4e00-\u9fff\u3040-\u309f\u30a0-\u30ff\uac00-\ud7af\-.]+\.[a-zA-Z0-9]+(?::\d+(?::\d+)?)?)/gu;
+
+  terminal.registerLinkProvider({
+    provideLinks: (bufferLineNumber, callback) => {
+      const line = terminal.buffer.active.getLine(bufferLineNumber - 1);
+      if (!line) {
+        callback(undefined);
+        return;
+      }
+
+      const lineText = line.translateToString();
+      const links: Array<{
+        range: { start: { x: number; y: number }; end: { x: number; y: number } };
+        text: string;
+        activate: () => void;
+      }> = [];
+
+      let match;
+      filePathRegex.lastIndex = 0;
+      while ((match = filePathRegex.exec(lineText)) !== null) {
+        const filePath = match[1];
+        // Skip if it looks like a URL
+        if (filePath.includes('://')) continue;
+
+        // Calculate position (account for leading whitespace in match)
+        const matchStart = match.index + (match[0].length - match[1].length);
+        const startX = matchStart + 1; // 1-indexed
+        const endX = matchStart + filePath.length;
+
+        links.push({
+          range: {
+            start: { x: startX, y: bufferLineNumber },
+            end: { x: endX, y: bufferLineNumber },
+          },
+          text: filePath,
+          // Use async activate to enable dynamic store imports (bundle-barrel-imports)
+          activate: async () => {
+            // Extract path and line/column info
+            const pathMatch = filePath.match(/^(.+?)(?::(\d+)(?::(\d+))?)?$/);
+            if (!pathMatch) return;
+
+            let path = pathMatch[1];
+            // const line = pathMatch[2] ? parseInt(pathMatch[2], 10) : undefined;
+            // const column = pathMatch[3] ? parseInt(pathMatch[3], 10) : undefined;
+
+            // Convert relative path to absolute path using session's cwd
+            if (!path.startsWith('/')) {
+              const sessionStore = await getSessionStore();
+              const session = sessionStore.sessions.get(sessionId);
+              const cwd = session?.cwd;
+              if (cwd) {
+                // Handle ./ and ../ prefixes
+                if (path.startsWith('./')) {
+                  path = `${cwd}/${path.slice(2)}`;
+                } else if (path.startsWith('../')) {
+                  // For ../ we need to go up one directory from cwd
+                  const parentDir = cwd.split('/').slice(0, -1).join('/');
+                  path = `${parentDir}/${path.slice(3)}`;
+                } else {
+                  // Regular relative path (e.g., "package.json", "src/file.ts")
+                  path = `${cwd}/${path}`;
+                }
+              } else {
+                console.warn("[terminalRegistry] Cannot resolve relative path: no cwd available for session", sessionId);
+                return;
+              }
+            }
+
+            // Open in editor (dynamic import)
+            const editorStore = await getEditorStore();
+            editorStore.openFile(path).catch((err: unknown) => {
+              console.error("[terminalRegistry] Failed to open file in editor:", err, path);
+            });
+          },
+        });
+      }
+
+      callback(links.length > 0 ? links : undefined);
+    },
+  });
 
   let webglAddon: WebglAddon | undefined;
   try {
@@ -74,11 +203,20 @@ function createEntry(sessionId: string): TerminalEntry {
     webglAddon = undefined;
   }
 
+  // LigaturesAddon will be loaded after terminal.open() in attachTerminal
+  // because it requires DOM access
+  let ligaturesAddon: LigaturesAddon | undefined;
+
   const entry: TerminalEntry = {
     terminal,
     fitAddon,
     webglAddon,
     webLinksAddon,
+    searchAddon,
+    unicode11Addon,
+    serializeAddon,
+    imageAddon,
+    ligaturesAddon,
     isOpened: false,
     lastActivityNotificationAt: 0,
     isDisposed: false,
@@ -231,15 +369,17 @@ function createEntry(sessionId: string): TerminalEntry {
   });
 
   entry.titleDisposable = terminal.onTitleChange((title) => {
-    useSessionStore.getState().updateSessionTerminalTitle(sessionId, title);
+    // Dynamic import to reduce initial bundle (bundle-barrel-imports)
+    getSessionStore().then(store => store.updateSessionTerminalTitle(sessionId, title));
   });
 
-  entry.unlistenPromise = listen<number[]>(`terminal-output-${sessionId}`, (event) => {
+  entry.unlistenPromise = listen<number[]>(`terminal-output-${sessionId}`, async (event) => {
     if (entry.isDisposed) return;
     const data = new Uint8Array(event.payload);
     terminal.write(data);
 
-    const currentState = useSessionStore.getState();
+    // Dynamic import to reduce initial bundle (bundle-barrel-imports)
+    const currentState = await getSessionStore();
     const currentSession = currentState.sessions.get(sessionId);
     const isCurrentlyActive = currentState.activeSessionId === sessionId;
 
@@ -281,6 +421,7 @@ export function attachTerminal(sessionId: string, container: HTMLElement): Termi
     return entry;
   }
 
+  const wasOpened = entry.isOpened;
   if (!entry.isOpened) {
     entry.terminal.open(container);
     entry.isOpened = true;
@@ -289,6 +430,49 @@ export function attachTerminal(sessionId: string, container: HTMLElement): Termi
     if (element && element.parentElement !== container) {
       container.innerHTML = "";
       container.appendChild(element);
+    }
+  }
+
+  // Lazy load heavy addons after terminal.open() (bundle-conditional)
+  if (!wasOpened) {
+    // Load ImageAddon for iTerm2 imgcat/sixel support
+    if (!entry.imageAddon) {
+      import("@xterm/addon-image").then(({ ImageAddon }) => {
+        if (entry.isDisposed) return;
+        try {
+          const imageAddon = new ImageAddon({
+            enableSizeReports: true,
+            sixelSupport: true,
+            sixelScrolling: true,
+            sixelPaletteLimit: 256,
+            storageLimit: 128,
+            showPlaceholder: true,
+          });
+          entry.terminal.loadAddon(imageAddon);
+          entry.imageAddon = imageAddon;
+        } catch (e) {
+          console.warn("[terminalRegistry] ImageAddon failed to load:", e);
+        }
+      }).catch(() => {
+        // Silently ignore if addon can't be loaded
+      });
+    }
+
+    // Load LigaturesAddon - requires DOM access
+    if (!entry.ligaturesAddon) {
+      import("@xterm/addon-ligatures").then(({ LigaturesAddon }) => {
+        if (entry.isDisposed) return;
+        try {
+          const ligaturesAddon = new LigaturesAddon();
+          entry.terminal.loadAddon(ligaturesAddon);
+          entry.ligaturesAddon = ligaturesAddon;
+        } catch (e) {
+          // LigaturesAddon may fail if font doesn't support ligatures - this is expected
+          console.debug("[terminalRegistry] LigaturesAddon not loaded (font may not support ligatures):", e);
+        }
+      }).catch(() => {
+        // Silently ignore if addon can't be loaded
+      });
     }
   }
 
@@ -329,6 +513,11 @@ export function disposeTerminal(sessionId: string): void {
   entry.titleDisposable?.dispose();
   entry.webglAddon?.dispose();
   entry.webLinksAddon?.dispose();
+  entry.searchAddon?.dispose();
+  entry.unicode11Addon?.dispose();
+  entry.serializeAddon?.dispose();
+  entry.imageAddon?.dispose();
+  entry.ligaturesAddon?.dispose();
   if (entry.unlisten) {
     entry.unlisten();
   } else if (entry.unlistenPromise) {
@@ -391,5 +580,160 @@ export function updateTerminalFontSettings(): void {
         // Ignore fit errors
       }
     }
+  }
+}
+
+// ============================================================
+// Terminal Search Functions
+// ============================================================
+
+export interface SearchOptions {
+  caseSensitive?: boolean;
+  wholeWord?: boolean;
+  regex?: boolean;
+}
+
+// Shared search options builder (js-early-exit, reduce duplication)
+function buildSearchOptions({
+  caseSensitive = false,
+  wholeWord = false,
+  regex = false,
+}: SearchOptions) {
+  return { caseSensitive, wholeWord, regex };
+}
+
+// Internal helper to reduce duplication in searchNext/searchPrevious
+function searchDirection(
+  sessionId: string,
+  query: string,
+  direction: "next" | "previous",
+  options: SearchOptions = {}
+): boolean {
+  const entry = registry.get(sessionId);
+  if (!entry || entry.isDisposed || !query) return false;
+
+  const searchFn = direction === "next" ? "findNext" : "findPrevious";
+  return entry.searchAddon[searchFn](query, buildSearchOptions(options));
+}
+
+/**
+ * Search for text in terminal and return match info
+ */
+export function searchTerminal(
+  sessionId: string,
+  query: string,
+  options: SearchOptions = {}
+): { found: boolean } {
+  const entry = registry.get(sessionId);
+  if (!entry || entry.isDisposed || !query) {
+    return { found: false };
+  }
+
+  const found = entry.searchAddon.findNext(query, {
+    ...buildSearchOptions(options),
+    decorations: {
+      matchBackground: "#fabd2f",
+      matchBorder: "#fabd2f",
+      matchOverviewRuler: "#fabd2f",
+      activeMatchBackground: "#fe8019",
+      activeMatchBorder: "#fe8019",
+      activeMatchColorOverviewRuler: "#fe8019",
+    },
+  });
+
+  return { found };
+}
+
+/**
+ * Find next match in terminal
+ */
+export function searchNext(
+  sessionId: string,
+  query: string,
+  options: SearchOptions = {}
+): boolean {
+  return searchDirection(sessionId, query, "next", options);
+}
+
+/**
+ * Find previous match in terminal
+ */
+export function searchPrevious(
+  sessionId: string,
+  query: string,
+  options: SearchOptions = {}
+): boolean {
+  return searchDirection(sessionId, query, "previous", options);
+}
+
+/**
+ * Clear search highlights
+ */
+export function clearSearch(sessionId: string): void {
+  const entry = registry.get(sessionId);
+  if (!entry || entry.isDisposed) return;
+  entry.searchAddon.clearDecorations();
+}
+
+// ============================================================
+// Terminal Serialization Functions
+// ============================================================
+
+/**
+ * Serialize terminal content for persistence
+ */
+export function serializeTerminal(sessionId: string): string | null {
+  const entry = registry.get(sessionId);
+  if (!entry || entry.isDisposed || !entry.serializeAddon) {
+    return null;
+  }
+
+  try {
+    return entry.serializeAddon.serialize();
+  } catch (e) {
+    console.warn("[terminalRegistry] Failed to serialize terminal:", e);
+    return null;
+  }
+}
+
+/**
+ * Restore terminal content from serialized data
+ */
+export function restoreTerminal(sessionId: string, data: string): boolean {
+  const entry = registry.get(sessionId);
+  if (!entry || entry.isDisposed || !data) {
+    return false;
+  }
+
+  try {
+    entry.terminal.write(data);
+    return true;
+  } catch (e) {
+    console.warn("[terminalRegistry] Failed to restore terminal:", e);
+    return false;
+  }
+}
+
+// ============================================================
+// Terminal Activity Optimization
+// ============================================================
+
+/**
+ * Set terminal active state for performance optimization
+ * Non-active terminals will have reduced rendering to save resources
+ */
+export function setTerminalActive(sessionId: string, isActive: boolean): void {
+  const entry = registry.get(sessionId);
+  if (!entry || entry.isDisposed) return;
+
+  // When inactive, disable stdin to reduce processing
+  // When active, re-enable stdin and ensure terminal is responsive
+  entry.terminal.options.disableStdin = !isActive;
+
+  // Optionally blur/focus based on active state
+  if (isActive) {
+    // Don't auto-focus here - let the component handle focus management
+  } else {
+    entry.terminal.blur();
   }
 }

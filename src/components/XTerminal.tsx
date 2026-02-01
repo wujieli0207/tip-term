@@ -5,9 +5,10 @@ import { useSidebarStore } from '../stores/sidebarStore'
 import { useSettingsStore } from '../stores/settingsStore'
 import { useTerminalSuggestStore } from '../stores/terminalSuggestStore'
 import { invoke } from '@tauri-apps/api/core'
-import { attachTerminal, detachTerminal } from '../utils/terminalRegistry'
+import { attachTerminal, detachTerminal, setTerminalActive } from '../utils/terminalRegistry'
 import type { TerminalEntry } from '../utils/terminalRegistry'
 import CommandSuggest from './terminal/command-suggest'
+import TerminalSearch from './terminal/TerminalSearch'
 
 interface XTerminalProps {
   sessionId: string
@@ -190,6 +191,12 @@ export default function XTerminal({
     }
   }, [isRootActive, sidebarCollapsed, isFocusedPane])
 
+  // Optimize non-active terminals by reducing their resource consumption
+  useEffect(() => {
+    const isActive = isRootActive && isFocusedPane
+    setTerminalActive(sessionId, isActive)
+  }, [sessionId, isRootActive, isFocusedPane])
+
   // Apply cursor style changes
   useEffect(() => {
     if (terminalRef.current) {
@@ -258,6 +265,7 @@ export default function XTerminal({
         popupOpen={suggestPopupOpen}
         selectedIndex={suggestSelectedIndex}
       />
+      <TerminalSearch sessionId={sessionId} />
     </div>
   )
 }

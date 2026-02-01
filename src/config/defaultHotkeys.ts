@@ -128,6 +128,17 @@ export const DEFAULT_HOTKEYS: Omit<HotkeyDefinition, "currentBinding">[] = [
     category: "View",
   },
 
+  // Terminal
+  {
+    id: "terminalSearch",
+    action: "terminalSearch",
+    label: "Find in Terminal",
+    description: "Search for text in the active terminal",
+    scope: "terminal",
+    defaultBinding: binding("f", "meta"),
+    category: "Terminal",
+  },
+
   // Editor
   {
     id: "saveFile",

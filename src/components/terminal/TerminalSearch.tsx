@@ -1,0 +1,177 @@
+import { memo, useCallback, useEffect, useRef } from "react";
+import { IconX, IconChevronUp, IconChevronDown, IconLetterCase, IconRegex } from "@tabler/icons-react";
+import { useTerminalSearchStore } from "../../stores/terminalSearchStore";
+import {
+  searchTerminal,
+  searchNext,
+  searchPrevious,
+  clearSearch,
+} from "../../utils/terminalRegistry";
+
+interface TerminalSearchProps {
+  sessionId: string;
+}
+
+// Hoisted static JSX to avoid re-creation on each render (rendering-hoist-jsx)
+const Divider = <div className="w-px h-4 bg-border/40 mx-1" />;
+
+function TerminalSearch({ sessionId }: TerminalSearchProps) {
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const {
+    isOpen,
+    activeSessionId,
+    query,
+    caseSensitive,
+    regex,
+    setQuery,
+    toggleCaseSensitive,
+    toggleRegex,
+    close,
+  } = useTerminalSearchStore();
+
+  // Only show if this session is the active search session
+  const isVisible = isOpen && activeSessionId === sessionId;
+
+  // Focus input when search opens
+  useEffect(() => {
+    if (isVisible && inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  }, [isVisible]);
+
+  // Perform search when query or options change
+  useEffect(() => {
+    if (!isVisible) return;
+
+    if (query) {
+      searchTerminal(sessionId, query, { caseSensitive, regex });
+    } else {
+      clearSearch(sessionId);
+    }
+  }, [isVisible, sessionId, query, caseSensitive, regex]);
+
+  // Clear search when closing
+  useEffect(() => {
+    if (!isVisible) {
+      clearSearch(sessionId);
+    }
+  }, [isVisible, sessionId]);
+
+  const handleFindNext = useCallback(() => {
+    if (query) {
+      searchNext(sessionId, query, { caseSensitive, regex });
+    }
+  }, [sessionId, query, caseSensitive, regex]);
+
+  const handleFindPrevious = useCallback(() => {
+    if (query) {
+      searchPrevious(sessionId, query, { caseSensitive, regex });
+    }
+  }, [sessionId, query, caseSensitive, regex]);
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        close();
+      } else if (e.key === "Enter") {
+        e.preventDefault();
+        if (e.shiftKey) {
+          handleFindPrevious();
+        } else {
+          handleFindNext();
+        }
+      }
+    },
+    [close, handleFindNext, handleFindPrevious]
+  );
+
+  const handleClose = useCallback(() => {
+    close();
+  }, [close]);
+
+  if (!isVisible) return null;
+
+  return (
+    <div className="absolute top-2 right-2 z-30 flex items-center gap-1 px-2 py-1.5 rounded-md border border-border/60 bg-[hsl(var(--bg-card))] shadow-lg">
+      <input
+        ref={inputRef}
+        type="text"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        onKeyDown={handleKeyDown}
+        placeholder="Search..."
+        className="w-48 px-2 py-1 text-sm bg-transparent border-none outline-none text-[hsl(var(--text-primary))] placeholder:text-[hsl(var(--text-muted))]"
+      />
+
+      {/* Case sensitive toggle */}
+      <button
+        type="button"
+        onClick={toggleCaseSensitive}
+        className={`p-1 rounded hover:bg-[hsl(var(--bg-hover))] transition-colors ${
+          caseSensitive
+            ? "text-[hsl(var(--accent-primary))]"
+            : "text-[hsl(var(--text-muted))]"
+        }`}
+        title="Match Case (Alt+C)"
+      >
+        <IconLetterCase size={16} />
+      </button>
+
+      {/* Regex toggle */}
+      <button
+        type="button"
+        onClick={toggleRegex}
+        className={`p-1 rounded hover:bg-[hsl(var(--bg-hover))] transition-colors ${
+          regex
+            ? "text-[hsl(var(--accent-primary))]"
+            : "text-[hsl(var(--text-muted))]"
+        }`}
+        title="Use Regular Expression (Alt+R)"
+      >
+        <IconRegex size={16} />
+      </button>
+
+      {Divider}
+
+      {/* Previous match */}
+      <button
+        type="button"
+        onClick={handleFindPrevious}
+        disabled={!query}
+        className="p-1 rounded hover:bg-[hsl(var(--bg-hover))] transition-colors text-[hsl(var(--text-secondary))] disabled:opacity-40 disabled:cursor-not-allowed"
+        title="Previous Match (Shift+Enter)"
+      >
+        <IconChevronUp size={16} />
+      </button>
+
+      {/* Next match */}
+      <button
+        type="button"
+        onClick={handleFindNext}
+        disabled={!query}
+        className="p-1 rounded hover:bg-[hsl(var(--bg-hover))] transition-colors text-[hsl(var(--text-secondary))] disabled:opacity-40 disabled:cursor-not-allowed"
+        title="Next Match (Enter)"
+      >
+        <IconChevronDown size={16} />
+      </button>
+
+      {Divider}
+
+      {/* Close button */}
+      <button
+        type="button"
+        onClick={handleClose}
+        className="p-1 rounded hover:bg-[hsl(var(--bg-hover))] transition-colors text-[hsl(var(--text-secondary))]"
+        title="Close (Escape)"
+      >
+        <IconX size={16} />
+      </button>
+    </div>
+  );
+}
+
+// Wrap with memo to prevent unnecessary re-renders (rerender-memo)
+export default memo(TerminalSearch);
