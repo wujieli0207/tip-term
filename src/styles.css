@@ -169,3 +169,20 @@ body {
   width: 100%;
   height: 100%;
 }
+
+/* Terminal bell visual flash effect */
+.terminal-bell-flash {
+  animation: bell-flash 0.15s ease-out;
+}
+
+@keyframes bell-flash {
+  0% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.5);
+  }
+  100% {
+    filter: brightness(1);
+  }
+}

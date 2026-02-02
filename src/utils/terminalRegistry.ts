@@ -1,6 +1,7 @@
 import { Terminal, type IDisposable } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import { WebglAddon } from "@xterm/addon-webgl";
+import { CanvasAddon } from "@xterm/addon-canvas";
 import { WebLinksAddon } from "@xterm/addon-web-links";
 import { SearchAddon } from "@xterm/addon-search";
 import { Unicode11Addon } from "@xterm/addon-unicode11";
@@ -18,7 +19,7 @@ import { useTerminalSuggestStore } from "../stores/terminalSuggestStore";
 // import { useSessionStore } from "../stores/sessionStore";
 // import { useEditorStore } from "../stores/editorStore";
 import { sendNotification } from "./notifications";
-import { getTerminalTheme } from "../services/themeService";
+import { getTerminalTheme, getThemeService } from "../services/themeService";
 
 // Lazy store getters to avoid barrel imports at module load time
 const getSessionStore = () => import("../stores/sessionStore").then(m => m.useSessionStore.getState());
@@ -28,20 +29,48 @@ const ACTIVITY_NOTIFICATION_COOLDOWN = 5000;
 const SUGGEST_DEBOUNCE_MS = 150;
 const SUGGEST_LIMIT = 40;
 
+/**
+ * Cached WebGL2 support detection
+ */
+const isWebgl2Supported = (() => {
+  let isSupported: boolean | undefined;
+  return () => {
+    if (isSupported === undefined) {
+      try {
+        const canvas = document.createElement("canvas");
+        const gl = canvas.getContext("webgl2", { depth: false, antialias: false });
+        isSupported = gl instanceof WebGL2RenderingContext;
+        // Clean up the canvas
+        if (gl) {
+          const ext = gl.getExtension("WEBGL_lose_context");
+          ext?.loseContext();
+        }
+      } catch {
+        isSupported = false;
+      }
+    }
+    return isSupported;
+  };
+})();
+
 export interface TerminalEntry {
   terminal: Terminal;
   fitAddon: FitAddon;
   webglAddon?: WebglAddon;
+  canvasAddon?: CanvasAddon;
   webLinksAddon?: WebLinksAddon;
   searchAddon: SearchAddon;
   unicode11Addon?: Unicode11Addon;
   serializeAddon?: SerializeAddon;
   imageAddon?: ImageAddon;
   ligaturesAddon?: LigaturesAddon;
+  /** Current renderer type: 'webgl' | 'canvas' | 'dom' */
+  rendererType: "webgl" | "canvas" | "dom";
   isOpened: boolean;
   container?: HTMLElement;
   dataDisposable?: IDisposable;
   titleDisposable?: IDisposable;
+  bellDisposable?: IDisposable;
   unlisten?: () => void;
   unlistenPromise?: Promise<() => void>;
   lastActivityNotificationAt: number;
@@ -53,18 +82,39 @@ export interface TerminalEntry {
 
 const registry = new Map<string, TerminalEntry>();
 
+/**
+ * Check if the configured web links activation key is pressed
+ */
+function isWebLinksActivationKeyPressed(event: MouseEvent): boolean {
+  const { webLinksActivationKey } = useSettingsStore.getState().terminal;
+  if (webLinksActivationKey === null) return false;
+  switch (webLinksActivationKey) {
+    case "ctrl":
+      return event.ctrlKey;
+    case "meta":
+      return event.metaKey;
+    case "alt":
+      return event.altKey;
+    case "shift":
+      return event.shiftKey;
+    default:
+      return false;
+  }
+}
+
 function createEntry(sessionId: string): TerminalEntry {
-  const settings = useSettingsStore.getState().appearance;
-  const fontFamily = settings.fontFamily ?? "JetBrains Mono";
-  const fontSize = settings.fontSize ?? 14;
-  const lineHeight = settings.lineHeight ?? 1.4;
+  const appearanceSettings = useSettingsStore.getState().appearance;
+  const terminalSettings = useSettingsStore.getState().terminal;
+  const fontFamily = appearanceSettings.fontFamily ?? "JetBrains Mono";
+  const fontSize = appearanceSettings.fontSize ?? 14;
+  const lineHeight = appearanceSettings.lineHeight ?? 1.4;
   const terminal = new Terminal({
     fontFamily: `"${fontFamily}", Monaco, monospace`,
     fontSize: fontSize,
     lineHeight: lineHeight,
     theme: getTerminalTheme(),
-    cursorBlink: settings.cursorBlink,
-    cursorStyle: settings.cursorStyle,
+    cursorBlink: appearanceSettings.cursorBlink,
+    cursorStyle: appearanceSettings.cursorStyle,
     allowProposedApi: true,
   });
 
@@ -97,10 +147,10 @@ function createEntry(sessionId: string): TerminalEntry {
   // ImageAddon is loaded lazily after terminal is opened (bundle-conditional)
   let imageAddon: ImageAddon | undefined;
 
-  // Add web links addon for clickable URLs (requires Cmd/Ctrl click)
+  // Add web links addon for clickable URLs (requires configured activation key)
   const webLinksAddon = new WebLinksAddon((event, uri) => {
-    // Require Cmd (macOS) or Ctrl (Windows/Linux) to be held
-    if (!event.metaKey && !event.ctrlKey) return;
+    // Require the configured activation key to be held
+    if (!isWebLinksActivationKeyPressed(event)) return;
     // Open URL in browser
     open(uri).catch((err) => {
       console.error("[terminalRegistry] Failed to open URL:", err);
@@ -147,10 +197,10 @@ function createEntry(sessionId: string): TerminalEntry {
           },
           text: filePath,
           // Use async activate to enable dynamic store imports (bundle-barrel-imports)
-          // Requires Cmd (macOS) or Ctrl (Windows/Linux) to be held
+          // Requires configured activation key to be held
           activate: async (event: MouseEvent) => {
-            // Require Cmd (macOS) or Ctrl (Windows/Linux) to be held
-            if (!event.metaKey && !event.ctrlKey) return;
+            // Require the configured activation key to be held
+            if (!isWebLinksActivationKeyPressed(event)) return;
             // Extract path and line/column info
             const pathMatch = filePath.match(/^(.+?)(?::(\d+)(?::(\d+))?)?$/);
             if (!pathMatch) return;
@@ -195,33 +245,78 @@ function createEntry(sessionId: string): TerminalEntry {
     },
   });
 
+  // Renderer setup: WebGL -> Canvas -> DOM fallback chain
   let webglAddon: WebglAddon | undefined;
-  try {
-    webglAddon = new WebglAddon();
-    webglAddon.onContextLoss(() => {
-      console.warn(`[terminalRegistry] WebGL context lost for session ${sessionId}, falling back to canvas renderer`);
-      webglAddon?.dispose();
-    });
-    terminal.loadAddon(webglAddon);
-  } catch (e) {
-    console.warn("[terminalRegistry] WebGL addon failed to load, using canvas renderer:", e);
-    webglAddon = undefined;
+  let canvasAddon: CanvasAddon | undefined;
+  let rendererType: "webgl" | "canvas" | "dom" = "dom";
+
+  const useWebGL = terminalSettings.webGLRenderer && isWebgl2Supported();
+
+  if (useWebGL) {
+    try {
+      webglAddon = new WebglAddon();
+      webglAddon.onContextLoss(() => {
+        console.warn(`[terminalRegistry] WebGL context lost for session ${sessionId}, falling back to canvas renderer`);
+        webglAddon?.dispose();
+        webglAddon = undefined;
+        // Load Canvas addon as fallback
+        try {
+          canvasAddon = new CanvasAddon();
+          terminal.loadAddon(canvasAddon);
+          rendererType = "canvas";
+          // Update entry if it exists
+          const entry = registry.get(sessionId);
+          if (entry) {
+            entry.webglAddon = undefined;
+            entry.canvasAddon = canvasAddon;
+            entry.rendererType = "canvas";
+          }
+        } catch (canvasError) {
+          console.warn("[terminalRegistry] Canvas addon failed to load after WebGL context loss:", canvasError);
+          rendererType = "dom";
+          const entry = registry.get(sessionId);
+          if (entry) {
+            entry.rendererType = "dom";
+          }
+        }
+      });
+      terminal.loadAddon(webglAddon);
+      rendererType = "webgl";
+    } catch (e) {
+      console.warn("[terminalRegistry] WebGL addon failed to load, trying canvas renderer:", e);
+      webglAddon = undefined;
+    }
+  }
+
+  // If WebGL is disabled or failed, try Canvas
+  if (!webglAddon) {
+    try {
+      canvasAddon = new CanvasAddon();
+      terminal.loadAddon(canvasAddon);
+      rendererType = "canvas";
+    } catch (e) {
+      console.warn("[terminalRegistry] Canvas addon failed to load, using DOM renderer:", e);
+      canvasAddon = undefined;
+      rendererType = "dom";
+    }
   }
 
   // LigaturesAddon will be loaded after terminal.open() in attachTerminal
-  // because it requires DOM access
+  // because it requires DOM access (only works with Canvas/DOM renderer)
   let ligaturesAddon: LigaturesAddon | undefined;
 
   const entry: TerminalEntry = {
     terminal,
     fitAddon,
     webglAddon,
+    canvasAddon,
     webLinksAddon,
     searchAddon,
     unicode11Addon,
     serializeAddon,
     imageAddon,
     ligaturesAddon,
+    rendererType,
     isOpened: false,
     lastActivityNotificationAt: 0,
     isDisposed: false,
@@ -378,6 +473,42 @@ function createEntry(sessionId: string): TerminalEntry {
     getSessionStore().then(store => store.updateSessionTerminalTitle(sessionId, title));
   });
 
+  // Bell event handler for sound/visual feedback
+  entry.bellDisposable = terminal.onBell(() => {
+    const bellSetting = useSettingsStore.getState().terminal.bell;
+    if (bellSetting === "off") return;
+
+    // Visual feedback: briefly flash the terminal (CSS class toggle)
+    if (bellSetting === "visual" || bellSetting === "both") {
+      const element = terminal.element;
+      if (element) {
+        element.classList.add("terminal-bell-flash");
+        setTimeout(() => {
+          element.classList.remove("terminal-bell-flash");
+        }, 150);
+      }
+    }
+
+    // Sound feedback: play system beep
+    if (bellSetting === "sound" || bellSetting === "both") {
+      // Create an AudioContext beep sound
+      try {
+        const audioContext = new AudioContext();
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        oscillator.frequency.value = 800; // 800Hz beep
+        oscillator.type = "sine";
+        gainNode.gain.value = 0.1; // Low volume
+        oscillator.start();
+        oscillator.stop(audioContext.currentTime + 0.1); // 100ms beep
+      } catch {
+        // Audio not available, silently ignore
+      }
+    }
+  });
+
   entry.unlistenPromise = listen<number[]>(`terminal-output-${sessionId}`, async (event) => {
     if (entry.isDisposed) return;
     const data = new Uint8Array(event.payload);
@@ -464,9 +595,14 @@ export function attachTerminal(sessionId: string, container: HTMLElement): Termi
     }
 
     // Load LigaturesAddon - requires DOM access
-    if (!entry.ligaturesAddon) {
+    // Only load when NOT using WebGL renderer (WebGL doesn't support ligatures)
+    // and when ligatures setting is enabled
+    const { ligatures } = useSettingsStore.getState().terminal;
+    if (!entry.ligaturesAddon && entry.rendererType !== "webgl" && ligatures) {
       import("@xterm/addon-ligatures").then(({ LigaturesAddon }) => {
         if (entry.isDisposed) return;
+        // Re-check renderer type in case it changed (e.g., WebGL context loss fallback)
+        if (entry.rendererType === "webgl") return;
         try {
           const ligaturesAddon = new LigaturesAddon();
           entry.terminal.loadAddon(ligaturesAddon);
@@ -516,7 +652,9 @@ export function disposeTerminal(sessionId: string): void {
 
   entry.dataDisposable?.dispose();
   entry.titleDisposable?.dispose();
+  entry.bellDisposable?.dispose();
   entry.webglAddon?.dispose();
+  entry.canvasAddon?.dispose();
   entry.webLinksAddon?.dispose();
   entry.searchAddon?.dispose();
   entry.unicode11Addon?.dispose();
@@ -623,6 +761,7 @@ function searchDirection(
 
 /**
  * Search for text in terminal and return match info
+ * Uses theme colors for search decorations
  */
 export function searchTerminal(
   sessionId: string,
@@ -634,15 +773,20 @@ export function searchTerminal(
     return { found: false };
   }
 
+  // Use theme colors for search decorations
+  const colorScheme = getThemeService().getActiveColorScheme();
+  const matchColor = colorScheme.selectionBackground || "#fabd2f";
+  const activeMatchColor = colorScheme.cursor || "#fe8019";
+
   const found = entry.searchAddon.findNext(query, {
     ...buildSearchOptions(options),
     decorations: {
-      matchBackground: "#fabd2f",
-      matchBorder: "#fabd2f",
-      matchOverviewRuler: "#fabd2f",
-      activeMatchBackground: "#fe8019",
-      activeMatchBorder: "#fe8019",
-      activeMatchColorOverviewRuler: "#fe8019",
+      matchBackground: matchColor,
+      matchBorder: matchColor,
+      matchOverviewRuler: matchColor,
+      activeMatchBackground: activeMatchColor,
+      activeMatchBorder: activeMatchColor,
+      activeMatchColorOverviewRuler: activeMatchColor,
     },
   });
 

@@ -35,6 +35,10 @@ export default function XTerminal({
   const fontFamily = useSettingsStore((state) => state.appearance.fontFamily ?? "JetBrains Mono")
   const lineHeight = useSettingsStore((state) => state.appearance.lineHeight ?? 1.4)
 
+  // Terminal behavior settings
+  const quickEdit = useSettingsStore((state) => state.terminal.quickEdit)
+  const copyOnSelect = useSettingsStore((state) => state.terminal.copyOnSelect)
+
   const suggestEntry = useTerminalSuggestStore((state) => state.entries.get(sessionId))
   const suggestInput = suggestEntry?.input ?? ""
   const suggestList = suggestEntry?.suggestions ?? []
@@ -249,12 +253,50 @@ export default function XTerminal({
     terminalRef.current?.focus()
   }
 
+  // Handle right-click for quickEdit (copy if selected, paste otherwise)
+  const handleContextMenu = useCallback((e: React.MouseEvent) => {
+    if (!quickEdit) return // Let default context menu show
+
+    e.preventDefault()
+    const terminal = terminalRef.current
+    if (!terminal) return
+
+    if (terminal.hasSelection()) {
+      // Copy selected text
+      const selection = terminal.getSelection()
+      navigator.clipboard.writeText(selection).catch(console.error)
+      terminal.clearSelection()
+    } else {
+      // Paste from clipboard
+      navigator.clipboard.readText().then((text) => {
+        if (text) {
+          invoke('write_to_session', { id: sessionId, data: text }).catch(console.error)
+        }
+      }).catch(console.error)
+    }
+  }, [quickEdit, sessionId])
+
+  // Handle mouse up for copyOnSelect
+  const handleMouseUp = useCallback(() => {
+    if (!copyOnSelect) return
+
+    const terminal = terminalRef.current
+    if (!terminal || !terminal.hasSelection()) return
+
+    const selection = terminal.getSelection()
+    if (selection) {
+      navigator.clipboard.writeText(selection).catch(console.error)
+    }
+  }, [copyOnSelect])
+
   return (
     <div ref={setWrapperRef} className="relative w-full h-full">
       <div
         ref={setContainerRef}
         className="w-full h-full"
         onClick={handleClick}
+        onContextMenu={handleContextMenu}
+        onMouseUp={handleMouseUp}
       />
       <CommandSuggest
         terminal={terminalInstance}

@@ -66,12 +66,18 @@ export default function TerminalContainer() {
     <div className="flex-1 flex bg-[#0a0a0a]">
       {/* Terminal / Settings content area */}
       <div className="relative flex-1">
-        {sessionsList.map((session) => (
+        {sessionsList.map((session) => {
+          const isActive = session.id === activeSessionId;
+          return (
           <div
             key={session.id}
-            className={`absolute inset-0 ${
-              session.id === activeSessionId ? "visible" : "invisible"
-            }`}
+            className="absolute inset-0"
+            style={{
+              // Use left: -9999px for inactive terminals to completely pause xterm rendering
+              // This is more effective than visibility:hidden alone
+              left: isActive ? 0 : "-9999px",
+              visibility: isActive ? "visible" : "hidden",
+            }}
           >
             {session.type === "terminal" ? (
               hasLayout(session.id) ? (
@@ -79,14 +85,15 @@ export default function TerminalContainer() {
               ) : (
                 <XTerminal
                   sessionId={session.id}
-                  isRootActive={session.id === activeSessionId}
+                  isRootActive={isActive}
                 />
               )
             ) : (
               <SettingsContainer />
             )}
           </div>
-        ))}
+        );
+        })}
       </div>
     </div>
   );
