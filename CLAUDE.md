@@ -58,6 +58,67 @@ pnpm tauri build  # Create distributable app
 - **CSS variables**: `src/styles.css` - Light/dark theme variables via `data-theme` attribute
 - **Settings**: Theme mode and color scheme selection in Appearance settings
 
+## UI Design Specification
+
+Design source: Pencil file `tipterm.pen`
+
+### Typography
+
+| Usage | Font | Size | Weight |
+|-------|------|------|--------|
+| UI text | Inter | 13px | normal/500 |
+| Code/Terminal | JetBrains Mono | 12-13px | normal |
+| Hotkey labels | JetBrains Mono | 10-11px | normal |
+| Section headers | Inter | 10px (letterSpacing: 1px) | 500 |
+
+### Spacing & Sizing
+
+**Border Radius**
+- Modals/Dialogs: `12px`
+- Cards/Menus: `8px`
+- Buttons/Tabs/Inputs: `6px`
+- File items: `4px`
+- Pills/Tags: `9999px` (fully rounded)
+
+**Component Dimensions**
+| Component | Size |
+|-----------|------|
+| Title Bar | h: 52px |
+| Sidebar | w: 220px |
+| Sidebar Tabs | h: 44px |
+| Tab button | 32×32px |
+| Session item | h: 36px |
+| File item | h: 28px |
+| Search/Input | h: 28px |
+| Hotkey badge | 20×20px |
+
+### Icons
+
+- Icon libraries: **Lucide Icons** (`lucide-react`), **Tabler Icons** (`@tabler/icons-react`)
+- Sizes: `12px` (small) / `14px` (standard) / `16px` (medium) / `18px` (large)
+
+### Component States
+
+**List Items (Session/File)**
+| State | Background | Text |
+|-------|------------|------|
+| Default | none | `text-secondary` |
+| Hover | `bg-hover` | `text-secondary` |
+| Active | `bg-active` | `text-primary` |
+
+**Tab Buttons**
+| State | Background | Icon |
+|-------|------------|------|
+| Default | none | `text-muted` |
+| Active | `bg-active` | `text-primary` |
+
+**Accent Color Usage**
+- `accent-primary`: Primary buttons, selected item highlights
+- `accent-cyan`: Terminal cursor, directory names, links
+- `accent-green`: Terminal prompt, success states
+- `accent-orange`: Folder icons, JSON string values
+- `accent-red`: Error states, delete actions, Git deleted lines
+
 ### Backend (`src-tauri/src/`)
 
 - **main.rs**: Tauri commands and app setup
