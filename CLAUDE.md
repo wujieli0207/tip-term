@@ -29,7 +29,8 @@ pnpm tauri build  # Create distributable app
 - **Terminal**: xterm.js rendering in `components/XTerminal.tsx`
 - **Split Panes**: Multi-window layout with `react-resizable-panels` in `components/terminal/` (SplitPaneContainer, TerminalPaneWrapper, TerminalContainer)
 - **Sidebar**: Tab-based sidebar with Session/FileTree/Git tabs in `components/sidebar/` (Sidebar, SidebarHeader, SidebarTabSelector, SessionTabContent, FileTreeTabContent, GitTabContent, DetailPanelsContainer)
-- **File Tree**: Directory browser in `components/filetree/`
+- **File Tree**: Directory browser in `components/filetree/` using `react-arborist`
+  - Virtual scrolling for large directories
   - Auto-expands parent directories and highlights opened files
 - **Git**: Git status, diff viewer, commit actions, and commit diff viewer in `components/git/`
   - Diff viewing powered by `@pierre/diffs` with Shiki syntax highlighting
@@ -107,4 +108,5 @@ pnpm tauri build  # Create distributable app
 - `@xterm/addon-webgl`: GPU-accelerated rendering
 - `zustand`: State management
 - `react-resizable-panels`: Resizable panel dividers for split panes
+- `react-arborist`: Virtualized tree view for file browser
 - `@pierre/diffs`: Diff viewer with Shiki syntax highlighting (unified/split modes)
