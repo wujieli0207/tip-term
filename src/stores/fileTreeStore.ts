@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { invoke } from "@tauri-apps/api/core";
-import { FileEntry } from "../types/file";
+import { FileEntry, FileTreeNode } from "../types/file";
+import { buildFileTree } from "../utils/fileTreeUtils";
 
 export interface DirectoryTree {
   rootPath: string;
@@ -26,6 +27,8 @@ interface FileTreeStore {
   refreshRoot: (sessionId: string, newRootPath: string) => Promise<void>;
   expandPath: (sessionId: string, filePath: string) => Promise<void>;
   setHighlightedPath: (sessionId: string, path: string | null) => void;
+  getTreeData: (sessionId: string) => FileTreeNode[];
+  setExpandedPath: (sessionId: string, path: string, isExpanded: boolean) => void;
 }
 
 const DEFAULT_FILE_TREE_WIDTH = 250;
@@ -250,6 +253,37 @@ export const useFileTreeStore = create<FileTreeStore>((set, get) => ({
           highlightedPath: path,
         });
       }
+      return { sessionTrees: newTrees };
+    });
+  },
+
+  getTreeData: (sessionId: string) => {
+    const state = get();
+    const tree = state.sessionTrees.get(sessionId);
+    if (!tree) return [];
+    return buildFileTree(tree.entries, tree.expandedPaths, tree.rootPath);
+  },
+
+  setExpandedPath: (sessionId: string, path: string, isExpanded: boolean) => {
+    set((state) => {
+      const newTrees = new Map(state.sessionTrees);
+      const tree = newTrees.get(sessionId);
+      if (!tree) return state;
+
+      const newExpandedPaths = new Set(tree.expandedPaths);
+      if (isExpanded) {
+        newExpandedPaths.add(path);
+        // Load directory if not yet loaded
+        setTimeout(() => get().loadDirectory(sessionId, path), 0);
+      } else {
+        newExpandedPaths.delete(path);
+      }
+
+      newTrees.set(sessionId, {
+        ...tree,
+        expandedPaths: newExpandedPaths,
+      });
+
       return { sessionTrees: newTrees };
     });
   },
