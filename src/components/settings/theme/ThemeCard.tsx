@@ -8,9 +8,13 @@ interface ThemeCardProps {
 }
 
 export default function ThemeCard({ scheme, selected, onSelect }: ThemeCardProps) {
-  // Extract key colors for the preview
-  const blue = scheme.colors[4]; // blue
-  const green = scheme.colors[2]; // green
+  // Extract ANSI colors for the preview
+  const red = scheme.colors[1];     // red - for errors
+  const green = scheme.colors[2];   // green - for user, executables
+  const yellow = scheme.colors[3];  // yellow - for warnings
+  const blue = scheme.colors[4];    // blue - for directories
+  const magenta = scheme.colors[5]; // magenta - for special files
+  const cyan = scheme.colors[6];    // cyan - for links, commands
 
   return (
     <button
@@ -28,21 +32,30 @@ export default function ThemeCard({ scheme, selected, onSelect }: ThemeCardProps
         className="p-3 font-mono text-xs leading-relaxed text-left"
         style={{ backgroundColor: scheme.background }}
       >
+        {/* Prompt line */}
         <div className="flex items-center gap-1">
           <span style={{ color: green }}>john@mac</span>
           <span style={{ color: scheme.foreground }}>:</span>
-          <span style={{ color: blue }}>~</span>
-          <span style={{ color: scheme.foreground }}>$ ls</span>
+          <span style={{ color: blue }}>~/code</span>
+          <span style={{ color: scheme.foreground }}>$ </span>
+          <span style={{ color: cyan }}>ls</span>
+          <span style={{ color: yellow }}> -la</span>
         </div>
+        {/* ls output with various colors */}
         <div className="mt-1">
-          <span style={{ color: blue }}>Documents/</span>
-          <span style={{ color: scheme.foreground }}> </span>
-        </div>
-        <div>
-          <span style={{ color: green }}>Downloads/</span>
+          <span style={{ color: cyan }}>Documents/</span>
+          {" "}
+          <span style={{ color: magenta }}>link@</span>
+          {" "}
+          <span style={{ color: green }}>run.sh*</span>
         </div>
         <div>
           <span style={{ color: scheme.foreground }}>config.json</span>
+        </div>
+        {/* Error message */}
+        <div>
+          <span style={{ color: red }}>error:</span>
+          <span style={{ color: scheme.foreground }}> not found</span>
         </div>
       </div>
 

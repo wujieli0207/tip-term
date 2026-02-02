@@ -97,8 +97,10 @@ function createEntry(sessionId: string): TerminalEntry {
   // ImageAddon is loaded lazily after terminal is opened (bundle-conditional)
   let imageAddon: ImageAddon | undefined;
 
-  // Add web links addon for clickable URLs
-  const webLinksAddon = new WebLinksAddon((_event, uri) => {
+  // Add web links addon for clickable URLs (requires Cmd/Ctrl click)
+  const webLinksAddon = new WebLinksAddon((event, uri) => {
+    // Require Cmd (macOS) or Ctrl (Windows/Linux) to be held
+    if (!event.metaKey && !event.ctrlKey) return;
     // Open URL in browser
     open(uri).catch((err) => {
       console.error("[terminalRegistry] Failed to open URL:", err);
@@ -145,7 +147,10 @@ function createEntry(sessionId: string): TerminalEntry {
           },
           text: filePath,
           // Use async activate to enable dynamic store imports (bundle-barrel-imports)
-          activate: async () => {
+          // Requires Cmd (macOS) or Ctrl (Windows/Linux) to be held
+          activate: async (event: MouseEvent) => {
+            // Require Cmd (macOS) or Ctrl (Windows/Linux) to be held
+            if (!event.metaKey && !event.ctrlKey) return;
             // Extract path and line/column info
             const pathMatch = filePath.match(/^(.+?)(?::(\d+)(?::(\d+))?)?$/);
             if (!pathMatch) return;

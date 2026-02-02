@@ -77,23 +77,21 @@ export default function FileStatusItem({
       }`}
       onClick={handleClick}
     >
-      <div className="flex items-center min-w-0 gap-2">
+      <div className="flex items-center min-w-0 gap-2 flex-1">
         <span
-          className={`text-xs font-semibold w-4 text-center ${STATUS_COLORS[file.status]}`}
+          className={`text-xs font-semibold w-4 flex-shrink-0 text-center ${STATUS_COLORS[file.status]}`}
         >
           {STATUS_LETTERS[file.status]}
         </span>
-        <div className="flex items-center min-w-0">
-          <span className="text-[13px] text-text-primary truncate">{fileName}</span>
-          {dirPath && (
-            <span className="ml-1 text-xs truncate text-text-muted">
-              {dirPath}
-            </span>
-          )}
-        </div>
+        <span className="text-[13px] text-text-primary flex-shrink-0 max-w-[50%] truncate">{fileName}</span>
+        {dirPath && (
+          <span className="text-xs text-text-muted truncate min-w-0">
+            {dirPath}
+          </span>
+        )}
       </div>
 
-      <div className="hidden group-hover:flex items-center gap-0.5">
+      <div className="hidden group-hover:flex items-center gap-0.5 flex-shrink-0">
         <button
           onClick={handleJump}
           className="p-0.5 rounded hover:bg-bg-active text-text-muted hover:text-accent-cyan"
@@ -119,15 +117,13 @@ export default function FileStatusItem({
             >
               <IconPlus className="w-3.5 h-3.5" stroke={2} />
             </button>
-            {!isUntracked && (
-              <button
-                onClick={handleDiscard}
-                className="p-0.5 rounded hover:bg-bg-active text-text-muted hover:text-accent-red"
-                title="Discard changes"
-              >
-                <IconX className="w-3.5 h-3.5" stroke={2} />
-              </button>
-            )}
+            <button
+              onClick={handleDiscard}
+              className="p-0.5 rounded hover:bg-bg-active text-text-muted hover:text-accent-red"
+              title={isUntracked ? "Delete file" : "Discard changes"}
+            >
+              <IconX className="w-3.5 h-3.5" stroke={2} />
+            </button>
           </>
         )}
       </div>
