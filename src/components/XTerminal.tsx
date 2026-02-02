@@ -118,7 +118,8 @@ export default function XTerminal({
     }
   }, [sessionId, containerEl])
 
-  // Handle resize
+  // Handle resize - debounced to avoid flickering during resize
+  // Only call fitAddon.fit() after resize stops to prevent content from flickering
   useEffect(() => {
     if (!containerEl || !fitAddonRef.current || !terminalRef.current) return
 
@@ -126,7 +127,7 @@ export default function XTerminal({
     let lastRows = 0
     let settleTimeoutId: number | null = null
 
-    const fitAndMaybeResize = (shouldInvoke: boolean) => {
+    const doFitAndResize = () => {
       if (!fitAddonRef.current || !terminalRef.current || !containerEl) return
 
       const rect = containerEl.getBoundingClientRect()
@@ -134,7 +135,6 @@ export default function XTerminal({
 
       try {
         fitAddonRef.current.fit()
-        if (!shouldInvoke) return
 
         const { cols, rows } = terminalRef.current
         if (cols > 0 && rows > 0 && (cols !== lastCols || rows !== lastRows)) {
@@ -155,18 +155,16 @@ export default function XTerminal({
         clearTimeout(settleTimeoutId)
       }
 
-      // Fit immediately for responsive layout
-      fitAndMaybeResize(false)
-
-      // Settle: only invoke backend resize after resize stops
+      // Only fit after resize stops (debounce) to avoid flickering
+      // The terminal content stays stable during resize, only updating at the end
       settleTimeoutId = setTimeout(() => {
-        fitAndMaybeResize(true)
+        doFitAndResize()
         if (isRootActive && isFocusedPane) {
           requestAnimationFrame(() => {
             terminalRef.current?.focus()
           })
         }
-      }, 200)
+      }, 150) as unknown as number
     }
 
     const resizeObserver = new ResizeObserver(() => {
