@@ -150,6 +150,35 @@ export const DEFAULT_HOTKEYS: Omit<HotkeyDefinition, "currentBinding">[] = [
     category: "Editor",
   },
 
+  // File Tree
+  {
+    id: "copyFilePath",
+    action: "copyFilePath",
+    label: "Copy Path",
+    description: "Copy the full absolute path of the selected file",
+    scope: "global",
+    defaultBinding: binding("c", "meta", "alt"),
+    category: "File Tree",
+  },
+  {
+    id: "copyRelativeFilePath",
+    action: "copyRelativeFilePath",
+    label: "Copy Relative Path",
+    description: "Copy the path relative to the project root",
+    scope: "global",
+    defaultBinding: binding("c", "meta", "alt", "shift"),
+    category: "File Tree",
+  },
+  {
+    id: "revealInFinder",
+    action: "revealInFinder",
+    label: "Reveal in Finder",
+    description: "Open the file location in Finder",
+    scope: "global",
+    defaultBinding: binding("r", "meta", "alt"),
+    category: "File Tree",
+  },
+
   // Split Pane
   {
     id: "splitVertical",

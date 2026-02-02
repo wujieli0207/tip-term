@@ -125,7 +125,7 @@ function createEntry(sessionId: string): TerminalEntry {
       const links: Array<{
         range: { start: { x: number; y: number }; end: { x: number; y: number } };
         text: string;
-        activate: () => void;
+        activate: (event: MouseEvent) => void | Promise<void>;
       }> = [];
 
       let match;

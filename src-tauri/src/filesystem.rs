@@ -187,6 +187,25 @@ pub async fn write_file(path: String, content: String) -> Result<(), String> {
         .map_err(|e| format!("Failed to write file: {}", e))
 }
 
+/// Reveal a file in Finder (macOS only)
+#[tauri::command]
+pub async fn reveal_in_finder(path: String) -> Result<(), String> {
+    #[cfg(target_os = "macos")]
+    {
+        std::process::Command::new("open")
+            .args(["-R", &path])
+            .spawn()
+            .map_err(|e| format!("Failed to reveal in Finder: {}", e))?;
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    {
+        return Err("Reveal in Finder is only supported on macOS".to_string());
+    }
+
+    Ok(())
+}
+
 /// Search files recursively by name (fuzzy match)
 /// Uses ignore crate to respect .gitignore files
 #[tauri::command]

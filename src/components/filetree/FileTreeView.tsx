@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
-import { Tree, TreeApi } from "react-arborist";
+import { Tree, TreeApi, NodeApi } from "react-arborist";
 import { useFileTreeStore } from "../../stores/fileTreeStore";
 import { FileTreeNode as FileTreeNodeType } from "../../types/file";
 import FileTreeNode from "./FileTreeNode";
@@ -14,7 +14,7 @@ export default function FileTreeView({ sessionId }: FileTreeViewProps) {
   const [containerHeight, setContainerHeight] = useState(400);
   const prevExpandedPathsRef = useRef<Set<string>>(new Set());
 
-  const { sessionTrees, loadDirectory, setExpandedPath, getTreeData } = useFileTreeStore();
+  const { sessionTrees, loadDirectory, setExpandedPath, getTreeData, setHighlightedPath } = useFileTreeStore();
   const tree = sessionTrees.get(sessionId);
 
   // Get tree data from store
@@ -111,6 +111,18 @@ export default function FileTreeView({ sessionId }: FileTreeViewProps) {
     [sessionId, tree, setExpandedPath]
   );
 
+  // Handle selection to update highlightedPath for hotkey support
+  const handleSelect = useCallback(
+    (nodes: NodeApi<FileTreeNodeType>[]) => {
+      if (nodes.length > 0) {
+        setHighlightedPath(sessionId, nodes[0].id);
+      } else {
+        setHighlightedPath(sessionId, null);
+      }
+    },
+    [sessionId, setHighlightedPath]
+  );
+
   if (!tree) {
     return (
       <div className="p-4 text-gray-500 text-sm">No directory available</div>
@@ -167,6 +179,7 @@ export default function FileTreeView({ sessionId }: FileTreeViewProps) {
         disableDrag
         disableDrop
         onToggle={handleToggle}
+        onSelect={handleSelect}
       >
         {FileTreeNode}
       </Tree>

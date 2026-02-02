@@ -1,6 +1,9 @@
 import { NodeRendererProps } from "react-arborist";
 import { FileTreeNode as FileTreeNodeType } from "../../types/file";
 import { useEditorStore } from "../../stores/editorStore";
+import { useFileTreeStore } from "../../stores/fileTreeStore";
+import { useSessionStore } from "../../stores/sessionStore";
+import { FileTreeContextMenu } from "./FileTreeContextMenu";
 import {
   IconChevronDown,
   IconChevronRight,
@@ -143,6 +146,11 @@ export default function FileTreeNode({ node, style }: NodeRendererProps<FileTree
   const isAnyFileLoading = loadingFilePath !== null;
   const data = node.data;
 
+  // Get rootPath for context menu
+  const activeSessionId = useSessionStore((state) => state.activeSessionId);
+  const sessionTrees = useFileTreeStore((state) => state.sessionTrees);
+  const rootPath = activeSessionId ? sessionTrees.get(activeSessionId)?.rootPath ?? "" : "";
+
   // Handle loading placeholder nodes
   if (data.isLoading) {
     return (
@@ -176,39 +184,41 @@ export default function FileTreeNode({ node, style }: NodeRendererProps<FileTree
   };
 
   return (
-    <div
-      style={style}
-      className={`flex items-center gap-1.5 h-7 cursor-pointer select-none rounded
-        hover:bg-[hsl(var(--bg-hover))]
-        ${node.isSelected ? "bg-[hsl(var(--bg-hover))]" : ""}`}
-      onClick={handleClick}
-    >
-      {data.is_directory ? (
-        <>
-          <span className="flex-shrink-0 w-3.5 h-3.5 flex items-center justify-center">
-            {getChevronIcon(node.isOpen)}
-          </span>
-          <span className="flex-shrink-0">{getFolderIcon()}</span>
-        </>
-      ) : (
-        <>
-          {/* 14px placeholder to align with chevron */}
-          <span className="w-3.5 h-3.5 flex-shrink-0" />
-          <span className="flex-shrink-0">{getFileIcon(data.name)}</span>
-        </>
-      )}
-      <span
-        className={`truncate text-[13px] font-normal ${getTextColor(
-          data.is_symlink,
-          node.isSelected,
-          data.is_directory,
-          node.isOpen
-        )}`}
-        title={data.path}
+    <FileTreeContextMenu filePath={data.path} rootPath={rootPath}>
+      <div
+        style={style}
+        className={`flex items-center gap-1.5 h-7 cursor-pointer select-none rounded
+          hover:bg-[hsl(var(--bg-hover))]
+          ${node.isSelected ? "bg-[hsl(var(--bg-hover))]" : ""}`}
+        onClick={handleClick}
       >
-        {data.name}
-        {data.is_symlink && " →"}
-      </span>
-    </div>
+        {data.is_directory ? (
+          <>
+            <span className="flex-shrink-0 w-3.5 h-3.5 flex items-center justify-center">
+              {getChevronIcon(node.isOpen)}
+            </span>
+            <span className="flex-shrink-0">{getFolderIcon()}</span>
+          </>
+        ) : (
+          <>
+            {/* 14px placeholder to align with chevron */}
+            <span className="w-3.5 h-3.5 flex-shrink-0" />
+            <span className="flex-shrink-0">{getFileIcon(data.name)}</span>
+          </>
+        )}
+        <span
+          className={`truncate text-[13px] font-normal ${getTextColor(
+            data.is_symlink,
+            node.isSelected,
+            data.is_directory,
+            node.isOpen
+          )}`}
+          title={data.path}
+        >
+          {data.name}
+          {data.is_symlink && " →"}
+        </span>
+      </div>
+    </FileTreeContextMenu>
   );
 }

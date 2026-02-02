@@ -51,8 +51,19 @@ export function eventToBinding(e: KeyboardEvent): HotkeyBinding | null {
   if (e.altKey) modifiers.push("alt");
   if (e.shiftKey) modifiers.push("shift");
 
+  // On macOS, Option+key produces special characters (e.g., Option+C = ç)
+  // Use e.code to get the physical key when Alt is pressed
+  let key = e.key.toLowerCase();
+  if (e.altKey && e.code.startsWith("Key")) {
+    // e.code is like "KeyC" -> extract "c"
+    key = e.code.slice(3).toLowerCase();
+  } else if (e.altKey && e.code.startsWith("Digit")) {
+    // e.code is like "Digit1" -> extract "1"
+    key = e.code.slice(5);
+  }
+
   return {
-    key: e.key.toLowerCase(),
+    key,
     modifiers,
   };
 }

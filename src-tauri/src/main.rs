@@ -212,6 +212,7 @@ fn main() {
             filesystem::read_file,
             filesystem::write_file,
             filesystem::search_files,
+            filesystem::reveal_in_finder,
             git::get_git_status,
             git::stage_file,
             git::unstage_file,

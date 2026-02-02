@@ -8,6 +8,7 @@ import { useSettingsStore } from "../stores/settingsStore";
 import { useSplitPaneStore } from "../stores/splitPaneStore";
 import { useGitStore } from "../stores/gitStore";
 import { useTerminalSearchStore } from "../stores/terminalSearchStore";
+import { useFileTreeStore } from "../stores/fileTreeStore";
 import { getEffectiveHotkeys, bindingsMatch, eventToBinding } from "../utils/hotkeyUtils";
 
 // Map of action names to their handler functions
@@ -39,6 +40,7 @@ export function useHotkeyHandler() {
       const splitPaneStore = useSplitPaneStore.getState();
       const gitStore = useGitStore.getState();
       const terminalSearchStore = useTerminalSearchStore.getState();
+      const fileTreeStore = useFileTreeStore.getState();
 
       // Define action handlers
       const handlers: ActionHandlers = {
@@ -146,6 +148,42 @@ export function useHotkeyHandler() {
           const index = getSwitchSessionIndex(matchedHotkey.id);
           if (index !== null) {
             switchToSession(index);
+          }
+        },
+
+        // File Tree handlers
+        copyFilePath: () => {
+          if (!sessionStore.activeSessionId) return;
+          const tree = fileTreeStore.sessionTrees.get(sessionStore.activeSessionId);
+          const highlightedPath = tree?.highlightedPath;
+          if (highlightedPath) {
+            navigator.clipboard.writeText(highlightedPath).catch(console.error);
+          }
+        },
+
+        copyRelativeFilePath: () => {
+          if (!sessionStore.activeSessionId) return;
+          const tree = fileTreeStore.sessionTrees.get(sessionStore.activeSessionId);
+          const highlightedPath = tree?.highlightedPath;
+          const rootPath = tree?.rootPath;
+          if (highlightedPath && rootPath) {
+            let relativePath = highlightedPath;
+            if (highlightedPath.startsWith(rootPath)) {
+              relativePath = highlightedPath.slice(rootPath.length);
+              if (relativePath.startsWith("/")) {
+                relativePath = relativePath.slice(1);
+              }
+            }
+            navigator.clipboard.writeText(relativePath).catch(console.error);
+          }
+        },
+
+        revealInFinder: () => {
+          if (!sessionStore.activeSessionId) return;
+          const tree = fileTreeStore.sessionTrees.get(sessionStore.activeSessionId);
+          const highlightedPath = tree?.highlightedPath;
+          if (highlightedPath) {
+            invoke("reveal_in_finder", { path: highlightedPath }).catch(console.error);
           }
         },
 
