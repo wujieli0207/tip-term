@@ -10,6 +10,7 @@ import { useGitStore } from "../stores/gitStore";
 import { useTerminalSearchStore } from "../stores/terminalSearchStore";
 import { useFileTreeStore } from "../stores/fileTreeStore";
 import { getEffectiveHotkeys, bindingsMatch, eventToBinding } from "../utils/hotkeyUtils";
+import { searchNext, searchPrevious } from "../terminal-core/api/terminalApi";
 
 // Map of action names to their handler functions
 type ActionHandlers = Record<string, () => void>;
@@ -143,6 +144,36 @@ export function useHotkeyHandler() {
           } else {
             terminalSearchStore.open(targetSessionId);
           }
+        },
+        terminalSearchNext: () => {
+          if (!terminalSearchStore.isOpen || !terminalSearchStore.activeSessionId) return;
+          if (!terminalSearchStore.query) return;
+          searchNext(terminalSearchStore.activeSessionId, terminalSearchStore.query, {
+            caseSensitive: terminalSearchStore.caseSensitive,
+            wholeWord: terminalSearchStore.wholeWord,
+            regex: terminalSearchStore.regex,
+          });
+        },
+        terminalSearchPrev: () => {
+          if (!terminalSearchStore.isOpen || !terminalSearchStore.activeSessionId) return;
+          if (!terminalSearchStore.query) return;
+          searchPrevious(terminalSearchStore.activeSessionId, terminalSearchStore.query, {
+            caseSensitive: terminalSearchStore.caseSensitive,
+            wholeWord: terminalSearchStore.wholeWord,
+            regex: terminalSearchStore.regex,
+          });
+        },
+        terminalSearchToggleCase: () => {
+          if (!terminalSearchStore.isOpen) return;
+          terminalSearchStore.toggleCaseSensitive();
+        },
+        terminalSearchToggleRegex: () => {
+          if (!terminalSearchStore.isOpen) return;
+          terminalSearchStore.toggleRegex();
+        },
+        terminalSearchToggleWholeWord: () => {
+          if (!terminalSearchStore.isOpen) return;
+          terminalSearchStore.toggleWholeWord();
         },
         switchSession: () => {
           const index = getSwitchSessionIndex(matchedHotkey.id);

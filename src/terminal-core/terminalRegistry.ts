@@ -11,7 +11,6 @@ import type { LigaturesAddon } from "@xterm/addon-ligatures";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { open } from "@tauri-apps/plugin-shell";
-import { useSettingsStore } from "../stores/settingsStore";
 import { useTerminalSuggestStore } from "../stores/terminalSuggestStore";
 import { useTerminalSearchStore } from "../stores/terminalSearchStore";
 import { sendNotification } from "../utils/notifications";
@@ -735,25 +734,22 @@ export function updateTerminalThemes(): void {
 }
 
 export function updateTerminalCursorSettings(): void {
-  const settings = useSettingsStore.getState().appearance;
+  const config = getTerminalConfigSnapshot();
   for (const entry of registry.values()) {
     if (!entry.isDisposed) {
-      entry.terminal.options.cursorBlink = settings.cursorBlink;
-      entry.terminal.options.cursorStyle = settings.cursorStyle;
+      entry.terminal.options.cursorBlink = config.cursorBlink;
+      entry.terminal.options.cursorStyle = config.cursorShape;
     }
   }
 }
 
 export function updateTerminalFontSettings(): void {
-  const settings = useSettingsStore.getState().appearance;
-  const fontFamily = settings.fontFamily ?? "JetBrains Mono";
-  const fontSize = settings.fontSize ?? 14;
-  const lineHeight = settings.lineHeight ?? 1.4;
+  const config = getTerminalConfigSnapshot();
   for (const entry of registry.values()) {
     if (!entry.isDisposed) {
-      entry.terminal.options.fontSize = fontSize;
-      entry.terminal.options.fontFamily = fontFamily;
-      entry.terminal.options.lineHeight = lineHeight;
+      entry.terminal.options.fontSize = config.fontSize;
+      entry.terminal.options.fontFamily = config.fontFamily;
+      entry.terminal.options.lineHeight = config.lineHeight;
       try {
         entry.fitAddon.fit();
       } catch {

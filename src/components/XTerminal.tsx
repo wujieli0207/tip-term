@@ -3,6 +3,7 @@ import { Terminal } from '@xterm/xterm'
 import '@xterm/xterm/css/xterm.css'
 import { useSidebarStore } from '../stores/sidebarStore'
 import { useSettingsStore } from '../stores/settingsStore'
+import { useTerminalConfigStore } from '../stores/terminalConfigStore'
 import { useTerminalSuggestStore } from '../stores/terminalSuggestStore'
 import { invoke } from '@tauri-apps/api/core'
 import { attachTerminal, detachTerminal, setTerminalActive } from '../terminal-core/api/terminalApi'
@@ -36,8 +37,8 @@ export default function XTerminal({
   const lineHeight = useSettingsStore((state) => state.appearance.lineHeight ?? 1.4)
 
   // Terminal behavior settings
-  const quickEdit = useSettingsStore((state) => state.terminal.quickEdit)
-  const copyOnSelect = useSettingsStore((state) => state.terminal.copyOnSelect)
+  const quickEdit = useTerminalConfigStore((state) => state.config.quickEdit)
+  const copyOnSelect = useTerminalConfigStore((state) => state.config.copyOnSelect)
 
   const suggestEntry = useTerminalSuggestStore((state) => state.entries.get(sessionId))
   const suggestInput = suggestEntry?.input ?? ""

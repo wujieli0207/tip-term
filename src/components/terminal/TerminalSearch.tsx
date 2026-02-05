@@ -1,6 +1,8 @@
 import { memo, useCallback, useEffect, useRef } from "react";
 import { IconX, IconChevronUp, IconChevronDown, IconLetterCase, IconRegex, IconTextWrap } from "@tabler/icons-react";
 import { useTerminalSearchStore } from "../../stores/terminalSearchStore";
+import { useSettingsStore } from "../../stores/settingsStore";
+import { findHotkeyByAction, formatBinding } from "../../utils/hotkeyUtils";
 import {
   searchTerminal,
   searchNext,
@@ -33,6 +35,13 @@ function TerminalSearch({ sessionId }: TerminalSearchProps) {
     toggleRegex,
     close,
   } = useTerminalSearchStore();
+  const hotkeyCustomizations = useSettingsStore((state) => state.hotkeys.customizations);
+
+  const getHotkeyLabel = (action: string) => {
+    const found = findHotkeyByAction(action, hotkeyCustomizations);
+    if (!found?.currentBinding) return "Unassigned";
+    return formatBinding(found.currentBinding);
+  };
 
   // Only show if this session is the active search session
   const isVisible = isOpen && activeSessionId === sessionId;
@@ -77,15 +86,17 @@ function TerminalSearch({ sessionId }: TerminalSearchProps) {
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
-      if (e.key === "Escape") {
-        e.preventDefault();
-        close();
-      } else if (e.key === "Enter") {
-        e.preventDefault();
-        if (e.shiftKey) {
-          handleFindPrevious();
-        } else {
-          handleFindNext();
+    if (e.key === "Escape") {
+      e.preventDefault();
+      e.stopPropagation();
+      close();
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      e.stopPropagation();
+      if (e.shiftKey) {
+        handleFindPrevious();
+      } else {
+        handleFindNext();
         }
       }
     },
@@ -106,7 +117,7 @@ function TerminalSearch({ sessionId }: TerminalSearchProps) {
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         onKeyDown={handleKeyDown}
-        placeholder="Search..."
+        placeholder={`Search... (${getHotkeyLabel("terminalSearch")})`}
         className="w-48 px-2 py-1 text-sm bg-transparent border-none outline-none text-[hsl(var(--text-primary))] placeholder:text-[hsl(var(--text-muted))]"
       />
 
@@ -119,7 +130,7 @@ function TerminalSearch({ sessionId }: TerminalSearchProps) {
             ? "text-[hsl(var(--accent-primary))]"
             : "text-[hsl(var(--text-muted))]"
         }`}
-        title="Match Case (Alt+C)"
+        title={`Match Case (${getHotkeyLabel("terminalSearchToggleCase")})`}
       >
         <IconLetterCase size={16} />
       </button>
@@ -133,7 +144,7 @@ function TerminalSearch({ sessionId }: TerminalSearchProps) {
             ? "text-[hsl(var(--accent-primary))]"
             : "text-[hsl(var(--text-muted))]"
         }`}
-        title="Use Regular Expression (Alt+R)"
+        title={`Use Regular Expression (${getHotkeyLabel("terminalSearchToggleRegex")})`}
       >
         <IconRegex size={16} />
       </button>
@@ -147,7 +158,7 @@ function TerminalSearch({ sessionId }: TerminalSearchProps) {
             ? "text-[hsl(var(--accent-primary))]"
             : "text-[hsl(var(--text-muted))]"
         }`}
-        title="Match Whole Word (Alt+W)"
+        title={`Match Whole Word (${getHotkeyLabel("terminalSearchToggleWholeWord")})`}
       >
         <IconTextWrap size={16} />
       </button>
@@ -166,7 +177,7 @@ function TerminalSearch({ sessionId }: TerminalSearchProps) {
         onClick={handleFindPrevious}
         disabled={!query}
         className="p-1 rounded hover:bg-[hsl(var(--bg-hover))] transition-colors text-[hsl(var(--text-secondary))] disabled:opacity-40 disabled:cursor-not-allowed"
-        title="Previous Match (Shift+Enter)"
+        title={`Previous Match (${getHotkeyLabel("terminalSearchPrev")})`}
       >
         <IconChevronUp size={16} />
       </button>
@@ -177,7 +188,7 @@ function TerminalSearch({ sessionId }: TerminalSearchProps) {
         onClick={handleFindNext}
         disabled={!query}
         className="p-1 rounded hover:bg-[hsl(var(--bg-hover))] transition-colors text-[hsl(var(--text-secondary))] disabled:opacity-40 disabled:cursor-not-allowed"
-        title="Next Match (Enter)"
+        title={`Next Match (${getHotkeyLabel("terminalSearchNext")})`}
       >
         <IconChevronDown size={16} />
       </button>

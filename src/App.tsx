@@ -10,7 +10,7 @@ import { useHotkeyHandler } from "./hooks/useHotkeyHandler";
 import { useProcessPolling } from "./hooks/useProcessPolling";
 import { getThemeService } from "./services/themeService";
 import { updateTerminalThemes, updateTerminalCursorSettings } from "./terminal-core/api/terminalApi";
-import { reloadTerminalConfig } from "./terminal-core/config/loader";
+import { ensureTerminalConfigFile, reloadTerminalConfig } from "./terminal-core/config/loader";
 import { startTerminalConfigWatcher } from "./terminal-core/config/watcher";
 
 function App() {
@@ -28,6 +28,7 @@ function App() {
       await themeService.init();
       themeService.applyThemeFromSettings();
 
+      await ensureTerminalConfigFile();
       await reloadTerminalConfig();
       stopWatcher = await startTerminalConfigWatcher();
 

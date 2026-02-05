@@ -14,20 +14,6 @@ export interface AppearanceSettings {
   lineHeight: number;
 }
 
-export interface TerminalSettings {
-  /** Enable WebGL renderer (falls back to Canvas if unavailable) */
-  webGLRenderer: boolean;
-  /** Enable font ligatures (only works with Canvas renderer) */
-  ligatures: boolean;
-  /** Right-click quick copy/paste: if text selected, copy; otherwise paste */
-  quickEdit: boolean;
-  /** Automatically copy selected text to clipboard */
-  copyOnSelect: boolean;
-  /** Key modifier required to activate web links (null = disabled) */
-  webLinksActivationKey: "ctrl" | "meta" | "alt" | "shift" | null;
-  /** Bell notification behavior */
-  bell: "off" | "sound" | "visual" | "both";
-}
 
 export interface HotkeySettings {
   customizations: HotkeyCustomization;
@@ -35,7 +21,6 @@ export interface HotkeySettings {
 
 interface SettingsState {
   appearance: AppearanceSettings;
-  terminal: TerminalSettings;
   hotkeys: HotkeySettings;
   setCursorStyle: (style: "block" | "underline" | "bar") => void;
   setCursorBlink: (enabled: boolean) => void;
@@ -45,10 +30,6 @@ interface SettingsState {
   setFontSize: (size: number) => void;
   setFontFamily: (family: string) => void;
   setLineHeight: (height: number) => void;
-  setTerminalSetting: <K extends keyof TerminalSettings>(
-    key: K,
-    value: TerminalSettings[K]
-  ) => void;
   setHotkeyBinding: (id: string, binding: HotkeyBinding | null) => void;
   clearHotkeyBinding: (id: string) => void;
   resetHotkey: (id: string) => void;
@@ -67,14 +48,6 @@ const defaultAppearance: AppearanceSettings = {
   lineHeight: 1.4,
 };
 
-const defaultTerminal: TerminalSettings = {
-  webGLRenderer: true,
-  ligatures: true,
-  quickEdit: false,
-  copyOnSelect: false,
-  webLinksActivationKey: "meta", // Cmd on macOS, Ctrl on other platforms
-  bell: "off",
-};
 
 const defaultHotkeys: HotkeySettings = {
   customizations: {},
@@ -84,7 +57,6 @@ export const useSettingsStore = create<SettingsState>()(
   persist(
     (set) => ({
       appearance: defaultAppearance,
-      terminal: defaultTerminal,
       hotkeys: defaultHotkeys,
 
       setCursorStyle: (style) =>
@@ -127,10 +99,6 @@ export const useSettingsStore = create<SettingsState>()(
           appearance: { ...state.appearance, lineHeight: height },
         })),
 
-      setTerminalSetting: (key, value) =>
-        set((state) => ({
-          terminal: { ...state.terminal, [key]: value },
-        })),
 
       setHotkeyBinding: (id, binding) =>
         set((state) => ({
@@ -176,7 +144,6 @@ export const useSettingsStore = create<SettingsState>()(
       resetSettings: () =>
         set({
           appearance: defaultAppearance,
-          terminal: defaultTerminal,
           hotkeys: defaultHotkeys,
         }),
     }),
@@ -190,10 +157,6 @@ export const useSettingsStore = create<SettingsState>()(
           appearance: {
             ...currentState.appearance,
             ...persisted?.appearance,
-          },
-          terminal: {
-            ...currentState.terminal,
-            ...persisted?.terminal,
           },
           hotkeys: {
             ...currentState.hotkeys,

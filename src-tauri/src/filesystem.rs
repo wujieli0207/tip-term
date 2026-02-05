@@ -178,7 +178,8 @@ pub async fn write_file(path: String, content: String) -> Result<(), String> {
     // Ensure parent directory exists
     if let Some(parent) = file_path.parent() {
         if !parent.exists() {
-            return Err(format!("Parent directory does not exist: {}", parent.display()));
+            fs::create_dir_all(parent)
+                .map_err(|e| format!("Failed to create parent directory: {}", e))?;
         }
     }
 
