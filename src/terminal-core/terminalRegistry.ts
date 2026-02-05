@@ -6,22 +6,20 @@ import { WebLinksAddon } from "@xterm/addon-web-links";
 import { SearchAddon } from "@xterm/addon-search";
 import { Unicode11Addon } from "@xterm/addon-unicode11";
 import { SerializeAddon } from "@xterm/addon-serialize";
-// ImageAddon and LigaturesAddon are loaded dynamically (bundle-conditional)
 import type { ImageAddon } from "@xterm/addon-image";
 import type { LigaturesAddon } from "@xterm/addon-ligatures";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { open } from "@tauri-apps/plugin-shell";
-// Core stores needed synchronously
 import { useSettingsStore } from "../stores/settingsStore";
 import { useTerminalSuggestStore } from "../stores/terminalSuggestStore";
-// Stores loaded dynamically in callbacks (bundle-barrel-imports)
-// import { useSessionStore } from "../stores/sessionStore";
-// import { useEditorStore } from "../stores/editorStore";
-import { sendNotification } from "./notifications";
-import { getTerminalTheme, getThemeService } from "../services/themeService";
+import { useTerminalSearchStore } from "../stores/terminalSearchStore";
+import { sendNotification } from "../utils/notifications";
+import { getThemeService } from "../services/themeService";
+import { useTerminalConfigStore } from "../stores/terminalConfigStore";
+import type { TerminalConfig } from "./config/schema";
+import { TerminalOutputBatcher } from "./session/ioBatcher";
 
-// Lazy store getters to avoid barrel imports at module load time
 const getSessionStore = () => import("../stores/sessionStore").then(m => m.useSessionStore.getState());
 const getEditorStore = () => import("../stores/editorStore").then(m => m.useEditorStore.getState());
 
@@ -29,9 +27,6 @@ const ACTIVITY_NOTIFICATION_COOLDOWN = 5000;
 const SUGGEST_DEBOUNCE_MS = 150;
 const SUGGEST_LIMIT = 40;
 
-/**
- * Cached WebGL2 support detection
- */
 const isWebgl2Supported = (() => {
   let isSupported: boolean | undefined;
   return () => {
@@ -40,7 +35,6 @@ const isWebgl2Supported = (() => {
         const canvas = document.createElement("canvas");
         const gl = canvas.getContext("webgl2", { depth: false, antialias: false });
         isSupported = gl instanceof WebGL2RenderingContext;
-        // Clean up the canvas
         if (gl) {
           const ext = gl.getExtension("WEBGL_lose_context");
           ext?.loseContext();
@@ -64,13 +58,13 @@ export interface TerminalEntry {
   serializeAddon?: SerializeAddon;
   imageAddon?: ImageAddon;
   ligaturesAddon?: LigaturesAddon;
-  /** Current renderer type: 'webgl' | 'canvas' | 'dom' */
   rendererType: "webgl" | "canvas" | "dom";
   isOpened: boolean;
   container?: HTMLElement;
   dataDisposable?: IDisposable;
   titleDisposable?: IDisposable;
   bellDisposable?: IDisposable;
+  searchResultsDisposable?: IDisposable;
   unlisten?: () => void;
   unlistenPromise?: Promise<() => void>;
   lastActivityNotificationAt: number;
@@ -78,17 +72,68 @@ export interface TerminalEntry {
   inputBuffer: string;
   suggestLastPrefix: string;
   suggestFetchTimeout?: number | null;
+  outputBatcher: TerminalOutputBatcher;
+  bellAudio?: HTMLAudioElement | null;
 }
 
 const registry = new Map<string, TerminalEntry>();
 
-/**
- * Check if the configured web links activation key is pressed
- */
+function getTerminalConfigSnapshot(): TerminalConfig {
+  return useTerminalConfigStore.getState().config;
+}
+
+function isTransparentColor(color: string): boolean {
+  const rgbaMatch = color.match(/rgba\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*,\s*([0-9.]+)\s*\)/i);
+  if (rgbaMatch) {
+    return Number(rgbaMatch[1]) < 1;
+  }
+  const hexMatch = color.match(/^#([0-9a-f]{8})$/i);
+  if (hexMatch) {
+    const alphaHex = hexMatch[1].slice(6, 8);
+    return parseInt(alphaHex, 16) < 255;
+  }
+  return false;
+}
+
+function buildThemeFromConfig(config: TerminalConfig) {
+  if (Array.isArray(config.colors) && config.colors.length === 16) {
+    const [
+      black, red, green, yellow, blue, magenta, cyan, white,
+      brightBlack, brightRed, brightGreen, brightYellow, brightBlue, brightMagenta, brightCyan, brightWhite,
+    ] = config.colors;
+
+    return {
+      background: config.backgroundColor,
+      foreground: config.foregroundColor,
+      cursor: config.cursorColor,
+      cursorAccent: config.cursorAccentColor,
+      selectionBackground: config.selectionColor,
+      black,
+      red,
+      green,
+      yellow,
+      blue,
+      magenta,
+      cyan,
+      white,
+      brightBlack,
+      brightRed,
+      brightGreen,
+      brightYellow,
+      brightBlue,
+      brightMagenta,
+      brightCyan,
+      brightWhite,
+    };
+  }
+
+  return getThemeService().getTerminalTheme();
+}
+
 function isWebLinksActivationKeyPressed(event: MouseEvent): boolean {
-  const { webLinksActivationKey } = useSettingsStore.getState().terminal;
-  if (webLinksActivationKey === null) return false;
-  switch (webLinksActivationKey) {
+  const key = getTerminalConfigSnapshot().webLinksActivationKey;
+  if (key === null) return false;
+  switch (key) {
     case "ctrl":
       return event.ctrlKey;
     case "meta":
@@ -102,30 +147,45 @@ function isWebLinksActivationKeyPressed(event: MouseEvent): boolean {
   }
 }
 
+function createBellAudio(config: TerminalConfig): HTMLAudioElement | null {
+  if (config.bellSoundURL) {
+    return new Audio(config.bellSoundURL);
+  }
+  if (config.bellSound) {
+    return new Audio(config.bellSound);
+  }
+  return null;
+}
+
 function createEntry(sessionId: string): TerminalEntry {
-  const appearanceSettings = useSettingsStore.getState().appearance;
-  const terminalSettings = useSettingsStore.getState().terminal;
-  const fontFamily = appearanceSettings.fontFamily ?? "JetBrains Mono";
-  const fontSize = appearanceSettings.fontSize ?? 14;
-  const lineHeight = appearanceSettings.lineHeight ?? 1.4;
+  const config = getTerminalConfigSnapshot();
+  const theme = buildThemeFromConfig(config);
+  const allowTransparency = isTransparentColor(config.backgroundColor);
+
   const terminal = new Terminal({
-    fontFamily: `"${fontFamily}", Monaco, monospace`,
-    fontSize: fontSize,
-    lineHeight: lineHeight,
-    theme: getTerminalTheme(),
-    cursorBlink: appearanceSettings.cursorBlink,
-    cursorStyle: appearanceSettings.cursorStyle,
+    fontFamily: config.fontFamily,
+    fontSize: config.fontSize,
+    fontWeight: config.fontWeight,
+    fontWeightBold: config.fontWeightBold,
+    lineHeight: config.lineHeight,
+    letterSpacing: config.letterSpacing,
+    scrollback: config.scrollback,
+    cursorStyle: config.cursorShape,
+    cursorBlink: config.cursorBlink,
+    allowTransparency,
+    macOptionIsMeta: config.modifierKeys.altIsMeta,
+    macOptionClickForcesSelection: config.macOptionSelectionMode === "force",
+    theme,
+    screenReaderMode: config.screenReaderMode,
     allowProposedApi: true,
   });
 
   const fitAddon = new FitAddon();
   terminal.loadAddon(fitAddon);
 
-  // Add SearchAddon for terminal search (Cmd+F)
   const searchAddon = new SearchAddon();
   terminal.loadAddon(searchAddon);
 
-  // Add Unicode11Addon for proper emoji and CJK character rendering
   let unicode11Addon: Unicode11Addon | undefined;
   try {
     unicode11Addon = new Unicode11Addon();
@@ -135,7 +195,6 @@ function createEntry(sessionId: string): TerminalEntry {
     console.warn("[terminalRegistry] Unicode11Addon failed to load:", e);
   }
 
-  // Add SerializeAddon for session persistence
   let serializeAddon: SerializeAddon | undefined;
   try {
     serializeAddon = new SerializeAddon();
@@ -144,23 +203,16 @@ function createEntry(sessionId: string): TerminalEntry {
     console.warn("[terminalRegistry] SerializeAddon failed to load:", e);
   }
 
-  // ImageAddon is loaded lazily after terminal is opened (bundle-conditional)
   let imageAddon: ImageAddon | undefined;
 
-  // Add web links addon for clickable URLs (requires configured activation key)
   const webLinksAddon = new WebLinksAddon((event, uri) => {
-    // Require the configured activation key to be held
     if (!isWebLinksActivationKeyPressed(event)) return;
-    // Open URL in browser
     open(uri).catch((err) => {
       console.error("[terminalRegistry] Failed to open URL:", err);
     });
   });
   terminal.loadAddon(webLinksAddon);
 
-  // Register custom link provider for file paths
-  // This detects file paths like /path/to/file.ts, ./file.js, src/file.tsx:10:5
-  // Also supports CJK characters (Chinese, Japanese, Korean) in file paths
   const filePathRegex = /(?:^|\s)((?:\.{0,2}\/)?(?:[\w\u4e00-\u9fff\u3040-\u309f\u30a0-\u30ff\uac00-\ud7af\-]+\/)*[\w\u4e00-\u9fff\u3040-\u309f\u30a0-\u30ff\uac00-\ud7af\-.]+\.[a-zA-Z0-9]+(?::\d+(?::\d+)?)?)/gu;
 
   terminal.registerLinkProvider({
@@ -182,12 +234,10 @@ function createEntry(sessionId: string): TerminalEntry {
       filePathRegex.lastIndex = 0;
       while ((match = filePathRegex.exec(lineText)) !== null) {
         const filePath = match[1];
-        // Skip if it looks like a URL
         if (filePath.includes('://')) continue;
 
-        // Calculate position (account for leading whitespace in match)
         const matchStart = match.index + (match[0].length - match[1].length);
-        const startX = matchStart + 1; // 1-indexed
+        const startX = matchStart + 1;
         const endX = matchStart + filePath.length;
 
         links.push({
@@ -196,34 +246,24 @@ function createEntry(sessionId: string): TerminalEntry {
             end: { x: endX, y: bufferLineNumber },
           },
           text: filePath,
-          // Use async activate to enable dynamic store imports (bundle-barrel-imports)
-          // Requires configured activation key to be held
           activate: async (event: MouseEvent) => {
-            // Require the configured activation key to be held
             if (!isWebLinksActivationKeyPressed(event)) return;
-            // Extract path and line/column info
             const pathMatch = filePath.match(/^(.+?)(?::(\d+)(?::(\d+))?)?$/);
             if (!pathMatch) return;
 
             let path = pathMatch[1];
-            // const line = pathMatch[2] ? parseInt(pathMatch[2], 10) : undefined;
-            // const column = pathMatch[3] ? parseInt(pathMatch[3], 10) : undefined;
 
-            // Convert relative path to absolute path using session's cwd
             if (!path.startsWith('/')) {
               const sessionStore = await getSessionStore();
               const session = sessionStore.sessions.get(sessionId);
               const cwd = session?.cwd;
               if (cwd) {
-                // Handle ./ and ../ prefixes
                 if (path.startsWith('./')) {
                   path = `${cwd}/${path.slice(2)}`;
                 } else if (path.startsWith('../')) {
-                  // For ../ we need to go up one directory from cwd
                   const parentDir = cwd.split('/').slice(0, -1).join('/');
                   path = `${parentDir}/${path.slice(3)}`;
                 } else {
-                  // Regular relative path (e.g., "package.json", "src/file.ts")
                   path = `${cwd}/${path}`;
                 }
               } else {
@@ -232,7 +272,6 @@ function createEntry(sessionId: string): TerminalEntry {
               }
             }
 
-            // Open in editor (dynamic import)
             const editorStore = await getEditorStore();
             editorStore.openFile(path).catch((err: unknown) => {
               console.error("[terminalRegistry] Failed to open file in editor:", err, path);
@@ -245,12 +284,11 @@ function createEntry(sessionId: string): TerminalEntry {
     },
   });
 
-  // Renderer setup: WebGL -> Canvas -> DOM fallback chain
   let webglAddon: WebglAddon | undefined;
   let canvasAddon: CanvasAddon | undefined;
   let rendererType: "webgl" | "canvas" | "dom" = "dom";
 
-  const useWebGL = terminalSettings.webGLRenderer && isWebgl2Supported();
+  const useWebGL = config.webGLRenderer && isWebgl2Supported() && !allowTransparency;
 
   if (useWebGL) {
     try {
@@ -259,12 +297,10 @@ function createEntry(sessionId: string): TerminalEntry {
         console.warn(`[terminalRegistry] WebGL context lost for session ${sessionId}, falling back to canvas renderer`);
         webglAddon?.dispose();
         webglAddon = undefined;
-        // Load Canvas addon as fallback
         try {
           canvasAddon = new CanvasAddon();
           terminal.loadAddon(canvasAddon);
           rendererType = "canvas";
-          // Update entry if it exists
           const entry = registry.get(sessionId);
           if (entry) {
             entry.webglAddon = undefined;
@@ -288,7 +324,6 @@ function createEntry(sessionId: string): TerminalEntry {
     }
   }
 
-  // If WebGL is disabled or failed, try Canvas
   if (!webglAddon) {
     try {
       canvasAddon = new CanvasAddon();
@@ -301,8 +336,6 @@ function createEntry(sessionId: string): TerminalEntry {
     }
   }
 
-  // LigaturesAddon will be loaded after terminal.open() in attachTerminal
-  // because it requires DOM access (only works with Canvas/DOM renderer)
   let ligaturesAddon: LigaturesAddon | undefined;
 
   const entry: TerminalEntry = {
@@ -323,6 +356,8 @@ function createEntry(sessionId: string): TerminalEntry {
     inputBuffer: "",
     suggestLastPrefix: "",
     suggestFetchTimeout: null,
+    outputBatcher: new TerminalOutputBatcher((data) => terminal.write(data)),
+    bellAudio: createBellAudio(config),
   };
 
   useTerminalSuggestStore.getState().ensureSession(sessionId);
@@ -469,16 +504,13 @@ function createEntry(sessionId: string): TerminalEntry {
   });
 
   entry.titleDisposable = terminal.onTitleChange((title) => {
-    // Dynamic import to reduce initial bundle (bundle-barrel-imports)
     getSessionStore().then(store => store.updateSessionTerminalTitle(sessionId, title));
   });
 
-  // Bell event handler for sound/visual feedback
   entry.bellDisposable = terminal.onBell(() => {
-    const bellSetting = useSettingsStore.getState().terminal.bell;
+    const bellSetting = getTerminalConfigSnapshot().bell;
     if (bellSetting === "off") return;
 
-    // Visual feedback: briefly flash the terminal (CSS class toggle)
     if (bellSetting === "visual" || bellSetting === "both") {
       const element = terminal.element;
       if (element) {
@@ -489,32 +521,44 @@ function createEntry(sessionId: string): TerminalEntry {
       }
     }
 
-    // Sound feedback: play system beep
     if (bellSetting === "sound" || bellSetting === "both") {
-      // Create an AudioContext beep sound
-      try {
-        const audioContext = new AudioContext();
-        const oscillator = audioContext.createOscillator();
-        const gainNode = audioContext.createGain();
-        oscillator.connect(gainNode);
-        gainNode.connect(audioContext.destination);
-        oscillator.frequency.value = 800; // 800Hz beep
-        oscillator.type = "sine";
-        gainNode.gain.value = 0.1; // Low volume
-        oscillator.start();
-        oscillator.stop(audioContext.currentTime + 0.1); // 100ms beep
-      } catch {
-        // Audio not available, silently ignore
+      const configSnapshot = getTerminalConfigSnapshot();
+      if (configSnapshot.bellSound || configSnapshot.bellSoundURL) {
+        entry.bellAudio = entry.bellAudio ?? createBellAudio(configSnapshot);
+        entry.bellAudio?.play().catch(() => {
+          // ignore audio errors
+        });
+      } else {
+        try {
+          const audioContext = new AudioContext();
+          const oscillator = audioContext.createOscillator();
+          const gainNode = audioContext.createGain();
+          oscillator.connect(gainNode);
+          gainNode.connect(audioContext.destination);
+          oscillator.frequency.value = 800;
+          oscillator.type = "sine";
+          gainNode.gain.value = 0.1;
+          oscillator.start();
+          oscillator.stop(audioContext.currentTime + 0.1);
+        } catch {
+          // Audio not available
+        }
       }
     }
+  });
+
+  entry.searchResultsDisposable = entry.searchAddon.onDidChangeResults((results) => {
+    const searchStore = useTerminalSearchStore.getState();
+    const current = results?.resultIndex != null ? results.resultIndex + 1 : 0;
+    const total = results?.resultCount ?? 0;
+    searchStore.setMatchInfo(current, total);
   });
 
   entry.unlistenPromise = listen<number[]>(`terminal-output-${sessionId}`, async (event) => {
     if (entry.isDisposed) return;
     const data = new Uint8Array(event.payload);
-    terminal.write(data);
+    entry.outputBatcher.push(data);
 
-    // Dynamic import to reduce initial bundle (bundle-barrel-imports)
     const currentState = await getSessionStore();
     const currentSession = currentState.sessions.get(sessionId);
     const isCurrentlyActive = currentState.activeSessionId === sessionId;
@@ -553,6 +597,8 @@ export function getOrCreateTerminal(sessionId: string): TerminalEntry {
 
 export function attachTerminal(sessionId: string, container: HTMLElement): TerminalEntry {
   const entry = getOrCreateTerminal(sessionId);
+  const config = getTerminalConfigSnapshot();
+
   if (entry.container === container) {
     return entry;
   }
@@ -569,10 +615,8 @@ export function attachTerminal(sessionId: string, container: HTMLElement): Termi
     }
   }
 
-  // Lazy load heavy addons after terminal.open() (bundle-conditional)
   if (!wasOpened) {
-    // Load ImageAddon for iTerm2 imgcat/sixel support
-    if (!entry.imageAddon) {
+    if (!entry.imageAddon && config.imageSupport) {
       import("@xterm/addon-image").then(({ ImageAddon }) => {
         if (entry.isDisposed) return;
         try {
@@ -590,34 +634,35 @@ export function attachTerminal(sessionId: string, container: HTMLElement): Termi
           console.warn("[terminalRegistry] ImageAddon failed to load:", e);
         }
       }).catch(() => {
-        // Silently ignore if addon can't be loaded
+        // ignore
       });
     }
 
-    // Load LigaturesAddon - requires DOM access
-    // Only load when NOT using WebGL renderer (WebGL doesn't support ligatures)
-    // and when ligatures setting is enabled
-    const { ligatures } = useSettingsStore.getState().terminal;
-    if (!entry.ligaturesAddon && entry.rendererType !== "webgl" && ligatures) {
+    if (!entry.ligaturesAddon && entry.rendererType !== "webgl" && config.ligatures) {
       import("@xterm/addon-ligatures").then(({ LigaturesAddon }) => {
         if (entry.isDisposed) return;
-        // Re-check renderer type in case it changed (e.g., WebGL context loss fallback)
         if (entry.rendererType === "webgl") return;
         try {
           const ligaturesAddon = new LigaturesAddon();
           entry.terminal.loadAddon(ligaturesAddon);
           entry.ligaturesAddon = ligaturesAddon;
         } catch (e) {
-          // LigaturesAddon may fail if font doesn't support ligatures - this is expected
           console.debug("[terminalRegistry] LigaturesAddon not loaded (font may not support ligatures):", e);
         }
       }).catch(() => {
-        // Silently ignore if addon can't be loaded
+        // ignore
       });
     }
   }
 
   entry.container = container;
+  if (config.padding) {
+    const element = entry.terminal.element;
+    if (element) {
+      element.style.padding = config.padding;
+    }
+  }
+
   if (import.meta.env.DEV) {
     const element = entry.terminal.element;
     if (element && element.parentElement !== container) {
@@ -653,6 +698,7 @@ export function disposeTerminal(sessionId: string): void {
   entry.dataDisposable?.dispose();
   entry.titleDisposable?.dispose();
   entry.bellDisposable?.dispose();
+  entry.searchResultsDisposable?.dispose();
   entry.webglAddon?.dispose();
   entry.canvasAddon?.dispose();
   entry.webLinksAddon?.dispose();
@@ -678,11 +724,9 @@ export function cleanupTerminals(activeSessionIds: Set<string>): void {
   }
 }
 
-/**
- * Update the theme for all active terminals
- */
 export function updateTerminalThemes(): void {
-  const newTheme = getTerminalTheme();
+  const config = getTerminalConfigSnapshot();
+  const newTheme = buildThemeFromConfig(config);
   for (const entry of registry.values()) {
     if (!entry.isDisposed) {
       entry.terminal.options.theme = newTheme;
@@ -690,9 +734,6 @@ export function updateTerminalThemes(): void {
   }
 }
 
-/**
- * Update cursor settings for all active terminals
- */
 export function updateTerminalCursorSettings(): void {
   const settings = useSettingsStore.getState().appearance;
   for (const entry of registry.values()) {
@@ -703,9 +744,6 @@ export function updateTerminalCursorSettings(): void {
   }
 }
 
-/**
- * Update font settings for all active terminals
- */
 export function updateTerminalFontSettings(): void {
   const settings = useSettingsStore.getState().appearance;
   const fontFamily = settings.fontFamily ?? "JetBrains Mono";
@@ -714,21 +752,71 @@ export function updateTerminalFontSettings(): void {
   for (const entry of registry.values()) {
     if (!entry.isDisposed) {
       entry.terminal.options.fontSize = fontSize;
-      entry.terminal.options.fontFamily = `"${fontFamily}", Monaco, monospace`;
+      entry.terminal.options.fontFamily = fontFamily;
       entry.terminal.options.lineHeight = lineHeight;
-      // Trigger a fit to recalculate dimensions with new font size
       try {
         entry.fitAddon.fit();
-      } catch (e) {
-        // Ignore fit errors
+      } catch {
+        // ignore
       }
     }
   }
 }
 
-// ============================================================
-// Terminal Search Functions
-// ============================================================
+export function updateTerminalConfig(config: TerminalConfig): void {
+  const theme = buildThemeFromConfig(config);
+  for (const entry of registry.values()) {
+    if (entry.isDisposed) continue;
+    entry.terminal.options.fontFamily = config.fontFamily;
+    entry.terminal.options.fontSize = config.fontSize;
+    entry.terminal.options.fontWeight = config.fontWeight;
+    entry.terminal.options.fontWeightBold = config.fontWeightBold;
+    entry.terminal.options.lineHeight = config.lineHeight;
+    entry.terminal.options.letterSpacing = config.letterSpacing;
+    entry.terminal.options.scrollback = config.scrollback;
+    entry.terminal.options.cursorStyle = config.cursorShape;
+    entry.terminal.options.cursorBlink = config.cursorBlink;
+    entry.terminal.options.screenReaderMode = config.screenReaderMode;
+    entry.terminal.options.macOptionIsMeta = config.modifierKeys.altIsMeta;
+    entry.terminal.options.macOptionClickForcesSelection = config.macOptionSelectionMode === "force";
+    entry.terminal.options.allowTransparency = isTransparentColor(config.backgroundColor);
+    entry.terminal.options.theme = theme;
+
+    const element = entry.terminal.element;
+    if (element) {
+      element.style.padding = config.padding;
+    }
+
+    if (config.imageSupport && !entry.imageAddon && entry.isOpened) {
+      import("@xterm/addon-image").then(({ ImageAddon }) => {
+        if (entry.isDisposed) return;
+        try {
+          const imageAddon = new ImageAddon({
+            enableSizeReports: true,
+            sixelSupport: true,
+            sixelScrolling: true,
+            sixelPaletteLimit: 256,
+            storageLimit: 128,
+            showPlaceholder: true,
+          });
+          entry.terminal.loadAddon(imageAddon);
+          entry.imageAddon = imageAddon;
+        } catch (e) {
+          console.warn("[terminalRegistry] ImageAddon failed to load:", e);
+        }
+      }).catch(() => {
+        // ignore
+      });
+    }
+
+    if (!config.ligatures && entry.ligaturesAddon) {
+      entry.ligaturesAddon.dispose();
+      entry.ligaturesAddon = undefined;
+    }
+
+    entry.bellAudio = createBellAudio(config);
+  }
+}
 
 export interface SearchOptions {
   caseSensitive?: boolean;
@@ -736,7 +824,6 @@ export interface SearchOptions {
   regex?: boolean;
 }
 
-// Shared search options builder (js-early-exit, reduce duplication)
 function buildSearchOptions({
   caseSensitive = false,
   wholeWord = false,
@@ -745,7 +832,6 @@ function buildSearchOptions({
   return { caseSensitive, wholeWord, regex };
 }
 
-// Internal helper to reduce duplication in searchNext/searchPrevious
 function searchDirection(
   sessionId: string,
   query: string,
@@ -759,10 +845,6 @@ function searchDirection(
   return entry.searchAddon[searchFn](query, buildSearchOptions(options));
 }
 
-/**
- * Search for text in terminal and return match info
- * Uses theme colors for search decorations
- */
 export function searchTerminal(
   sessionId: string,
   query: string,
@@ -773,10 +855,9 @@ export function searchTerminal(
     return { found: false };
   }
 
-  // Use theme colors for search decorations
-  const colorScheme = getThemeService().getActiveColorScheme();
-  const matchColor = colorScheme.selectionBackground || "#fabd2f";
-  const activeMatchColor = colorScheme.cursor || "#fe8019";
+  const config = getTerminalConfigSnapshot();
+  const matchColor = config.selectionColor;
+  const activeMatchColor = config.cursorColor;
 
   const found = entry.searchAddon.findNext(query, {
     ...buildSearchOptions(options),
@@ -793,9 +874,6 @@ export function searchTerminal(
   return { found };
 }
 
-/**
- * Find next match in terminal
- */
 export function searchNext(
   sessionId: string,
   query: string,
@@ -804,9 +882,6 @@ export function searchNext(
   return searchDirection(sessionId, query, "next", options);
 }
 
-/**
- * Find previous match in terminal
- */
 export function searchPrevious(
   sessionId: string,
   query: string,
@@ -815,22 +890,12 @@ export function searchPrevious(
   return searchDirection(sessionId, query, "previous", options);
 }
 
-/**
- * Clear search highlights
- */
 export function clearSearch(sessionId: string): void {
   const entry = registry.get(sessionId);
   if (!entry || entry.isDisposed) return;
   entry.searchAddon.clearDecorations();
 }
 
-// ============================================================
-// Terminal Serialization Functions
-// ============================================================
-
-/**
- * Serialize terminal content for persistence
- */
 export function serializeTerminal(sessionId: string): string | null {
   const entry = registry.get(sessionId);
   if (!entry || entry.isDisposed || !entry.serializeAddon) {
@@ -845,9 +910,6 @@ export function serializeTerminal(sessionId: string): string | null {
   }
 }
 
-/**
- * Restore terminal content from serialized data
- */
 export function restoreTerminal(sessionId: string, data: string): boolean {
   const entry = registry.get(sessionId);
   if (!entry || entry.isDisposed || !data) {
@@ -863,26 +925,11 @@ export function restoreTerminal(sessionId: string, data: string): boolean {
   }
 }
 
-// ============================================================
-// Terminal Activity Optimization
-// ============================================================
-
-/**
- * Set terminal active state for performance optimization
- * Non-active terminals will have reduced rendering to save resources
- */
 export function setTerminalActive(sessionId: string, isActive: boolean): void {
   const entry = registry.get(sessionId);
   if (!entry || entry.isDisposed) return;
-
-  // When inactive, disable stdin to reduce processing
-  // When active, re-enable stdin and ensure terminal is responsive
   entry.terminal.options.disableStdin = !isActive;
-
-  // Optionally blur/focus based on active state
-  if (isActive) {
-    // Don't auto-focus here - let the component handle focus management
-  } else {
+  if (!isActive) {
     entry.terminal.blur();
   }
 }

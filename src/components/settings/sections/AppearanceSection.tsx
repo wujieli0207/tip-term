@@ -9,7 +9,7 @@ import FontSelect from "../shared/FontSelect";
 import ThemeCard from "../theme/ThemeCard";
 import { getColorSchemesByMode } from "../../../config/defaultColorSchemes";
 import type { ThemeMode } from "../../../types/theme";
-import { updateTerminalThemes } from "../../../utils/terminalRegistry";
+import { updateTerminalThemes } from "../../../terminal-core/api/terminalApi";
 
 const cursorStyleOptions: { value: "block" | "bar" | "underline"; label: React.ReactNode }[] = [
   { value: "block", label: <span className="font-mono">█</span> },

@@ -3,15 +3,18 @@
 
 mod filesystem;
 mod git;
+mod config;
 
 use std::collections::HashMap;
 use std::io::Write;
 use std::sync::{Arc, Mutex};
+use std::time::{Duration, Instant};
 use tauri::{AppHandle, Emitter, Manager};
 use uuid::Uuid;
 
 // Import types from lib (tip_term library)
 use tip_term::{TerminalSession, ProcessInfo};
+use config::ConfigWatchState;
 
 /// Type alias for the writer
 type PtyWriter = Arc<Mutex<Box<dyn Write + Send>>>;
@@ -55,8 +58,12 @@ async fn create_session(
     let app_clone = app.clone();
     tokio::spawn(async move {
         eprintln!("Terminal output loop started for session {}", session_id_clone);
+        const BATCH_DURATION_MS: u64 = 4;
+        const BATCH_MAX_SIZE: usize = 64 * 1024;
+        let mut buffer: Vec<u8> = Vec::with_capacity(BATCH_MAX_SIZE);
+        let mut last_flush = Instant::now();
         loop {
-            tokio::time::sleep(std::time::Duration::from_millis(16)).await;
+            tokio::time::sleep(Duration::from_millis(2)).await;
 
             let output = {
                 let mut session = session_arc.lock().unwrap();
@@ -64,7 +71,25 @@ async fn create_session(
             };
 
             if let Some(data) = output {
-                if let Err(e) = app_clone.emit(&format!("terminal-output-{}", session_id_clone), data) {
+                if buffer.is_empty() && data.len() <= 4096 {
+                    if let Err(e) = app_clone.emit(&format!("terminal-output-{}", session_id_clone), data) {
+                        eprintln!("Failed to emit terminal output: {}", e);
+                        break;
+                    }
+                    last_flush = Instant::now();
+                } else {
+                    buffer.extend_from_slice(&data);
+                }
+            }
+
+            let should_flush = !buffer.is_empty()
+                && (buffer.len() >= BATCH_MAX_SIZE
+                    || last_flush.elapsed().as_millis() >= BATCH_DURATION_MS as u128);
+
+            if should_flush {
+                let payload = buffer.split_off(0);
+                last_flush = Instant::now();
+                if let Err(e) = app_clone.emit(&format!("terminal-output-{}", session_id_clone), payload) {
                     eprintln!("Failed to emit terminal output: {}", e);
                     break;
                 }
@@ -200,6 +225,7 @@ fn main() {
         .plugin(tauri_plugin_notification::init())
         .setup(|app| {
             app.manage(Arc::new(Mutex::new(TerminalState::new())));
+            app.manage(Arc::new(Mutex::new(ConfigWatchState::new())));
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -208,6 +234,7 @@ fn main() {
             resize_terminal,
             close_session,
             get_session_info,
+            config::start_terminal_config_watcher,
             filesystem::read_directory,
             filesystem::read_file,
             filesystem::write_file,

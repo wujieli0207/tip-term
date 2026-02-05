@@ -22,6 +22,7 @@ interface TerminalSearchActions {
   setMatchInfo: (current: number, total: number) => void;
   // Toggle methods for stable callbacks (rerender-functional-setstate)
   toggleCaseSensitive: () => void;
+  toggleWholeWord: () => void;
   toggleRegex: () => void;
 }
 
@@ -44,5 +45,6 @@ export const useTerminalSearchStore = create<TerminalSearchState & TerminalSearc
   setMatchInfo: (currentMatch: number, matchCount: number) => set({ currentMatch, matchCount }),
   // Toggle methods using functional setState for stable callbacks
   toggleCaseSensitive: () => set((state) => ({ caseSensitive: !state.caseSensitive })),
+  toggleWholeWord: () => set((state) => ({ wholeWord: !state.wholeWord })),
   toggleRegex: () => set((state) => ({ regex: !state.regex })),
 }));

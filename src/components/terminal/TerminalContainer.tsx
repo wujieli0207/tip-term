@@ -5,7 +5,7 @@ import type { PaneNode } from "../../types/splitPane";
 import XTerminal from "../XTerminal";
 import SplitPaneContainer from "./SplitPaneContainer";
 import SettingsContainer from "../settings/SettingsContainer";
-import { cleanupTerminals } from "../../utils/terminalRegistry";
+import { cleanupTerminals } from "../../terminal-core/api/terminalApi";
 
 export default function TerminalContainer() {
   const {

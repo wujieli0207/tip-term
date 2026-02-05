@@ -9,39 +9,48 @@ import QuickOpenModal from "./components/quickopen/QuickOpenModal";
 import { useHotkeyHandler } from "./hooks/useHotkeyHandler";
 import { useProcessPolling } from "./hooks/useProcessPolling";
 import { getThemeService } from "./services/themeService";
-import { updateTerminalThemes, updateTerminalCursorSettings } from "./utils/terminalRegistry";
+import { updateTerminalThemes, updateTerminalCursorSettings } from "./terminal-core/api/terminalApi";
+import { reloadTerminalConfig } from "./terminal-core/config/loader";
+import { startTerminalConfigWatcher } from "./terminal-core/config/watcher";
 
 function App() {
   const themeServiceInitRef = useRef(false);
 
-  // Create initial session on mount
-  useEffect(() => {
-    useSessionStore.getState().createSession().catch(console.error);
-  }, []);
-
-  // Initialize theme service
+  // Initialize theme service, terminal config, and create initial session
   useEffect(() => {
     if (themeServiceInitRef.current) return;
     themeServiceInitRef.current = true;
+    let cancelled = false;
+    let stopWatcher: (() => void) | null = null;
 
-    const initTheme = async () => {
+    const initApp = async () => {
       const themeService = getThemeService();
       await themeService.init();
       themeService.applyThemeFromSettings();
+
+      await reloadTerminalConfig();
+      stopWatcher = await startTerminalConfigWatcher();
+
+      if (!cancelled) {
+        useSessionStore.getState().createSession().catch(console.error);
+      }
     };
 
-    initTheme().catch(console.error);
+    initApp().catch(console.error);
 
     // Listen for theme mode changes from settings UI
     const handleThemeModeChange = () => {
       const themeService = getThemeService();
       themeService.applyThemeFromSettings();
       updateTerminalThemes();
+      reloadTerminalConfig().catch(console.error);
     };
 
     window.addEventListener('theme-mode-change', handleThemeModeChange);
 
     return () => {
+      cancelled = true;
+      stopWatcher?.();
       window.removeEventListener('theme-mode-change', handleThemeModeChange);
     };
   }, []);
@@ -51,8 +60,8 @@ function App() {
     const themeService = getThemeService();
 
     const unsubscribe = themeService.subscribe(() => {
-      // Update terminal themes when theme changes
       updateTerminalThemes();
+      reloadTerminalConfig().catch(console.error);
     });
 
     return unsubscribe;

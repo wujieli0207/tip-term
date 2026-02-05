@@ -1,12 +1,12 @@
 import { memo, useCallback, useEffect, useRef } from "react";
-import { IconX, IconChevronUp, IconChevronDown, IconLetterCase, IconRegex } from "@tabler/icons-react";
+import { IconX, IconChevronUp, IconChevronDown, IconLetterCase, IconRegex, IconTextWrap } from "@tabler/icons-react";
 import { useTerminalSearchStore } from "../../stores/terminalSearchStore";
 import {
   searchTerminal,
   searchNext,
   searchPrevious,
   clearSearch,
-} from "../../utils/terminalRegistry";
+} from "../../terminal-core/api/terminalApi";
 
 interface TerminalSearchProps {
   sessionId: string;
@@ -23,9 +23,13 @@ function TerminalSearch({ sessionId }: TerminalSearchProps) {
     activeSessionId,
     query,
     caseSensitive,
+    wholeWord,
     regex,
+    currentMatch,
+    matchCount,
     setQuery,
     toggleCaseSensitive,
+    toggleWholeWord,
     toggleRegex,
     close,
   } = useTerminalSearchStore();
@@ -46,11 +50,11 @@ function TerminalSearch({ sessionId }: TerminalSearchProps) {
     if (!isVisible) return;
 
     if (query) {
-      searchTerminal(sessionId, query, { caseSensitive, regex });
+      searchTerminal(sessionId, query, { caseSensitive, wholeWord, regex });
     } else {
       clearSearch(sessionId);
     }
-  }, [isVisible, sessionId, query, caseSensitive, regex]);
+  }, [isVisible, sessionId, query, caseSensitive, wholeWord, regex]);
 
   // Clear search when closing
   useEffect(() => {
@@ -61,15 +65,15 @@ function TerminalSearch({ sessionId }: TerminalSearchProps) {
 
   const handleFindNext = useCallback(() => {
     if (query) {
-      searchNext(sessionId, query, { caseSensitive, regex });
+      searchNext(sessionId, query, { caseSensitive, wholeWord, regex });
     }
-  }, [sessionId, query, caseSensitive, regex]);
+  }, [sessionId, query, caseSensitive, wholeWord, regex]);
 
   const handleFindPrevious = useCallback(() => {
     if (query) {
-      searchPrevious(sessionId, query, { caseSensitive, regex });
+      searchPrevious(sessionId, query, { caseSensitive, wholeWord, regex });
     }
-  }, [sessionId, query, caseSensitive, regex]);
+  }, [sessionId, query, caseSensitive, wholeWord, regex]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -133,6 +137,26 @@ function TerminalSearch({ sessionId }: TerminalSearchProps) {
       >
         <IconRegex size={16} />
       </button>
+
+      {/* Whole word toggle */}
+      <button
+        type="button"
+        onClick={toggleWholeWord}
+        className={`p-1 rounded hover:bg-[hsl(var(--bg-hover))] transition-colors ${
+          wholeWord
+            ? "text-[hsl(var(--accent-primary))]"
+            : "text-[hsl(var(--text-muted))]"
+        }`}
+        title="Match Whole Word (Alt+W)"
+      >
+        <IconTextWrap size={16} />
+      </button>
+
+      {Divider}
+
+      <div className="text-xs text-[hsl(var(--text-muted))] min-w-[48px] text-center">
+        {matchCount > 0 ? `${currentMatch}/${matchCount}` : "0/0"}
+      </div>
 
       {Divider}
 

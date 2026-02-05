@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { invoke } from "@tauri-apps/api/core";
+import { useTerminalConfigStore } from "./terminalConfigStore";
 import {
   GroupColor,
   GROUP_COLORS,
@@ -72,7 +73,8 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
 
   createSession: async (workspaceId?: string, groupId?: string) => {
     try {
-      const id = await invoke<string>("create_session", { shell: "/bin/zsh" });
+      const shell = useTerminalConfigStore.getState().config.shell || "/bin/zsh";
+      const id = await invoke<string>("create_session", { shell });
       sessionCounter++;
       const session: SessionInfo = {
         id,
