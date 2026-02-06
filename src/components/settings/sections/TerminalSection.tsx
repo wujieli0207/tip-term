@@ -4,57 +4,13 @@ import { Input } from "@/components/ui/input";
 import SegmentedControl from "../shared/SegmentedControl";
 import Slider from "../shared/Slider";
 import FontSelect from "../shared/FontSelect";
+import SettingsPageHeader from "../shared/SettingsPageHeader";
+import SettingsSection from "../shared/SettingsSection";
+import SettingsCard from "../shared/SettingsCard";
+import SettingsItem from "../shared/SettingsItem";
 import { useTerminalConfigStore } from "../../../stores/terminalConfigStore";
 import { applyTerminalConfig, scheduleWriteTerminalConfigFile } from "../../../terminal-core/config/loader";
 import type { BellMode, CursorShape, MacOptionSelectionMode } from "../../../terminal-core/config/schema";
-
-interface SectionHeaderProps {
-  title: string;
-  description?: string;
-}
-
-function SectionHeader({ title, description }: SectionHeaderProps) {
-  return (
-    <div className="mb-4">
-      <h3 className="text-base font-medium text-[hsl(var(--text-primary))]">{title}</h3>
-      {description && (
-        <p className="text-sm text-[hsl(var(--text-secondary))] mt-0.5">{description}</p>
-      )}
-    </div>
-  );
-}
-
-interface SettingCardProps {
-  children: React.ReactNode;
-}
-
-function SettingCard({ children }: SettingCardProps) {
-  return (
-    <div className="bg-[hsl(var(--bg-card))] rounded-lg border border-[hsl(var(--border))] divide-y divide-[hsl(var(--border))]">
-      {children}
-    </div>
-  );
-}
-
-interface SettingItemProps {
-  title: string;
-  description?: string;
-  children: React.ReactNode;
-}
-
-function SettingItem({ title, description, children }: SettingItemProps) {
-  return (
-    <div className="flex items-center justify-between px-4 py-3">
-      <div className="flex-1">
-        <div className="text-sm text-[hsl(var(--text-primary))]">{title}</div>
-        {description && (
-          <div className="text-xs text-[hsl(var(--text-secondary))] mt-0.5">{description}</div>
-        )}
-      </div>
-      <div className="flex-shrink-0 ml-4 flex items-center gap-3">{children}</div>
-    </div>
-  );
-}
 
 const cursorOptions: { value: CursorShape; label: React.ReactNode }[] = [
   { value: "block", label: <span className="font-mono">█</span> },
@@ -108,34 +64,31 @@ export default function TerminalSection() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h2 className="text-2xl font-semibold text-[hsl(var(--text-primary))]">Terminal</h2>
-        <p className="text-sm text-[hsl(var(--text-secondary))] mt-1">
-          Core terminal behavior, rendering and integration options
-        </p>
-      </div>
+      <SettingsPageHeader
+        title="Terminal"
+        description="Core terminal behavior, rendering and integration options"
+      />
 
-      <section>
-        <SectionHeader title="Font & Layout" description="Typography and spacing" />
-        <SettingCard>
-          <SettingItem title="Font Family">
+      <SettingsSection title="Font & Layout" description="Typography and spacing">
+        <SettingsCard>
+          <SettingsItem title="Font Family">
             <FontSelect value={config.fontFamily} onChange={(value) => updateConfig({ fontFamily: value })} />
-          </SettingItem>
-          <SettingItem title="Font Size">
+          </SettingsItem>
+          <SettingsItem title="Font Size">
             <Slider value={config.fontSize} onChange={(value) => updateConfig({ fontSize: value })} min={10} max={24} />
-            <span className="text-sm text-[hsl(var(--text-secondary))] w-12 text-right">{config.fontSize}px</span>
-          </SettingItem>
-          <SettingItem title="Line Height">
+            <span className="text-sm text-text-secondary w-12 text-right">{config.fontSize}px</span>
+          </SettingsItem>
+          <SettingsItem title="Line Height">
             <Slider value={config.lineHeight} onChange={(value) => updateConfig({ lineHeight: value })} min={1.0} max={2.0} step={0.1} />
-            <span className="text-sm text-[hsl(var(--text-secondary))] w-12 text-right">{config.lineHeight.toFixed(1)}</span>
-          </SettingItem>
-          <SettingItem title="Letter Spacing">
+            <span className="text-sm text-text-secondary w-12 text-right">{config.lineHeight.toFixed(1)}</span>
+          </SettingsItem>
+          <SettingsItem title="Letter Spacing">
             <Slider value={config.letterSpacing} onChange={(value) => updateConfig({ letterSpacing: value })} min={0} max={2} step={0.1} />
-            <span className="text-sm text-[hsl(var(--text-secondary))] w-12 text-right">{config.letterSpacing.toFixed(1)}px</span>
-          </SettingItem>
-          <SettingItem title="Font Weight">
+            <span className="text-sm text-text-secondary w-12 text-right">{config.letterSpacing.toFixed(1)}px</span>
+          </SettingsItem>
+          <SettingsItem title="Font Weight">
             <select
-              className="bg-[hsl(var(--bg-input))] border border-[hsl(var(--border))] text-sm rounded-md px-2 py-1"
+              className="bg-bg-card border border-border-subtle text-sm rounded-md px-2 py-1"
               value={String(config.fontWeight)}
               onChange={(e) => {
                 const value = e.target.value;
@@ -147,10 +100,10 @@ export default function TerminalSection() {
                 <option key={weight} value={weight}>{weight}</option>
               ))}
             </select>
-          </SettingItem>
-          <SettingItem title="Bold Weight">
+          </SettingsItem>
+          <SettingsItem title="Bold Weight">
             <select
-              className="bg-[hsl(var(--bg-input))] border border-[hsl(var(--border))] text-sm rounded-md px-2 py-1"
+              className="bg-bg-card border border-border-subtle text-sm rounded-md px-2 py-1"
               value={String(config.fontWeightBold)}
               onChange={(e) => {
                 const value = e.target.value;
@@ -162,87 +115,83 @@ export default function TerminalSection() {
                 <option key={weight} value={weight}>{weight}</option>
               ))}
             </select>
-          </SettingItem>
-          <SettingItem title="Padding" description="CSS padding, e.g. 8px 12px">
+          </SettingsItem>
+          <SettingsItem title="Padding" description="CSS padding, e.g. 8px 12px">
             <Input
               value={config.padding}
               onChange={(e) => updateConfig({ padding: e.target.value })}
               className="w-40"
             />
-          </SettingItem>
-        </SettingCard>
-      </section>
+          </SettingsItem>
+        </SettingsCard>
+      </SettingsSection>
 
-      <section>
-        <SectionHeader title="Behavior" description="Input and accessibility" />
-        <SettingCard>
-          <SettingItem title="Scrollback">
+      <SettingsSection title="Behavior" description="Input and accessibility">
+        <SettingsCard>
+          <SettingsItem title="Scrollback">
             <Slider value={config.scrollback} onChange={(value) => updateConfig({ scrollback: value })} min={1000} max={50000} step={500} />
-            <span className="text-sm text-[hsl(var(--text-secondary))] w-16 text-right">{config.scrollback}</span>
-          </SettingItem>
-          <SettingItem title="Quick Edit" description="Right click copy/paste">
+            <span className="text-sm text-text-secondary w-16 text-right">{config.scrollback}</span>
+          </SettingsItem>
+          <SettingsItem title="Quick Edit" description="Right click copy/paste">
             <Switch checked={config.quickEdit} onCheckedChange={(value) => updateConfig({ quickEdit: value })} />
-          </SettingItem>
-          <SettingItem title="Copy on Select">
+          </SettingsItem>
+          <SettingsItem title="Copy on Select">
             <Switch checked={config.copyOnSelect} onCheckedChange={(value) => updateConfig({ copyOnSelect: value })} />
-          </SettingItem>
-          <SettingItem title="Screen Reader Mode">
+          </SettingsItem>
+          <SettingsItem title="Screen Reader Mode">
             <Switch checked={config.screenReaderMode} onCheckedChange={(value) => updateConfig({ screenReaderMode: value })} />
-          </SettingItem>
-          <SettingItem title="Cursor Style">
+          </SettingsItem>
+          <SettingsItem title="Cursor Style">
             <SegmentedControl
               value={config.cursorShape}
               onChange={(value) => updateConfig({ cursorShape: value })}
               options={cursorOptions}
             />
-          </SettingItem>
-          <SettingItem title="Cursor Blink">
+          </SettingsItem>
+          <SettingsItem title="Cursor Blink">
             <Switch checked={config.cursorBlink} onCheckedChange={(value) => updateConfig({ cursorBlink: value })} />
-          </SettingItem>
-        </SettingCard>
-      </section>
+          </SettingsItem>
+        </SettingsCard>
+      </SettingsSection>
 
-      <section>
-        <SectionHeader title="Renderer" description="Performance and rendering features" />
-        <SettingCard>
-          <SettingItem title="WebGL Renderer">
+      <SettingsSection title="Renderer" description="Performance and rendering features">
+        <SettingsCard>
+          <SettingsItem title="WebGL Renderer">
             <Switch checked={config.webGLRenderer} onCheckedChange={(value) => updateConfig({ webGLRenderer: value })} />
-          </SettingItem>
-          <SettingItem title="Ligatures">
+          </SettingsItem>
+          <SettingsItem title="Ligatures">
             <Switch checked={config.ligatures} onCheckedChange={(value) => updateConfig({ ligatures: value })} />
-          </SettingItem>
-          <SettingItem title="Image Support">
+          </SettingsItem>
+          <SettingsItem title="Image Support">
             <Switch checked={config.imageSupport} onCheckedChange={(value) => updateConfig({ imageSupport: value })} />
-          </SettingItem>
-        </SettingCard>
-      </section>
+          </SettingsItem>
+        </SettingsCard>
+      </SettingsSection>
 
-      <section>
-        <SectionHeader title="Bell" description="Sound and visual bell feedback" />
-        <SettingCard>
-          <SettingItem title="Bell Mode">
+      <SettingsSection title="Bell" description="Sound and visual bell feedback">
+        <SettingsCard>
+          <SettingsItem title="Bell Mode">
             <SegmentedControl
               value={config.bell}
               onChange={(value) => updateConfig({ bell: value })}
               options={bellOptions}
             />
-          </SettingItem>
-          <SettingItem title="Bell Sound URL" description="Optional custom audio URL">
+          </SettingsItem>
+          <SettingsItem title="Bell Sound URL" description="Optional custom audio URL">
             <Input
               value={config.bellSoundURL ?? ""}
               onChange={(e) => updateConfig({ bellSoundURL: e.target.value.trim() || null })}
               className="w-56"
             />
-          </SettingItem>
-        </SettingCard>
-      </section>
+          </SettingsItem>
+        </SettingsCard>
+      </SettingsSection>
 
-      <section>
-        <SectionHeader title="Links" description="Link activation behavior" />
-        <SettingCard>
-          <SettingItem title="Activation Key">
+      <SettingsSection title="Links" description="Link activation behavior">
+        <SettingsCard>
+          <SettingsItem title="Activation Key">
             <select
-              className="bg-[hsl(var(--bg-input))] border border-[hsl(var(--border))] text-sm rounded-md px-2 py-1"
+              className="bg-bg-card border border-border-subtle text-sm rounded-md px-2 py-1"
               value={config.webLinksActivationKey ?? "disabled"}
               onChange={(e) => {
                 const value = e.target.value === "disabled" ? null : e.target.value;
@@ -253,28 +202,27 @@ export default function TerminalSection() {
                 <option key={option.value} value={option.value}>{option.label}</option>
               ))}
             </select>
-          </SettingItem>
-        </SettingCard>
-      </section>
+          </SettingsItem>
+        </SettingsCard>
+      </SettingsSection>
 
-      <section>
-        <SectionHeader title="Advanced" />
-        <SettingCard>
-          <SettingItem title="Option Key as Meta">
+      <SettingsSection title="Advanced">
+        <SettingsCard>
+          <SettingsItem title="Option Key as Meta">
             <Switch checked={config.modifierKeys.altIsMeta} onCheckedChange={(value) => updateModifierKeys({ altIsMeta: value })} />
-          </SettingItem>
-          <SettingItem title="Command Key as Meta">
+          </SettingsItem>
+          <SettingsItem title="Command Key as Meta">
             <Switch checked={config.modifierKeys.cmdIsMeta} onCheckedChange={(value) => updateModifierKeys({ cmdIsMeta: value })} />
-          </SettingItem>
-          <SettingItem title="macOS Option Selection">
+          </SettingsItem>
+          <SettingsItem title="macOS Option Selection">
             <SegmentedControl
               value={config.macOptionSelectionMode}
               onChange={(value) => updateConfig({ macOptionSelectionMode: value })}
               options={macOptionOptions}
             />
-          </SettingItem>
-        </SettingCard>
-      </section>
+          </SettingsItem>
+        </SettingsCard>
+      </SettingsSection>
     </div>
   );
 }

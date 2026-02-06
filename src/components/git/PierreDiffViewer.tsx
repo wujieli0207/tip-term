@@ -96,7 +96,7 @@ export default function PierreDiffViewer({
 
   if (!hasContent) {
     return (
-      <div className={`p-4 text-[#666] text-sm ${className}`}>
+      <div className={`p-4 text-text-muted text-sm ${className}`}>
         No changes to display
       </div>
     );
@@ -106,13 +106,13 @@ export default function PierreDiffViewer({
     <div className={`flex flex-col ${className}`}>
       {/* View toggle buttons */}
       {showViewToggle && (
-        <div className="flex items-center gap-1 px-3 py-1.5 border-b border-[#2a2a2a] bg-[#151515]">
+        <div className="flex items-center gap-1 px-3 py-1.5 border-b border-border-subtle bg-bg-active">
           <button
             onClick={() => setViewMode('stacked')}
             className={`px-2.5 py-1 text-xs rounded transition-colors ${
               viewMode === 'stacked'
-                ? 'bg-[#3a3a3a] text-[#e0e0e0]'
-                : 'text-[#888] hover:text-[#e0e0e0] hover:bg-[#2a2a2a]'
+                ? 'bg-bg-active text-text-primary'
+                : 'text-text-muted hover:text-text-primary hover:bg-bg-hover'
             }`}
           >
             Unified
@@ -121,8 +121,8 @@ export default function PierreDiffViewer({
             onClick={() => setViewMode('split')}
             className={`px-2.5 py-1 text-xs rounded transition-colors ${
               viewMode === 'split'
-                ? 'bg-[#3a3a3a] text-[#e0e0e0]'
-                : 'text-[#888] hover:text-[#e0e0e0] hover:bg-[#2a2a2a]'
+                ? 'bg-bg-active text-text-primary'
+                : 'text-text-muted hover:text-text-primary hover:bg-bg-hover'
             }`}
           >
             Split

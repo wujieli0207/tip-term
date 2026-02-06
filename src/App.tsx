@@ -105,7 +105,7 @@ function App() {
   useHotkeyHandler();
 
   return (
-    <div className="flex flex-col h-screen w-screen overflow-hidden">
+    <div className="flex flex-col h-screen w-screen overflow-hidden bg-bg-page text-text-primary">
       <TitleBar />
       <div className="flex flex-1 overflow-hidden">
         <Sidebar />

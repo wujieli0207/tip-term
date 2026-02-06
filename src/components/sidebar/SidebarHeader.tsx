@@ -16,7 +16,7 @@ export default function SidebarHeader() {
   };
 
   return (
-    <div className="flex items-center justify-between px-2 py-2 border-b border-border overflow-visible">
+    <div className="flex items-center justify-between px-2 py-2 border-b border-border-subtle overflow-visible">
       {/* Left side: Tab selector */}
       <div className="flex items-center gap-1 overflow-visible">
         <SidebarTabSelector />

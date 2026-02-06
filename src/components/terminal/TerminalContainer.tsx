@@ -45,17 +45,17 @@ export default function TerminalContainer() {
   // Show empty state if no terminal sessions and settings is not active
   if (terminalSessions.length === 0 && activeSession?.type !== "settings") {
     return (
-      <div className="flex-1 flex items-center justify-center bg-[#0a0a0a]">
+      <div className="flex-1 flex items-center justify-center bg-bg-terminal">
         <div className="text-center">
-          <div className="mb-4 text-gray-500">No active sessions</div>
+          <div className="mb-4 text-text-secondary">No active sessions</div>
           <button
             onClick={() => createSession()}
-            className="px-4 py-2 text-white transition-colors bg-purple-600 rounded-lg hover:bg-purple-700"
+            className="px-4 py-2 text-text-primary transition-colors bg-accent-primary rounded-lg hover:bg-accent-primary/90 shadow-soft"
           >
             Create New Session
           </button>
-          <div className="mt-3 text-sm text-gray-600">
-            or press <kbd className="px-1.5 py-0.5 bg-[#2a2a2a] rounded text-xs">Cmd+T</kbd>
+          <div className="mt-3 text-sm text-text-muted">
+            or press <kbd className="px-1.5 py-0.5 bg-bg-active rounded text-xs text-text-secondary">Cmd+T</kbd>
           </div>
         </div>
       </div>
@@ -63,7 +63,7 @@ export default function TerminalContainer() {
   }
 
   return (
-    <div className="flex-1 flex bg-[#0a0a0a]">
+    <div className="flex-1 flex bg-bg-terminal">
       {/* Terminal / Settings content area */}
       <div className="relative flex-1">
         {sessionsList.map((session) => {

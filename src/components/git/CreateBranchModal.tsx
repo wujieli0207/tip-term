@@ -122,9 +122,9 @@ export default function CreateBranchModal({ sessionId }: CreateBranchModalProps)
 
   return (
     <Dialog open={createBranchModalOpen} onOpenChange={setCreateBranchModalOpen}>
-      <DialogContent className="bg-[#1e1e1e] border-[#333] text-[#e0e0e0] sm:max-w-md">
+      <DialogContent className="bg-bg-card border-border-subtle text-text-primary sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-lg font-semibold text-[#e0e0e0]">
+          <DialogTitle className="text-lg font-semibold text-text-primary">
             Create New Branch
           </DialogTitle>
         </DialogHeader>
@@ -132,7 +132,7 @@ export default function CreateBranchModal({ sessionId }: CreateBranchModalProps)
         <div className="space-y-4 py-4">
           {/* Branch name input */}
           <div className="space-y-2">
-            <label className="text-sm text-[#999]">Branch name</label>
+            <label className="text-sm text-text-muted">Branch name</label>
             <Input
               placeholder="feature/my-new-feature"
               value={branchName}
@@ -140,27 +140,27 @@ export default function CreateBranchModal({ sessionId }: CreateBranchModalProps)
                 setBranchName(e.target.value);
                 setError(null);
               }}
-              className="bg-[#252525] border-[#333] text-[#e0e0e0] placeholder:text-[#666]"
+              className="bg-bg-card border-border-subtle text-text-primary placeholder:text-text-muted"
               autoFocus
             />
           </div>
 
           {/* Base branch selector */}
           <div className="space-y-2">
-            <label className="text-sm text-[#999]">Base branch</label>
+            <label className="text-sm text-text-muted">Base branch</label>
             <DropdownMenu open={baseBranchOpen} onOpenChange={setBaseBranchOpen}>
               <DropdownMenuTrigger asChild>
-                <button className="flex items-center justify-between w-full h-9 px-3 rounded-md border border-[#333] bg-[#252525] text-sm text-[#e0e0e0] hover:bg-[#2a2a2a] transition-colors">
+                <button className="flex items-center justify-between w-full h-9 px-3 rounded-md border border-border-subtle bg-bg-card text-sm text-text-primary hover:bg-bg-hover transition-colors">
                   <div className="flex items-center gap-2">
-                    <IconGitBranch className="w-4 h-4 text-[#888]" stroke={2} />
+                    <IconGitBranch className="w-4 h-4 text-text-muted" stroke={2} />
                     <span>{baseBranch || "Select base branch"}</span>
                   </div>
-                  <IconChevronDown className="w-4 h-4 text-[#666]" stroke={2} />
+                  <IconChevronDown className="w-4 h-4 text-text-muted" stroke={2} />
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent
                 align="start"
-                className="w-full min-w-[200px] bg-[#1e1e1e] border-[#333]"
+                className="w-full min-w-[200px] bg-bg-card border-border-subtle"
               >
                 <div className="max-h-48 overflow-y-auto">
                   {localBranches.map((branch) => (
@@ -170,12 +170,12 @@ export default function CreateBranchModal({ sessionId }: CreateBranchModalProps)
                         setBaseBranch(branch.name);
                         setBaseBranchOpen(false);
                       }}
-                      className="flex items-center gap-2 px-2 py-1.5 text-sm text-[#e0e0e0] hover:bg-[#333] cursor-pointer"
+                      className="flex items-center gap-2 px-2 py-1.5 text-sm text-text-primary hover:bg-bg-hover cursor-pointer"
                     >
-                      <IconGitBranch className="w-4 h-4 text-[#888]" stroke={2} />
+                      <IconGitBranch className="w-4 h-4 text-text-muted" stroke={2} />
                       <span className="flex-1 truncate">{branch.name}</span>
                       {branch.isCurrent && (
-                        <span className="text-xs text-[#666]">(current)</span>
+                        <span className="text-xs text-text-muted">(current)</span>
                       )}
                     </DropdownMenuItem>
                   ))}
@@ -186,7 +186,7 @@ export default function CreateBranchModal({ sessionId }: CreateBranchModalProps)
 
           {/* Error message */}
           {error && (
-            <div className="text-sm text-red-400 bg-red-900/20 px-3 py-2 rounded-md">
+            <div className="text-sm text-accent-red bg-accent-red/15 px-3 py-2 rounded-md">
               {error}
             </div>
           )}
@@ -197,14 +197,14 @@ export default function CreateBranchModal({ sessionId }: CreateBranchModalProps)
             variant="ghost"
             onClick={handleClose}
             disabled={isCreatingBranch}
-            className="text-[#999] hover:text-[#e0e0e0] hover:bg-[#333]"
+            className="text-text-muted hover:text-text-primary hover:bg-bg-hover"
           >
             Cancel
           </Button>
           <Button
             onClick={handleCreate}
             disabled={isCreatingBranch || !branchName.trim() || !baseBranch}
-            className="bg-purple-600 hover:bg-purple-700 text-white"
+            className="bg-accent-primary hover:bg-accent-primary/90 text-white"
           >
             {isCreatingBranch ? (
               <>

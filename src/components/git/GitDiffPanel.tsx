@@ -37,27 +37,27 @@ export default function GitDiffPanel() {
   return (
     <div
       ref={panelRef}
-      className="relative flex flex-col bg-[#0f0f0f] border-r border-[#2a2a2a]"
+      className="relative flex flex-col bg-bg-terminal border-r border-border-subtle"
       style={{ width: gitDiffPanelWidth, minWidth: 300, maxWidth: 600 }}
     >
       {/* Header */}
-      <div className="flex items-center justify-between px-3 py-2 border-b border-[#2a2a2a] bg-[#1a1a1a]">
+      <div className="flex items-center justify-between px-3 py-2 border-b border-border-subtle bg-bg-active">
         <div className="flex items-center gap-2 min-w-0">
-          <span className="text-sm font-medium text-[#e0e0e0] truncate">
+          <span className="text-sm font-medium text-text-primary truncate">
             {fileName}
           </span>
         </div>
         <div className="flex items-center gap-1">
           <button
             onClick={handleJumpToEditor}
-            className="p-1 rounded hover:bg-[#333] text-[#888] hover:text-blue-400 transition-colors"
+            className="p-1 rounded hover:bg-bg-hover text-text-muted hover:text-accent-primary transition-colors"
             title="Open in editor"
           >
             <IconExternalLink className="w-4 h-4" stroke={2} />
           </button>
           <button
             onClick={clearSelectedFile}
-            className="p-1 rounded hover:bg-[#333] text-[#888] hover:text-[#e0e0e0] transition-colors"
+            className="p-1 rounded hover:bg-bg-hover text-text-muted hover:text-text-primary transition-colors"
           >
             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M18 6L6 18" />
@@ -74,8 +74,8 @@ export default function GitDiffPanel() {
 
       {/* Resize handle - on right edge for left-side panel */}
       <div
-        className={`absolute top-0 right-0 w-1 h-full cursor-col-resize hover:bg-purple-500 transition-colors ${
-          isResizing ? "bg-purple-500" : "bg-transparent"
+        className={`absolute top-0 right-0 w-1 h-full cursor-col-resize hover:bg-accent-primary transition-colors ${
+          isResizing ? "bg-accent-primary" : "bg-transparent"
         }`}
         onMouseDown={handleMouseDown}
       />

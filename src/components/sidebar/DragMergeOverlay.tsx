@@ -31,7 +31,7 @@ export default function DragMergeOverlay({ session, showMergePreview }: DragMerg
     <div
       className={`
         flex items-center gap-2 py-1.5 px-2 rounded-lg
-        bg-[#333333] border-l-2 border-purple-500
+        bg-bg-hover border-l-2 border-accent-primary
         shadow-lg cursor-grabbing
         transition-all duration-200
         ${showMergePreview ? 'scale-105' : ''}
@@ -48,16 +48,16 @@ export default function DragMergeOverlay({ session, showMergePreview }: DragMerg
         {showMergePreview ? (
           <>
             {/* Group icon when merging */}
-            <IconFolder className="w-4 h-4 text-gray-400 flex-shrink-0" stroke={2} />
-            <span className="text-sm text-gray-300 truncate">
+            <IconFolder className="w-4 h-4 text-text-secondary flex-shrink-0" stroke={2} />
+            <span className="text-sm text-text-secondary truncate">
               Create group
             </span>
           </>
         ) : (
           <>
             {/* Terminal icon */}
-            <IconTerminal2 className="w-4 h-4 text-gray-400 flex-shrink-0" stroke={2} />
-            <span className="text-sm text-gray-300 truncate">
+            <IconTerminal2 className="w-4 h-4 text-text-secondary flex-shrink-0" stroke={2} />
+            <span className="text-sm text-text-secondary truncate">
               {displayName}
             </span>
           </>

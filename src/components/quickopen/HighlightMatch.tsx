@@ -42,7 +42,7 @@ export function HighlightMatch({ text, query }: HighlightMatchProps) {
     <>
       {parts.map((part, i) =>
         part.highlight ? (
-          <span key={i} className="text-blue-400 font-semibold">
+          <span key={i} className="text-accent-primary font-semibold">
             {part.text}
           </span>
         ) : (

@@ -27,7 +27,7 @@ export default function TitleBar() {
   }
 
   return (
-    <div className="flex items-center h-[32px] bg-[var(--bg-card)] border-b border-[var(--border)] select-none shrink-0"
+    <div className="flex items-center h-9 bg-bg-card border-b border-border-subtle select-none shrink-0"
      data-tauri-drag-region>
       {/* macOS: Reserve space for native traffic lights */}
       {isMac && <div className="w-20 shrink-0" />}
@@ -38,11 +38,11 @@ export default function TitleBar() {
         <button
           onClick={toggleSidebar}
           data-tauri-drag-region="false"
-          className="p-2 rounded-md hover:bg-[var(--bg-hover)] transition-colors"
+          className="group p-2 rounded-full hover:bg-bg-hover transition-colors"
           title="Toggle Sidebar (Cmd+\)"
         >
           <IconMenu2
-            className="w-5 h-5 text-[var(--text-secondary)]"
+            className="w-5 h-5 text-text-secondary group-hover:text-text-primary"
             stroke={2}
           />
         </button>
@@ -56,22 +56,22 @@ export default function TitleBar() {
         <button
           onClick={openQuickOpen}
           data-tauri-drag-region="false"
-          className="p-2 rounded-md hover:bg-[var(--bg-hover)] transition-colors"
+          className="group p-2 rounded-full hover:bg-bg-hover transition-colors"
           title="Quick Open (Cmd+P)"
         >
           <IconSearch
-            className="w-5 h-5 text-[var(--text-secondary)]"
+            className="w-5 h-5 text-text-secondary group-hover:text-text-primary"
             stroke={2}
           />
         </button>
         <button
           onClick={handleSettingsClick}
           data-tauri-drag-region="false"
-          className="p-2 rounded-md hover:bg-[var(--bg-hover)] transition-colors"
+          className="group p-2 rounded-full hover:bg-bg-hover transition-colors"
           title="Settings (Cmd+,)"
         >
           <IconSettings
-            className="w-5 h-5 text-[var(--text-secondary)]"
+            className="w-5 h-5 text-text-secondary group-hover:text-text-primary"
             stroke={2}
           />
         </button>

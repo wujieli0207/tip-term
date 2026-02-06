@@ -24,46 +24,46 @@ function DiffFile({ fileDiff, isExpanded, onToggle, onOpenFile }: DiffFileProps)
   };
 
   const statusColor = {
-    added: "text-green-400",
-    deleted: "text-red-400",
-    modified: "text-yellow-400",
-    renamed: "text-blue-400",
-    copied: "text-blue-400",
-  }[fileDiff.status] || "text-[#888]";
+    added: "text-accent-green",
+    deleted: "text-accent-red",
+    modified: "text-accent-orange",
+    renamed: "text-accent-primary",
+    copied: "text-accent-primary",
+  }[fileDiff.status] || "text-text-muted";
 
   return (
-    <div className="border-b border-[#2a2a2a]">
+    <div className="border-b border-border-subtle">
       {/* File header - sticky for easy access when scrolling */}
       <div
-        className="px-3 py-2 flex items-center justify-between cursor-pointer hover:bg-[#1a1a1a] sticky top-0 bg-[#0f0f0f] z-10 border-b border-[#2a2a2a]"
+        className="px-3 py-2 flex items-center justify-between cursor-pointer hover:bg-bg-active sticky top-0 bg-bg-terminal z-10 border-b border-border-subtle"
         onClick={onToggle}
       >
         <div className="flex items-center gap-2 min-w-0 flex-1">
           <svg
-            className={`w-3 h-3 text-[#888] transition-transform flex-shrink-0 ${isExpanded ? "rotate-90" : ""}`}
+            className={`w-3 h-3 text-text-muted transition-transform flex-shrink-0 ${isExpanded ? "rotate-90" : ""}`}
             viewBox="0 0 24 24"
             fill="currentColor"
           >
             <path d="M8 5l7 7-7 7" />
           </svg>
-          <span className="text-sm text-[#e0e0e0] truncate font-mono">{displayName}</span>
+          <span className="text-sm text-text-primary truncate font-mono">{displayName}</span>
         </div>
         <div className="flex items-center gap-3 flex-shrink-0">
           <span className={`text-xs capitalize ${statusColor}`}>{fileDiff.status}</span>
           {(fileDiff.additions > 0 || fileDiff.deletions > 0) && (
             <>
               {fileDiff.additions > 0 && (
-                <span className="text-xs text-green-400">+{fileDiff.additions}</span>
+                <span className="text-xs text-accent-green">+{fileDiff.additions}</span>
               )}
               {fileDiff.deletions > 0 && (
-                <span className="text-xs text-red-400">-{fileDiff.deletions}</span>
+                <span className="text-xs text-accent-red">-{fileDiff.deletions}</span>
               )}
             </>
           )}
           {onOpenFile && (
             <button
               onClick={handleOpenFile}
-              className="p-0.5 rounded hover:bg-[#333] text-[#888] hover:text-blue-400 transition-colors"
+              className="p-0.5 rounded hover:bg-bg-hover text-text-muted hover:text-accent-primary transition-colors"
               title="Open in editor"
             >
               <IconExternalLink className="w-3.5 h-3.5" stroke={2} />
@@ -74,7 +74,7 @@ function DiffFile({ fileDiff, isExpanded, onToggle, onOpenFile }: DiffFileProps)
 
       {/* Diff content using PierreDiffViewer */}
       {isExpanded && fileDiff.hunks.length > 0 && (
-        <div className="border-t border-[#2a2a2a]">
+        <div className="border-t border-border-subtle">
           <PierreDiffViewer
             fileDiff={fileDiff}
             showViewToggle={false}
@@ -86,7 +86,7 @@ function DiffFile({ fileDiff, isExpanded, onToggle, onOpenFile }: DiffFileProps)
       )}
 
       {isExpanded && fileDiff.hunks.length === 0 && (
-        <div className="px-3 py-2 text-xs text-[#666] border-t border-[#2a2a2a]">
+        <div className="px-3 py-2 text-xs text-text-muted border-t border-border-subtle">
           No diff content available
         </div>
       )}
@@ -114,8 +114,8 @@ export default function CommitDiffViewer() {
 
   if (isCommitDiffLoading) {
     return (
-      <div className="flex flex-col h-full items-center justify-center text-[#666]">
-        <div className="animate-spin w-5 h-5 border-2 border-[#666] border-t-transparent rounded-full mb-2" />
+      <div className="flex flex-col h-full items-center justify-center text-text-muted">
+        <div className="animate-spin w-5 h-5 border-2 border-border border-t-transparent rounded-full mb-2" />
         <span className="text-sm">Loading commit diff...</span>
       </div>
     );
@@ -123,7 +123,7 @@ export default function CommitDiffViewer() {
 
   if (!commitDiff) {
     return (
-      <div className="flex flex-col h-full items-center justify-center text-[#666]">
+      <div className="flex flex-col h-full items-center justify-center text-text-muted">
         <span className="text-sm">No commit selected</span>
       </div>
     );
@@ -138,18 +138,18 @@ export default function CommitDiffViewer() {
   return (
     <div className="flex flex-col h-full">
       {/* Commit info */}
-      <div className="px-3 py-2 border-b border-[#2a2a2a] bg-[#151515]">
-        <p className="text-sm text-[#e0e0e0] whitespace-pre-wrap break-words">
+      <div className="px-3 py-2 border-b border-border-subtle bg-bg-active">
+        <p className="text-sm text-text-primary whitespace-pre-wrap break-words">
           {commitDiff.commitMessage}
         </p>
-        <div className="flex items-center gap-3 mt-2 text-xs text-[#666]">
+        <div className="flex items-center gap-3 mt-2 text-xs text-text-muted">
           <span>{commitDiff.commitAuthor}</span>
           <span>•</span>
           <span>{new Date(commitDiff.commitTime * 1000).toLocaleString()}</span>
         </div>
         {commitDiff.isInitialCommit && (
           <div className="mt-2">
-            <span className="text-xs px-1.5 py-0.5 rounded bg-blue-600/20 text-blue-400">
+            <span className="text-xs px-1.5 py-0.5 rounded bg-blue-600/20 text-accent-primary">
               Initial commit
             </span>
           </div>
@@ -158,13 +158,13 @@ export default function CommitDiffViewer() {
 
       {/* Expand/Collapse all buttons */}
       {hasMultipleFiles && (
-        <div className="px-3 py-1 border-b border-[#2a2a2a] bg-[#151515] flex items-center gap-2">
-          <span className="text-xs text-[#666]">{commitDiff.fileDiffs.length} files changed</span>
+        <div className="px-3 py-1 border-b border-border-subtle bg-bg-active flex items-center gap-2">
+          <span className="text-xs text-text-muted">{commitDiff.fileDiffs.length} files changed</span>
           <div className="flex-1" />
           {!allExpanded && (
             <button
               onClick={expandAllCommitFiles}
-              className="text-xs text-[#888] hover:text-[#e0e0e0] px-2 py-0.5 hover:bg-[#2a2a2a] rounded transition-colors"
+              className="text-xs text-text-muted hover:text-text-primary px-2 py-0.5 hover:bg-bg-hover rounded transition-colors"
             >
               Expand all
             </button>
@@ -172,7 +172,7 @@ export default function CommitDiffViewer() {
           {!allCollapsed && (
             <button
               onClick={collapseAllCommitFiles}
-              className="text-xs text-[#888] hover:text-[#e0e0e0] px-2 py-0.5 hover:bg-[#2a2a2a] rounded transition-colors"
+              className="text-xs text-text-muted hover:text-text-primary px-2 py-0.5 hover:bg-bg-hover rounded transition-colors"
             >
               Collapse all
             </button>
@@ -183,7 +183,7 @@ export default function CommitDiffViewer() {
       {/* File diffs */}
       <div className="flex-1 overflow-auto">
         {commitDiff.fileDiffs.length === 0 ? (
-          <div className="p-4 text-sm text-[#666]">No files changed in this commit</div>
+          <div className="p-4 text-sm text-text-muted">No files changed in this commit</div>
         ) : (
           commitDiff.fileDiffs.map((fileDiff) => (
             <DiffFile

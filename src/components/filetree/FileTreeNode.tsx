@@ -48,44 +48,44 @@ const FILE_ICON_CONFIG: Record<string, IconConfig> = {
   // TypeScript/JavaScript
   ts: { Icon: IconFileTypeTs, colorClass: "text-blue-500" },
   tsx: { Icon: IconFileTypeTsx, colorClass: "text-blue-500" },
-  js: { Icon: IconFileTypeJs, colorClass: "text-yellow-500" },
-  jsx: { Icon: IconFileTypeJsx, colorClass: "text-yellow-500" },
+  js: { Icon: IconFileTypeJs, colorClass: "text-accent-orange" },
+  jsx: { Icon: IconFileTypeJsx, colorClass: "text-accent-orange" },
   // Other languages
-  rs: { Icon: IconFileTypeRs, colorClass: "text-orange-500" },
-  vue: { Icon: IconFileTypeVue, colorClass: "text-green-500" },
-  py: { Icon: IconBrandPython, colorClass: "text-blue-400" },
+  rs: { Icon: IconFileTypeRs, colorClass: "text-accent-orange" },
+  vue: { Icon: IconFileTypeVue, colorClass: "text-accent-green" },
+  py: { Icon: IconBrandPython, colorClass: "text-accent-primary" },
   go: { Icon: IconBrandGolang, colorClass: "text-cyan-500" },
   // Styles
-  css: { Icon: IconFileTypeCss, colorClass: "text-blue-400" },
+  css: { Icon: IconFileTypeCss, colorClass: "text-accent-primary" },
   scss: { Icon: IconBrandSass, colorClass: "text-pink-400" },
   sass: { Icon: IconBrandSass, colorClass: "text-pink-400" },
   // Markup
-  html: { Icon: IconFileTypeHtml, colorClass: "text-orange-500" },
-  xml: { Icon: IconFileTypeXml, colorClass: "text-orange-300" },
-  svg: { Icon: IconFileTypeSvg, colorClass: "text-orange-400" },
+  html: { Icon: IconFileTypeHtml, colorClass: "text-accent-orange" },
+  xml: { Icon: IconFileTypeXml, colorClass: "text-accent-orange" },
+  svg: { Icon: IconFileTypeSvg, colorClass: "text-accent-orange" },
   // Data formats
   json: { Icon: IconFileText, colorClass: "text-[hsl(var(--accent-cyan))]" },
   yaml: { Icon: IconFileSettings, colorClass: "text-[hsl(var(--accent-cyan))]" },
   yml: { Icon: IconFileSettings, colorClass: "text-[hsl(var(--accent-cyan))]" },
   toml: { Icon: IconFileSettings, colorClass: "text-[hsl(var(--accent-cyan))]" },
-  csv: { Icon: IconFileTypeCsv, colorClass: "text-green-400" },
+  csv: { Icon: IconFileTypeCsv, colorClass: "text-accent-green" },
   sql: { Icon: IconFileTypeSql, colorClass: "text-blue-300" },
   // Documents
-  md: { Icon: IconFileText, colorClass: "text-gray-400" },
-  txt: { Icon: IconFileTypeTxt, colorClass: "text-gray-400" },
-  pdf: { Icon: IconFileTypePdf, colorClass: "text-red-500" },
+  md: { Icon: IconFileText, colorClass: "text-text-secondary" },
+  txt: { Icon: IconFileTypeTxt, colorClass: "text-text-secondary" },
+  pdf: { Icon: IconFileTypePdf, colorClass: "text-accent-red" },
   // Images
-  png: { Icon: IconFileTypePng, colorClass: "text-purple-400" },
-  jpg: { Icon: IconFileTypeJpg, colorClass: "text-purple-400" },
-  jpeg: { Icon: IconFileTypeJpg, colorClass: "text-purple-400" },
-  bmp: { Icon: IconFileTypeBmp, colorClass: "text-purple-400" },
+  png: { Icon: IconFileTypePng, colorClass: "text-accent-primary" },
+  jpg: { Icon: IconFileTypeJpg, colorClass: "text-accent-primary" },
+  jpeg: { Icon: IconFileTypeJpg, colorClass: "text-accent-primary" },
+  bmp: { Icon: IconFileTypeBmp, colorClass: "text-accent-primary" },
   // Archives
-  zip: { Icon: IconFileTypeZip, colorClass: "text-yellow-600" },
+  zip: { Icon: IconFileTypeZip, colorClass: "text-accent-orange" },
 };
 
 // Special filename mappings (exact match)
 const FILENAME_ICON_CONFIG: Record<string, IconConfig> = {
-  dockerfile: { Icon: IconBrandDocker, colorClass: "text-blue-400" },
+  dockerfile: { Icon: IconBrandDocker, colorClass: "text-accent-primary" },
 };
 
 const getChevronIcon = (isOpen: boolean) => {

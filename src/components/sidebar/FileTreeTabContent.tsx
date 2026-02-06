@@ -21,7 +21,7 @@ export default function FileTreeTabContent() {
   // Don't show if no active terminal session or no cwd
   if (!activeSessionId || activeSession?.type !== 'terminal' || !cwd) {
     return (
-      <div className="px-3 py-4 text-sm text-center text-gray-500">
+      <div className="px-3 py-4 text-sm text-center text-text-muted">
         No active session or working directory.
       </div>
     )

@@ -19,8 +19,8 @@ export default function DiffViewer({ sessionId: _sessionId }: DiffViewerProps) {
   return (
     <div className="flex flex-col h-full">
       {/* Staged/Unstaged badge */}
-      <div className="px-3 py-1 border-b border-[#2a2a2a]">
-        <span className="text-xs text-[#666] px-1.5 py-0.5 bg-[#2a2a2a] rounded">
+      <div className="px-3 py-1 border-b border-border-subtle">
+        <span className="text-xs text-text-muted px-1.5 py-0.5 bg-bg-hover rounded">
           {selectedFileStaged ? "staged" : "unstaged"}
         </span>
       </div>
@@ -28,7 +28,7 @@ export default function DiffViewer({ sessionId: _sessionId }: DiffViewerProps) {
       {/* Diff content */}
       <div className="flex-1 overflow-auto">
         {isDiffLoading ? (
-          <div className="p-4 text-[#666]">Loading diff...</div>
+          <div className="p-4 text-text-muted">Loading diff...</div>
         ) : fileDiff && fileDiff.hunks.length > 0 ? (
           <PierreDiffViewer
             fileDiff={fileDiff}
@@ -38,7 +38,7 @@ export default function DiffViewer({ sessionId: _sessionId }: DiffViewerProps) {
             className="h-full"
           />
         ) : (
-          <div className="p-4 text-[#666]">
+          <div className="p-4 text-text-muted">
             {fileDiff?.hunks.length === 0 ? "No changes" : "Unable to load diff"}
           </div>
         )}

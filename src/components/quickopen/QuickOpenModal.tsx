@@ -368,14 +368,14 @@ export default function QuickOpenModal() {
       className="fixed inset-0 bg-black/60 z-50 flex items-start justify-center pt-[15vh]"
       onClick={handleOverlayClick}
     >
-      <div className="flex flex-col items-start font-sans bg-bg-page/95 backdrop-blur-sm rounded-2xl p-4 shadow-2xl">
+      <div className="flex flex-col items-start font-sans bg-bg-card/90 backdrop-blur-md rounded-lg p-4 shadow-panel border border-border-subtle">
         {/* Title */}
         <div className="text-text-primary text-sm font-medium mb-2 opacity-60 px-1">
           Quick Launcher
         </div>
 
         {/* Modal */}
-        <div className="w-[560px] bg-sidebar rounded-xl shadow-lg border border-border overflow-hidden">
+        <div className="w-[560px] bg-bg-card rounded-lg shadow-soft border border-border-subtle overflow-hidden">
           {/* Search Header */}
           <div className="h-[52px] px-4 border-b border-border flex items-center gap-3">
             <Search className="w-[18px] h-[18px] text-text-secondary flex-shrink-0" />
@@ -386,7 +386,7 @@ export default function QuickOpenModal() {
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Search projects..."
-              className="flex-1 bg-transparent text-primary text-[15px] font-sans placeholder:text-text-secondary placeholder:opacity-50 focus:outline-none focus:ring-0 border-0 p-0"
+              className="flex-1 bg-transparent text-text-primary text-[15px] font-sans placeholder:text-text-secondary placeholder:opacity-50 focus:outline-none focus:ring-0 border-0 p-0"
             />
           </div>
 
@@ -403,7 +403,7 @@ export default function QuickOpenModal() {
                     flex items-center gap-1.5 border
                     ${isActive
                       ? "border-accent-primary text-accent-primary font-medium"
-                      : "border-border text-text-secondary hover:bg-hover"
+                      : "border-border text-text-secondary hover:bg-bg-hover"
                     }
                   `}
                 >
@@ -508,12 +508,12 @@ export default function QuickOpenModal() {
           <div className="h-[44px] px-4 border-t border-border flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-1.5">
-                <kbd className="w-5 h-5 rounded flex items-center justify-center bg-active border border-border text-text-secondary text-[11px]">↑</kbd>
-                <kbd className="w-5 h-5 rounded flex items-center justify-center bg-active border border-border text-text-secondary text-[11px]">↓</kbd>
+                <kbd className="w-5 h-5 rounded flex items-center justify-center bg-bg-active border border-border-subtle text-text-secondary text-[11px]">↑</kbd>
+                <kbd className="w-5 h-5 rounded flex items-center justify-center bg-bg-active border border-border-subtle text-text-secondary text-[11px]">↓</kbd>
                 <span className="text-[11px] text-text-secondary font-sans">Navigate</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <kbd className="w-7 h-5 rounded flex items-center justify-center bg-active border border-border text-text-secondary text-[11px]">↵</kbd>
+                <kbd className="w-7 h-5 rounded flex items-center justify-center bg-bg-active border border-border-subtle text-text-secondary text-[11px]">↵</kbd>
                 <span className="text-[11px] text-text-secondary font-sans">Open</span>
               </div>
             </div>

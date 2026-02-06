@@ -1,15 +1,22 @@
+import SettingsPageHeader from "../shared/SettingsPageHeader";
+import SettingsSection from "../shared/SettingsSection";
+import SettingsCard from "../shared/SettingsCard";
+
 export default function ProfilesSection() {
   return (
-    <div>
-      <h2 className="text-lg font-semibold text-gray-200 mb-6">Profiles</h2>
+    <div className="space-y-8">
+      <SettingsPageHeader
+        title="Profiles"
+        description="Save and reuse terminal preferences"
+      />
 
-      <div className="space-y-4">
-        <div className="bg-[#1a1a1a] rounded-lg p-4 border border-[#2a2a2a]">
-          <p className="text-sm text-gray-500 leading-relaxed">
+      <SettingsSection title="Profiles" description="Manage saved terminal profiles">
+        <SettingsCard>
+          <p className="px-4 py-3 text-sm text-text-muted leading-relaxed">
             Profile management coming soon...
           </p>
-        </div>
-      </div>
+        </SettingsCard>
+      </SettingsSection>
     </div>
   );
 }

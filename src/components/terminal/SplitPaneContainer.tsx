@@ -19,14 +19,14 @@ function ResizeHandle({ direction }: { direction: "horizontal" | "vertical" }) {
     <Separator
       className={`
         ${isHorizontal ? "w-1 cursor-col-resize" : "h-1 cursor-row-resize"}
-        bg-[#333] hover:bg-purple-500 transition-colors
+        bg-border-subtle hover:bg-accent-primary transition-colors
         flex items-center justify-center
       `}
     >
       <div
         className={`
           ${isHorizontal ? "w-0.5 h-8" : "h-0.5 w-8"}
-          bg-[#555] rounded
+          bg-bg-hover rounded
         `}
       />
     </Separator>

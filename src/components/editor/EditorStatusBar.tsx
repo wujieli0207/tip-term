@@ -31,17 +31,17 @@ export default function EditorStatusBar() {
   };
 
   return (
-    <div className="flex items-center justify-between px-3 py-1 bg-[#0a0a0a] border-t border-[#2a2a2a] text-xs text-gray-500">
+    <div className="flex items-center justify-between px-3 py-1 bg-bg-terminal border-t border-border-subtle text-xs text-text-muted">
       <div className="flex items-center gap-4">
         <span>{getLanguageDisplay(activeFile.language)}</span>
       </div>
       <div className="flex items-center gap-4">
         {activeFile.isDirty ? (
-          <span className="text-purple-400">Modified</span>
+          <span className="text-accent-primary">Modified</span>
         ) : (
-          <span className="text-green-500">Saved</span>
+          <span className="text-accent-green">Saved</span>
         )}
-        <span className="text-gray-600" title={activeFile.path}>
+        <span className="text-text-muted" title={activeFile.path}>
           {activeFile.path.length > 50
             ? "..." + activeFile.path.slice(-47)
             : activeFile.path}

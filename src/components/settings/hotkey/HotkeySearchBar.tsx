@@ -87,14 +87,14 @@ export default function HotkeySearchBar({
   return (
     <div ref={containerRef} className="relative mb-6">
       <div
-        className={`flex items-center bg-[#1a1a1a] border rounded-lg overflow-hidden transition-colors ${
+        className={`flex items-center bg-bg-active border rounded-lg overflow-hidden transition-colors ${
           isKeyboardMode
-            ? "border-purple-500 ring-1 ring-purple-500/30"
-            : "border-[#2a2a2a] focus-within:border-[#3a3a3a]"
+            ? "border-accent-primary ring-1 ring-accent-primary/30"
+            : "border-border-subtle focus-within:border-border"
         }`}
       >
         {/* Search icon */}
-        <div className="pl-3 text-gray-500">
+        <div className="pl-3 text-text-muted">
           <IconSearch className="w-4 h-4" stroke={2} />
         </div>
 
@@ -105,7 +105,7 @@ export default function HotkeySearchBar({
               {bindingQuery ? (
                 <HotkeyBadge binding={bindingQuery} />
               ) : (
-                <span className="text-sm text-gray-400 animate-pulse">
+                <span className="text-sm text-text-secondary animate-pulse">
                   Press a key combination...
                 </span>
               )}
@@ -117,7 +117,7 @@ export default function HotkeySearchBar({
               value={textQuery}
               onChange={(e) => onTextChange(e.target.value)}
               placeholder="Search hotkeys..."
-              className="w-full py-2 bg-transparent text-sm text-gray-200 placeholder-gray-500 focus:outline-none"
+              className="w-full py-2 bg-transparent text-sm text-text-primary placeholder:text-text-muted focus:outline-none"
             />
           )}
         </div>
@@ -126,7 +126,7 @@ export default function HotkeySearchBar({
         {hasQuery && (
           <button
             onClick={clearSearch}
-            className="px-2 text-gray-500 hover:text-gray-300 transition-colors"
+            className="px-2 text-text-muted hover:text-text-primary transition-colors"
             title="Clear search"
           >
             <IconX className="w-4 h-4" stroke={2} />
@@ -138,8 +138,8 @@ export default function HotkeySearchBar({
           onClick={toggleMode}
           className={`px-3 py-2 border-l transition-colors ${
             isKeyboardMode
-              ? "bg-purple-600/20 text-purple-400 border-purple-500/30"
-              : "text-gray-500 hover:text-gray-300 border-[#2a2a2a] hover:bg-[#2a2a2a]"
+              ? "bg-accent-primary/15 text-accent-primary border-accent-primary/30"
+              : "text-text-muted hover:text-text-primary border-border-subtle hover:bg-bg-hover"
           }`}
           title={isKeyboardMode ? "Switch to text search" : "Search by pressing keys"}
         >
@@ -149,7 +149,7 @@ export default function HotkeySearchBar({
 
       {/* Mode hint */}
       {isKeyboardMode && (
-        <p className="absolute mt-1 text-xs text-gray-500">
+        <p className="absolute mt-1 text-xs text-text-muted">
           Press ESC to exit keyboard search
         </p>
       )}

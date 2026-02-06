@@ -120,19 +120,19 @@ export default function HotkeyItem({ hotkey }: HotkeyItemProps) {
   return (
     <div
       ref={containerRef}
-      className="relative flex items-center justify-between py-3 px-4 hover:bg-[#1a1a1a] rounded-lg group"
+      className="relative flex items-center justify-between py-3 px-4 hover:bg-bg-active rounded-lg group"
     >
       {/* Left side: label and description */}
       <div className="flex-1 min-w-0 mr-4">
         <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-200">{hotkey.label}</span>
+          <span className="text-sm text-text-primary">{hotkey.label}</span>
           {isModified && (
-            <span className="text-[10px] px-1.5 py-0.5 bg-purple-600/20 text-purple-400 rounded">
+            <span className="text-[10px] px-1.5 py-0.5 bg-accent-primary/15 text-accent-primary rounded">
               Modified
             </span>
           )}
         </div>
-        <p className="text-xs text-gray-500 mt-0.5 truncate">{hotkey.description}</p>
+        <p className="text-xs text-text-muted mt-0.5 truncate">{hotkey.description}</p>
       </div>
 
       {/* Right side: hotkey badge and actions */}
@@ -141,7 +141,7 @@ export default function HotkeyItem({ hotkey }: HotkeyItemProps) {
         {isModified && !isEditing && (
           <button
             onClick={handleReset}
-            className="opacity-0 group-hover:opacity-100 text-xs text-gray-500 hover:text-gray-300 transition-opacity"
+            className="opacity-0 group-hover:opacity-100 text-xs text-text-muted hover:text-text-primary transition-opacity"
             title="Reset to default"
           >
             Reset
@@ -153,12 +153,12 @@ export default function HotkeyItem({ hotkey }: HotkeyItemProps) {
           onClick={handleStartEditing}
           className={`min-w-[80px] flex items-center justify-center cursor-pointer rounded px-2 py-1 transition-colors ${
             isEditing
-              ? "bg-[#2a2a2a] ring-1 ring-purple-500"
-              : "hover:bg-[#2a2a2a]"
+              ? "bg-bg-hover ring-1 ring-accent-primary"
+              : "hover:bg-bg-hover"
           }`}
         >
           {isEditing && pendingState === null ? (
-            <span className="text-xs text-gray-400 animate-pulse">Press keys...</span>
+            <span className="text-xs text-text-secondary animate-pulse">Press keys...</span>
           ) : (
             <HotkeyBadge
               binding={displayBinding}
@@ -171,14 +171,14 @@ export default function HotkeyItem({ hotkey }: HotkeyItemProps) {
 
       {/* Conflict warning */}
       {conflict && (
-        <div className="absolute right-4 top-full mt-1 text-xs text-red-400 bg-red-900/20 px-2 py-1 rounded">
+        <div className="absolute right-4 top-full mt-1 text-xs text-accent-red bg-accent-red/15 px-2 py-1 rounded">
           Conflicts with: {conflict.label}
         </div>
       )}
 
       {/* Edit mode hint */}
       {isEditing && !conflict && (
-        <div className="absolute right-4 top-full mt-1 text-xs text-gray-500">
+        <div className="absolute right-4 top-full mt-1 text-xs text-text-muted">
           Press Backspace to remove
         </div>
       )}

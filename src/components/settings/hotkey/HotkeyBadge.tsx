@@ -22,8 +22,8 @@ export default function HotkeyBadge({ binding, isEditing, isConflict }: HotkeyBa
   // Handle null/disabled binding
   if (!binding) {
     const disabledClasses = isEditing
-      ? "bg-purple-600/30 text-purple-300 ring-1 ring-purple-500"
-      : "bg-[#1a1a1a] text-gray-500 italic";
+      ? "bg-accent-primary/20 text-accent-primary ring-1 ring-accent-primary"
+      : "bg-bg-active text-text-muted italic";
     return (
       <span className={`${baseClasses} ${disabledClasses}`}>
         None
@@ -38,10 +38,10 @@ export default function HotkeyBadge({ binding, isEditing, isConflict }: HotkeyBa
   const keyDisplay = binding.key.length === 1 ? binding.key.toUpperCase() : binding.key;
 
   const stateClasses = isEditing
-    ? "bg-purple-600/30 text-purple-300 ring-1 ring-purple-500"
+    ? "bg-accent-primary/20 text-accent-primary ring-1 ring-accent-primary"
     : isConflict
-    ? "bg-red-600/30 text-red-300 ring-1 ring-red-500"
-    : "bg-[#2a2a2a] text-gray-300";
+    ? "bg-accent-red/20 text-accent-red ring-1 ring-accent-red/60"
+    : "bg-bg-hover text-text-secondary";
 
   return (
     <span className={`${baseClasses} ${stateClasses}`}>

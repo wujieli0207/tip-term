@@ -5,6 +5,9 @@ import { getEffectiveHotkeys, filterByText, filterByBinding } from "../../../uti
 import { HOTKEY_CATEGORIES } from "../../../config/defaultHotkeys";
 import HotkeySearchBar from "../hotkey/HotkeySearchBar";
 import HotkeyItem from "../hotkey/HotkeyItem";
+import SettingsPageHeader from "../shared/SettingsPageHeader";
+import SettingsSection from "../shared/SettingsSection";
+import SettingsCard from "../shared/SettingsCard";
 
 export default function HotkeySection() {
   const { hotkeys, resetAllHotkeys } = useSettingsStore();
@@ -47,49 +50,56 @@ export default function HotkeySection() {
   const hasCustomizations = Object.keys(hotkeys.customizations).length > 0;
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-lg font-semibold text-gray-200">Hotkeys</h2>
-        {hasCustomizations && (
-          <button
-            onClick={resetAllHotkeys}
-            className="text-xs text-gray-500 hover:text-gray-300 transition-colors"
-          >
-            Reset All
-          </button>
-        )}
-      </div>
-
-      <HotkeySearchBar
-        textQuery={textQuery}
-        bindingQuery={bindingQuery}
-        onTextChange={setTextQuery}
-        onBindingChange={setBindingQuery}
+    <div className="space-y-8">
+      <SettingsPageHeader
+        title="Hotkeys"
+        description="Search and customize keyboard shortcuts"
       />
 
-      {/* Hotkey list grouped by category */}
-      <div className="space-y-6">
-        {Object.entries(groupedHotkeys).map(([category, items]) => (
-          <div key={category}>
-            <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2 px-4">
-              {category}
-            </h3>
-            <div className="space-y-0.5">
-              {items.map((hotkey) => (
-                <HotkeyItem key={hotkey.id} hotkey={hotkey} />
-              ))}
-            </div>
-          </div>
-        ))}
+      <SettingsSection title="Search & Manage" description="Find shortcuts or filter by key binding">
+        <div className="flex items-center justify-end mb-4">
+          {hasCustomizations && (
+            <button
+              onClick={resetAllHotkeys}
+              className="text-xs text-text-muted hover:text-text-primary transition-colors"
+            >
+              Reset All
+            </button>
+          )}
+        </div>
 
-        {filteredHotkeys.length === 0 && (
-          <div className="text-center py-8 text-gray-500">
-            {textQuery || bindingQuery
-              ? "No hotkeys match your search"
-              : "No hotkeys configured"}
+        <HotkeySearchBar
+          textQuery={textQuery}
+          bindingQuery={bindingQuery}
+          onTextChange={setTextQuery}
+          onBindingChange={setBindingQuery}
+        />
+
+        <SettingsCard className="p-2">
+          <div className="space-y-6">
+            {Object.entries(groupedHotkeys).map(([category, items]) => (
+              <div key={category}>
+                <h3 className="text-xs font-medium text-text-muted uppercase tracking-wider mb-2 px-4">
+                  {category}
+                </h3>
+                <div className="space-y-0.5">
+                  {items.map((hotkey) => (
+                    <HotkeyItem key={hotkey.id} hotkey={hotkey} />
+                  ))}
+                </div>
+              </div>
+            ))}
+
+            {filteredHotkeys.length === 0 && (
+              <div className="text-center py-8 text-text-muted">
+                {textQuery || bindingQuery
+                  ? "No hotkeys match your search"
+                  : "No hotkeys configured"}
+              </div>
+            )}
           </div>
-        )}
-      </div>
+        </SettingsCard>
+      </SettingsSection>
     </div>
   );
 }

@@ -25,17 +25,17 @@ export default function EditorPanel() {
   return (
     <div
       ref={panelRef}
-      className="relative flex flex-col bg-[#0f0f0f] border-r border-[#2a2a2a]"
+      className="relative flex flex-col bg-bg-terminal border-r border-border-subtle"
       style={{ width: editorWidth, minWidth: 300, maxWidth: 800 }}
     >
       <EditorHeader />
 
       <div className="flex-1 overflow-hidden">
         {isLoading ? (
-          <div className="flex items-center justify-center h-full text-gray-500">
+          <div className="flex items-center justify-center h-full text-text-muted">
             <div className="text-center">
               <svg
-                className="w-8 h-8 mx-auto mb-2 text-purple-500 animate-spin"
+                className="w-8 h-8 mx-auto mb-2 text-accent-primary animate-spin"
                 fill="none"
                 viewBox="0 0 24 24"
               >
@@ -63,10 +63,10 @@ export default function EditorPanel() {
             onChange={handleChange}
           />
         ) : (
-          <div className="flex items-center justify-center h-full text-gray-500">
+          <div className="flex items-center justify-center h-full text-text-muted">
             <div className="text-center">
               <svg
-                className="w-12 h-12 mx-auto mb-2 text-gray-600"
+                className="w-12 h-12 mx-auto mb-2 text-text-muted"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -79,7 +79,7 @@ export default function EditorPanel() {
                 />
               </svg>
               <p className="text-sm">No file open</p>
-              <p className="text-xs text-gray-600 mt-1">Click a file in the tree to edit</p>
+              <p className="text-xs text-text-muted mt-1">Click a file in the tree to edit</p>
             </div>
           </div>
         )}
@@ -89,8 +89,8 @@ export default function EditorPanel() {
 
       {/* Resize handle */}
       <div
-        className={`absolute top-0 right-0 w-1 h-full cursor-col-resize hover:bg-purple-500 transition-colors ${
-          isResizing ? "bg-purple-500" : "bg-transparent"
+        className={`absolute top-0 right-0 w-1 h-full cursor-col-resize hover:bg-accent-primary transition-colors ${
+          isResizing ? "bg-accent-primary" : "bg-transparent"
         }`}
         onMouseDown={handleMouseDown}
       />

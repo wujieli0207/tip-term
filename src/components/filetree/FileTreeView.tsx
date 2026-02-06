@@ -125,13 +125,13 @@ export default function FileTreeView({ sessionId }: FileTreeViewProps) {
 
   if (!tree) {
     return (
-      <div className="p-4 text-gray-500 text-sm">No directory available</div>
+      <div className="p-4 text-text-muted text-sm">No directory available</div>
     );
   }
 
   if (tree.isLoading && tree.entries.size === 0) {
     return (
-      <div className="p-4 text-gray-500 text-sm flex items-center gap-2">
+      <div className="p-4 text-text-muted text-sm flex items-center gap-2">
         <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
           <circle
             className="opacity-25"
@@ -154,13 +154,13 @@ export default function FileTreeView({ sessionId }: FileTreeViewProps) {
   }
 
   if (tree.error) {
-    return <div className="p-4 text-red-400 text-sm">Error: {tree.error}</div>;
+    return <div className="p-4 text-accent-red text-sm">Error: {tree.error}</div>;
   }
 
   const rootEntries = tree.entries.get(tree.rootPath);
 
   if (!rootEntries || rootEntries.length === 0) {
-    return <div className="p-4 text-gray-500 text-sm">Empty directory</div>;
+    return <div className="p-4 text-text-muted text-sm">Empty directory</div>;
   }
 
   return (

@@ -83,7 +83,7 @@ export function Tooltip({ content, children, placement = 'top' }: TooltipProps) 
   const tooltipContent = isVisible ? (
     <div
       ref={tooltipRef}
-      className="fixed px-2 py-1 bg-[#3a3a3a] text-gray-200 text-xs rounded whitespace-nowrap pointer-events-none z-[9999] border border-[#4a4a4a] shadow-lg"
+      className="fixed px-2 py-1 bg-bg-active text-text-primary text-xs rounded whitespace-nowrap pointer-events-none z-[9999] border border-border-subtle shadow-panel"
       style={{
         left: `${position.x}px`,
         top: placement === 'bottom' ? `${position.y + 8}px` : `${position.y - 8}px`,
@@ -93,12 +93,12 @@ export function Tooltip({ content, children, placement = 'top' }: TooltipProps) 
       {content}
       {placement === 'bottom' ? (
         <div
-          className={`absolute ${getArrowClass()} bottom-full border-4 border-transparent border-b-[#3a3a3a]`}
+          className={`absolute ${getArrowClass()} bottom-full border-4 border-transparent border-b-[hsl(var(--bg-active))]`}
           style={{ marginBottom: '-1px' }}
         />
       ) : (
         <div
-          className={`absolute ${getArrowClass()} top-full border-4 border-transparent border-t-[#3a3a3a]`}
+          className={`absolute ${getArrowClass()} top-full border-4 border-transparent border-t-[hsl(var(--bg-active))]`}
           style={{ marginTop: '-1px' }}
         />
       )}

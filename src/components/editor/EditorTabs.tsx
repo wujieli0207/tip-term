@@ -32,18 +32,18 @@ export default function EditorTabs() {
           onClick={() => setActiveFile(file.path)}
           className={`flex items-center gap-1.5 px-3 py-1.5 text-sm whitespace-nowrap transition-colors ${
             file.path === activeFilePath
-              ? "bg-[#1a1a1a] text-gray-200"
-              : "bg-transparent text-gray-400 hover:bg-[#1a1a1a] hover:text-gray-300"
+              ? "bg-bg-active text-text-primary"
+              : "bg-transparent text-text-secondary hover:bg-bg-active hover:text-text-primary"
           }`}
           title={file.path}
         >
           <span className="truncate max-w-[150px]">{file.filename}</span>
           {file.isDirty && (
-            <span className="w-2 h-2 bg-purple-500 rounded-full flex-shrink-0" title="Unsaved changes" />
+            <span className="w-2 h-2 bg-accent-primary rounded-full flex-shrink-0" title="Unsaved changes" />
           )}
           <span
             onClick={(e) => handleClose(e, file.path)}
-            className="ml-1 p-0.5 rounded hover:bg-[#3a3a3a] text-gray-500 hover:text-gray-300"
+            className="ml-1 p-0.5 rounded hover:bg-bg-active text-text-muted hover:text-text-primary"
           >
             <IconX className="w-3 h-3" stroke={2} />
           </span>

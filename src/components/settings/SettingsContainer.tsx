@@ -12,7 +12,7 @@ export default function SettingsContainer() {
   const [activeSection, setActiveSection] = useState<SettingsSection>("application");
 
   return (
-    <div className="flex h-full bg-[#0a0a0a]">
+    <div className="flex h-full bg-bg-terminal">
       <SettingsSidebar
         activeSection={activeSection}
         onSectionChange={setActiveSection}

@@ -181,22 +181,27 @@ export default function SessionItem({ session, index, inGroup: _inGroup = false,
       onMouseLeave={() => setIsHovered(false)}
       className={`
         group flex items-center justify-between gap-2.5
-        h-9 px-2.5 rounded-md
+        h-10 px-2.5 rounded-md
         transition-all duration-150 relative
         ${isDragging ? 'z-50 shadow-lg opacity-50' : ''}
-        ${isDropTarget ? 'ring-2 ring-purple-500 ring-inset scale-[1.02]' : ''}
+        ${isDropTarget ? 'ring-2 ring-accent-primary/60 ring-inset scale-[1.02]' : ''}
         ${isActive ? "bg-bg-active" : "hover:bg-bg-hover"}
       `}
     >
+      <span
+        className={`absolute left-0 top-1.5 bottom-1.5 w-0.5 rounded-full ${
+          isActive ? "bg-accent-primary" : "bg-transparent"
+        }`}
+      />
       <div className="flex items-center flex-1 min-w-0 gap-2">
         <div className="relative flex-shrink-0">
           <IconTerminal2
-            className={`w-4 h-4 ${isActive ? 'text-accent-cyan' : 'text-text-muted'}`}
+            className={`w-4 h-4 ${isActive ? 'text-accent-primary' : 'text-text-muted'}`}
             stroke={2}
           />
           {/* Notification indicator */}
           {(session.notifyWhenDone || session.notifyOnActivity) && (
-            <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-purple-500 rounded-full" />
+            <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-accent-primary rounded-full" />
           )}
         </div>
         {isEditing ? (

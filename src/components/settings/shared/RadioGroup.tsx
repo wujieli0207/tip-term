@@ -11,16 +11,16 @@ interface RadioGroupProps {
 
 export default function RadioGroup({ value, onChange, options }: RadioGroupProps) {
   return (
-    <div className="flex rounded-lg overflow-hidden border border-[#3a3a3a]">
+    <div className="flex rounded-lg overflow-hidden border border-border-subtle">
       {options.map((option, index) => (
         <button
           key={option.value}
           onClick={() => onChange(option.value)}
           className={`px-3 py-1.5 text-sm transition-colors ${
             value === option.value
-              ? "bg-purple-600 text-white"
-              : "bg-[#1a1a1a] text-gray-300 hover:bg-[#2a2a2a]"
-          } ${index > 0 ? "border-l border-[#3a3a3a]" : ""}`}
+              ? "bg-accent-primary text-white"
+              : "bg-bg-active text-text-secondary hover:bg-bg-hover"
+          } ${index > 0 ? "border-l border-border-subtle" : ""}`}
         >
           {option.label}
         </button>

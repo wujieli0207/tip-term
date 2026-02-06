@@ -69,30 +69,32 @@ Design source: Pencil file `tipterm.pen`
 
 | Usage | Font | Size | Weight |
 |-------|------|------|--------|
-| UI text | Inter | 13px | normal/500 |
+| UI text | Space Grotesk | 13-14px | normal/500 |
+| Page headers (Settings) | Space Grotesk | 16px (`text-lg`) | 500 |
+| Page descriptions | Space Grotesk | 12px (`text-xs`) | 400 |
+| Section headers | Space Grotesk | 14px (`text-sm`) | 500 |
 | Code/Terminal | JetBrains Mono | 12-13px | normal |
 | Hotkey labels | JetBrains Mono | 10-11px | normal |
-| Section headers | Inter | 10px (letterSpacing: 1px) | 500 |
 
 ### Spacing & Sizing
 
 **Border Radius**
-- Modals/Dialogs: `12px`
-- Cards/Menus: `8px`
-- Buttons/Tabs/Inputs: `6px`
-- File items: `4px`
+- Global radius: `10px` (via `--radius`)
+- Cards/Menus: `10px`
+- Buttons/Tabs/Inputs: `6-8px` (derived from `--radius`)
 - Pills/Tags: `9999px` (fully rounded)
 
 **Component Dimensions**
 | Component | Size |
 |-----------|------|
-| Title Bar | h: 52px |
-| Sidebar | w: 220px |
+| Title Bar | h: 36px |
+| Sidebar | w: 220px (resizable) |
 | Sidebar Tabs | h: 44px |
 | Tab button | 32×32px |
-| Session item | h: 36px |
+| Session item | h: 40px |
+| Settings sidebar item | h: 40px |
 | File item | h: 28px |
-| Search/Input | h: 28px |
+| Search/Input | h: 36px |
 | Hotkey badge | 20×20px |
 
 ### Icons

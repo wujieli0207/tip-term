@@ -31,16 +31,16 @@ export default function GitPanel() {
   }
 
   return (
-    <div className="flex flex-col h-full bg-[#0f0f0f]">
+    <div className="flex flex-col h-full bg-bg-terminal">
       <GitPanelHeader sessionId={activeSessionId} />
 
       <div className="flex-1 overflow-y-auto overflow-x-hidden">
         {gitState?.error ? (
-          <div className="p-4 text-[#666]">
+          <div className="p-4 text-text-muted">
             <p className="text-sm">{gitState.error}</p>
           </div>
         ) : gitState?.isLoading ? (
-          <div className="p-4 text-[#666]">
+          <div className="p-4 text-text-muted">
             <p className="text-sm">Loading...</p>
           </div>
         ) : gitState?.status ? (
@@ -65,7 +65,7 @@ export default function GitPanel() {
               isUntracked={true}
             />
 
-            <div className="border-t border-[#2a2a2a] mt-2">
+            <div className="border-t border-border-subtle mt-2">
               <CommitInput />
               <CommitActions sessionId={activeSessionId} />
             </div>
@@ -73,7 +73,7 @@ export default function GitPanel() {
             <RecentCommits sessionId={activeSessionId} />
           </>
         ) : (
-          <div className="p-4 text-[#666]">
+          <div className="p-4 text-text-muted">
             <p className="text-sm">Not a git repository</p>
           </div>
         )}

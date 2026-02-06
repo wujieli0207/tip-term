@@ -24,7 +24,7 @@ export default function FileTreePanel() {
   }
 
   return (
-    <div className="flex flex-col h-full bg-[#0f0f0f]">
+    <div className="flex flex-col h-full bg-bg-terminal">
       <FileTreeHeader sessionId={activeSessionId} />
 
       <div className="flex-1 overflow-y-auto overflow-x-hidden">

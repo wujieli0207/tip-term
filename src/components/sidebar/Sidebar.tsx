@@ -17,8 +17,8 @@ function ResizeHandle({
   return (
     <div
       className={`absolute right-0 top-0 bottom-0 w-1 cursor-col-resize
-        bg-[#333] hover:bg-purple-500 transition-colors z-10
-        ${isResizing ? 'bg-purple-500' : ''}`}
+        bg-border-subtle hover:bg-accent-primary transition-colors z-10
+        ${isResizing ? 'bg-accent-primary' : ''}`}
       onMouseDown={onMouseDown}
     />
   )
@@ -53,7 +53,7 @@ export default function Sidebar() {
   return (
     <div
       ref={panelRef}
-      className="flex flex-col h-full bg-bg-sidebar border-r border-border overflow-visible relative"
+      className="flex flex-col h-full bg-bg-sidebar border-r border-border-subtle overflow-visible relative"
       style={{ width }}
     >
       <SidebarHeader />
